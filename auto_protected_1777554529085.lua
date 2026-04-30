@@ -10044,8 +10044,8 @@
 
 
 --// ============================================================
---// TOOL ORBIT SYSTEM - DUAL WIELD EDITION
---// ระบบหมุน Tool คู่ + GUI แนวนอน/แนวตั้ง + หมุนทวนกัน
+--// TOOL ORBIT SYSTEM - POSITION CONTROL EDITION
+--// แก้ Scroll GUI + เพิ่มระบบปรับตำแหน่ง Tool แบบละเอียด
 --// ============================================================
 
 local Players = game:GetService("Players")
@@ -10062,34 +10062,28 @@ local camera = Workspace.CurrentCamera
 --// ============================================================
 
 local Config = {
-    -- หมุนรอบตัวเรา
     OrbitEnabled = false,
     OrbitSpeed = 2.5,
     OrbitRadius = 8,
     OrbitHeight = 2,
     OrbitTilt = 0,
-    OrbitOpposite = true, -- true = หมุนทวนกัน
+    OrbitOpposite = true,
 
-    -- สลับ Tool
     SwapEnabled = false,
     SwapSpeed = 0.5,
 
-    -- ดันไปข้างหน้า
     GripEnabled = true,
     GripDistance = 15,
 
-    -- วาปไปหาทุกคน
     TeleportAllEnabled = false,
     TeleportAllSpeed = 1.0,
 
-    -- วนรอบผู้เล่นอื่น
     OrbitOthersEnabled = false,
     OrbitOthersSpeed = 2.0,
     OrbitOthersRadius = 10,
     OrbitOthersHeight = 3,
     TargetPlayer = nil,
 
-    -- กระจาย Tool
     ScatterEnabled = false,
     ScatterCount = 8,
     ScatterRange = 30,
@@ -10098,27 +10092,36 @@ local Config = {
     ScatterLineChance = 0.3,
     ScatterSpeed = 3.0,
 
-    -- ถือ Tool คู่
     DualWieldEnabled = false,
     DualWieldOffset = 3,
 
-    -- GUI
-    GUILayout = "horizontal", -- "horizontal" หรือ "vertical"
+    -- ตำแหน่ง Tool
+    ToolPosition = {
+        Left = 0,
+        Right = 0,
+        Up = 0,
+        Down = 0,
+        Front = 0,
+        Back = 0,
+    },
+    PositionStep = 1,
+    SelectedTool = nil,
+
+    GUILayout = "horizontal",
     RainbowMode = false,
     GUIVisible = true,
 }
 
 --// ============================================================
---// ระบบ GUI ภาษาไทย (แนวนอน/แนวตั้ง)
+--// ระบบ GUI ภาษาไทย
 --// ============================================================
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ToolOrbitDual"
+ScreenGui.Name = "ToolOrbitPos"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- ปุ่มเปิด GUI
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Name = "ToggleBtn"
 ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
@@ -10135,7 +10138,6 @@ local ToggleCorner = Instance.new("UICorner")
 ToggleCorner.CornerRadius = UDim.new(1, 0)
 ToggleCorner.Parent = ToggleBtn
 
--- กรอบหลัก
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
@@ -10163,7 +10165,6 @@ Shadow.ScaleType = Enum.ScaleType.Slice
 Shadow.SliceCenter = Rect.new(23, 23, 277, 277)
 Shadow.Parent = MainFrame
 
--- แถบหัวข้อ
 local TitleBar = Instance.new("Frame")
 TitleBar.Name = "TitleBar"
 TitleBar.Size = UDim2.new(1, 0, 0, 40)
@@ -10187,7 +10188,6 @@ TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Parent = TitleBar
 
--- ปุ่มสลับแนว
 local LayoutBtn = Instance.new("TextButton")
 LayoutBtn.Name = "Layout"
 LayoutBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -10203,7 +10203,6 @@ local LayoutCorner = Instance.new("UICorner")
 LayoutCorner.CornerRadius = UDim.new(0, 6)
 LayoutCorner.Parent = LayoutBtn
 
--- ปุ่มย่อ/ขยาย
 local CollapseBtn = Instance.new("TextButton")
 CollapseBtn.Name = "Collapse"
 CollapseBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -10219,7 +10218,6 @@ local CollapseCorner = Instance.new("UICorner")
 CollapseCorner.CornerRadius = UDim.new(0, 6)
 CollapseCorner.Parent = CollapseBtn
 
--- ปุ่มซ่อน GUI
 local HideBtn = Instance.new("TextButton")
 HideBtn.Name = "Hide"
 HideBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -10235,13 +10233,14 @@ local HideCorner = Instance.new("UICorner")
 HideCorner.CornerRadius = UDim.new(0, 6)
 HideCorner.Parent = HideBtn
 
--- กรอบเลื่อนเนื้อหา
 local ContentFrame = Instance.new("ScrollingFrame")
 ContentFrame.Name = "Content"
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.BorderSizePixel = 0
-ContentFrame.ScrollBarThickness = 3
+ContentFrame.ScrollBarThickness = 6
 ContentFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 80, 120)
+ContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 ContentFrame.Parent = MainFrame
 
 local UIList = Instance.new("UIListLayout")
@@ -10249,24 +10248,27 @@ UIList.Padding = UDim.new(0, 8)
 UIList.SortOrder = Enum.SortOrder.LayoutOrder
 UIList.Parent = ContentFrame
 
+-- อัปเดต CanvasSize อัตโนมัติ
+UIList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    ContentFrame.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 20)
+end)
+
 --// ============================================================
 --// ฟังก์ชันปรับ Layout
 --// ============================================================
 
 local function ApplyLayout()
     if Config.GUILayout == "horizontal" then
-        MainFrame.Size = UDim2.new(0, 520, 0, 320)
-        MainFrame.Position = UDim2.new(0.5, -260, 0.5, -160)
+        MainFrame.Size = UDim2.new(0, 520, 0, 340)
+        MainFrame.Position = UDim2.new(0.5, -260, 0.5, -170)
         ContentFrame.Size = UDim2.new(1, -10, 1, -50)
         ContentFrame.Position = UDim2.new(0, 5, 0, 45)
-        ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 1200)
         LayoutBtn.Text = "H"
     else
-        MainFrame.Size = UDim2.new(0, 300, 0, 480)
-        MainFrame.Position = UDim2.new(0.5, -150, 0.5, -240)
+        MainFrame.Size = UDim2.new(0, 300, 0, 500)
+        MainFrame.Position = UDim2.new(0.5, -150, 0.5, -250)
         ContentFrame.Size = UDim2.new(1, -10, 1, -50)
         ContentFrame.Position = UDim2.new(0, 5, 0, 45)
-        ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 1600)
         LayoutBtn.Text = "V"
     end
 end
@@ -10556,6 +10558,279 @@ local function CreatePlayerDropdown()
 end
 
 --// ============================================================
+--// Dropdown เลือก Tool ในตัว
+--// ============================================================
+
+local ToolDropdownOpen = false
+local ToolDropdownFrame = nil
+local ToolDropdownButton = nil
+
+local function CreateToolDropdown()
+    CreateSection("เลือก Tool ปรับตำแหน่ง")
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 42)
+    frame.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
+    frame.BorderSizePixel = 0
+    frame.Parent = ContentFrame
+    frame.ClipsDescendants = true
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    local dropdownBtn = Instance.new("TextButton")
+    dropdownBtn.Name = "ToolDropdownBtn"
+    dropdownBtn.Size = UDim2.new(1, -10, 0, 32)
+    dropdownBtn.Position = UDim2.new(0, 5, 0, 5)
+    dropdownBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 60)
+    dropdownBtn.Text = "เลือก Tool..."
+    dropdownBtn.TextColor3 = Color3.fromRGB(220, 180, 255)
+    dropdownBtn.TextSize = 12
+    dropdownBtn.Font = Enum.Font.Gotham
+    dropdownBtn.AutoButtonColor = true
+    dropdownBtn.Parent = frame
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 5)
+    btnCorner.Parent = dropdownBtn
+
+    local arrow = Instance.new("TextLabel")
+    arrow.Size = UDim2.new(0, 20, 1, 0)
+    arrow.Position = UDim2.new(1, -25, 0, 0)
+    arrow.BackgroundTransparency = 1
+    arrow.Text = "▼"
+    arrow.TextColor3 = Color3.fromRGB(220, 180, 255)
+    arrow.TextSize = 12
+    arrow.Font = Enum.Font.GothamBold
+    arrow.Parent = dropdownBtn
+
+    local toolList = Instance.new("Frame")
+    toolList.Name = "ToolList"
+    toolList.Size = UDim2.new(1, -10, 0, 0)
+    toolList.Position = UDim2.new(0, 5, 0, 40)
+    toolList.BackgroundTransparency = 1
+    toolList.BorderSizePixel = 0
+    toolList.Visible = false
+    toolList.Parent = frame
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 3)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = toolList
+
+    ToolDropdownFrame = frame
+    ToolDropdownButton = dropdownBtn
+
+    local function GetMyTools()
+        local tools = {}
+        local char = player.Character
+        if char then
+            for _, child in pairs(char:GetChildren()) do
+                if child:IsA("Tool") then
+                    table.insert(tools, child)
+                end
+            end
+        end
+        if player:FindFirstChild("Backpack") then
+            for _, child in pairs(player.Backpack:GetChildren()) do
+                if child:IsA("Tool") then
+                    table.insert(tools, child)
+                end
+            end
+        end
+        return tools
+    end
+
+    local function ClearToolList()
+        for _, child in pairs(toolList:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+    end
+
+    local function UpdateToolList()
+        ClearToolList()
+
+        local tools = GetMyTools()
+        local count = 0
+
+        for _, tool in pairs(tools) do
+            count = count + 1
+
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, 0, 0, 30)
+            btn.BackgroundColor3 = Color3.fromRGB(55, 45, 65)
+            btn.Text = tool.Name
+            btn.TextColor3 = Color3.fromRGB(220, 200, 255)
+            btn.TextSize = 11
+            btn.Font = Enum.Font.Gotham
+            btn.AutoButtonColor = true
+            btn.Parent = toolList
+
+            local btnC = Instance.new("UICorner")
+            btnC.CornerRadius = UDim.new(0, 4)
+            btnC.Parent = btn
+
+            btn.MouseButton1Click:Connect(function()
+                Config.SelectedTool = tool
+                dropdownBtn.Text = "Tool: " .. tool.Name
+
+                ToolDropdownOpen = false
+                toolList.Visible = false
+                frame.Size = UDim2.new(1, 0, 0, 42)
+                arrow.Text = "▼"
+
+                for _, b in pairs(toolList:GetChildren()) do
+                    if b:IsA("TextButton") then
+                        b.BackgroundColor3 = Color3.fromRGB(55, 45, 65)
+                    end
+                end
+                btn.BackgroundColor3 = Color3.fromRGB(150, 100, 200)
+            end)
+        end
+
+        if ToolDropdownOpen then
+            local listHeight = math.min(count * 33, 180)
+            frame.Size = UDim2.new(1, 0, 0, 45 + listHeight)
+            toolList.Size = UDim2.new(1, -10, 0, listHeight)
+        end
+
+        return count
+    end
+
+    dropdownBtn.MouseButton1Click:Connect(function()
+        ToolDropdownOpen = not ToolDropdownOpen
+
+        if ToolDropdownOpen then
+            local count = UpdateToolList()
+            toolList.Visible = true
+            arrow.Text = "▲"
+        else
+            toolList.Visible = false
+            frame.Size = UDim2.new(1, 0, 0, 42)
+            arrow.Text = "▼"
+        end
+    end)
+
+    return frame
+end
+
+--// ============================================================
+--// ปุ่มปรับตำแหน่ง + - 
+--// ============================================================
+
+local function CreatePositionControl(labelText, axis, direction)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 40)
+    frame.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
+    frame.BorderSizePixel = 0
+    frame.Parent = ContentFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.3, 0, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = labelText
+    label.TextColor3 = Color3.fromRGB(200, 200, 220)
+    label.TextSize = 12
+    label.Font = Enum.Font.GothamBold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Name = "ValueLabel"
+    valueLabel.Size = UDim2.new(0.2, 0, 1, 0)
+    valueLabel.Position = UDim2.new(0.35, 0, 0, 0)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Text = "0"
+    valueLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+    valueLabel.TextSize = 14
+    valueLabel.Font = Enum.Font.GothamBold
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Center
+    valueLabel.Parent = frame
+
+    local minusBtn = Instance.new("TextButton")
+    minusBtn.Size = UDim2.new(0, 36, 0, 28)
+    minusBtn.Position = UDim2.new(0.58, 0, 0.5, -14)
+    minusBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    minusBtn.Text = "-"
+    minusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minusBtn.TextSize = 18
+    minusBtn.Font = Enum.Font.GothamBold
+    minusBtn.Parent = frame
+
+    local minusCorner = Instance.new("UICorner")
+    minusCorner.CornerRadius = UDim.new(0, 6)
+    minusCorner.Parent = minusBtn
+
+    local plusBtn = Instance.new("TextButton")
+    plusBtn.Size = UDim2.new(0, 36, 0, 28)
+    plusBtn.Position = UDim2.new(0.58, 42, 0.5, -14)
+    plusBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 60)
+    plusBtn.Text = "+"
+    plusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    plusBtn.TextSize = 18
+    plusBtn.Font = Enum.Font.GothamBold
+    plusBtn.Parent = frame
+
+    local plusCorner = Instance.new("UICorner")
+    plusCorner.CornerRadius = UDim.new(0, 6)
+    plusCorner.Parent = plusBtn
+
+    local resetBtn = Instance.new("TextButton")
+    resetBtn.Size = UDim2.new(0, 50, 0, 28)
+    resetBtn.Position = UDim2.new(1, -58, 0.5, -14)
+    resetBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
+    resetBtn.Text = "รีเซ็ต"
+    resetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    resetBtn.TextSize = 10
+    resetBtn.Font = Enum.Font.GothamBold
+    resetBtn.Parent = frame
+
+    local resetCorner = Instance.new("UICorner")
+    resetCorner.CornerRadius = UDim.new(0, 6)
+    resetCorner.Parent = resetBtn
+
+    local function UpdateValue()
+        valueLabel.Text = tostring(Config.ToolPosition[direction])
+
+        if Config.SelectedTool then
+            pcall(function()
+                local pos = Config.ToolPosition
+                Config.SelectedTool.Grip = CFrame.new(
+                    pos.Right - pos.Left,
+                    pos.Up - pos.Down,
+                    pos.Back - pos.Front
+                )
+            end)
+        end
+    end
+
+    minusBtn.MouseButton1Click:Connect(function()
+        Config.ToolPosition[direction] = Config.ToolPosition[direction] - Config.PositionStep
+        UpdateValue()
+    end)
+
+    plusBtn.MouseButton1Click:Connect(function()
+        Config.ToolPosition[direction] = Config.ToolPosition[direction] + Config.PositionStep
+        UpdateValue()
+    end)
+
+    resetBtn.MouseButton1Click:Connect(function()
+        Config.ToolPosition[direction] = 0
+        UpdateValue()
+    end)
+
+    return frame
+end
+
+--// ============================================================
 --// สร้าง GUI ทั้งหมด
 --// ============================================================
 
@@ -10675,6 +10950,18 @@ CreateInput("ความสูงวน", Config.OrbitOthersHeight, function(v)
     Config.OrbitOthersHeight = v
 end)
 
+CreateSection("ปรับตำแหน่ง Tool")
+
+CreateToolDropdown()
+
+CreateInput("ขนาดขยับ (Step)", Config.PositionStep, function(v)
+    Config.PositionStep = math.max(0.1, v)
+end)
+
+CreatePositionControl("ซ้าย / ขวา", "X", "Right")
+CreatePositionControl("ขึ้น / ลง", "Y", "Up")
+CreatePositionControl("หน้า / หลัง", "Z", "Front")
+
 CreateSection("การแสดงผล")
 
 CreateToggle("โหมดรุ้ง", Config.RainbowMode, function(v)
@@ -10729,6 +11016,17 @@ HideBtn.MouseButton1Click:Connect(function()
             if arrow then arrow.Text = "▼" end
         end
     end
+
+    if ToolDropdownOpen and ToolDropdownFrame then
+        ToolDropdownOpen = false
+        local list = ToolDropdownFrame:FindFirstChild("ToolList")
+        if list then list.Visible = false end
+        ToolDropdownFrame.Size = UDim2.new(1, 0, 0, 42)
+        if ToolDropdownButton then
+            local arrow = ToolDropdownButton:FindFirstChildOfClass("TextLabel")
+            if arrow then arrow.Text = "▼" end
+        end
+    end
 end)
 
 CollapseBtn.MouseButton1Click:Connect(function()
@@ -10768,7 +11066,6 @@ ToolSystem.ScatterAngle = 0
 ToolSystem.ScatterLineOffset = 0
 ToolSystem.Character = nil
 ToolSystem.Humanoid = nil
-ToolSystem.SecondTool = nil
 
 function ToolSystem:GetCharacter()
     return player.Character or player.CharacterAdded:Wait()
@@ -10845,7 +11142,6 @@ end
 
 function ToolSystem:UpdateDualWield()
     if not Config.DualWieldEnabled then
-        -- ถ้าปิดระบบคู่ แต่ถืออยู่ 2 อัน ให้เก็บอันที่ 2
         local tools = self:GetEquippedTools()
         if #tools > 1 then
             pcall(function()
@@ -10858,7 +11154,6 @@ function ToolSystem:UpdateDualWield()
     local tools = self:GetEquippedTools()
     local backpackTools = self:GetBackpackTools()
 
-    -- ถ้าถืออยู่น้อยกว่า 2 อัน ให้หยิบเพิ่ม
     if #tools < 2 and #backpackTools > 0 then
         for _, tool in pairs(backpackTools) do
             local alreadyEquipped = false
@@ -10896,7 +11191,6 @@ function ToolSystem:CalculateOrbitPosition(centerPos, angle, radius, height, til
     return CFrame.lookAt(orbitPos, centerPos)
 end
 
--- หมุนรอบตัวเรา (รองรับคู่ + ทวนกัน)
 function ToolSystem:UpdateSelfOrbit()
     if not Config.OrbitEnabled then return end
 
@@ -10910,7 +11204,6 @@ function ToolSystem:UpdateSelfOrbit()
     local dt = RunService.Heartbeat:Wait()
     self.OrbitAngle = self.OrbitAngle + (Config.OrbitSpeed * math.pi * 2 * dt)
 
-    -- Tool แรก หมุนตามปกติ
     local tool1 = tools[1]
     if tool1 then
         local angle1 = self.OrbitAngle
@@ -10928,7 +11221,6 @@ function ToolSystem:UpdateSelfOrbit()
         end)
     end
 
-    -- Tool ที่สอง หมุนทวนกัน (ถ้าเปิด)
     local tool2 = tools[2]
     if tool2 and Config.DualWieldEnabled then
         local angle2 = Config.OrbitOpposite and -self.OrbitAngle or (self.OrbitAngle + math.pi)
@@ -10949,7 +11241,6 @@ function ToolSystem:UpdateSelfOrbit()
     end
 end
 
--- หมุนรอบผู้เล่นคนอื่น (รองรับคู่ + ทวนกัน)
 function ToolSystem:UpdateOthersOrbit()
     if not Config.OrbitOthersEnabled then return end
     if not Config.TargetPlayer then return end
@@ -10978,7 +11269,6 @@ function ToolSystem:UpdateOthersOrbit()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    -- Tool แรก
     local tool1 = tools[1]
     if tool1 then
         local angle1 = self.OrbitOthersAngle
@@ -10996,7 +11286,6 @@ function ToolSystem:UpdateOthersOrbit()
         end)
     end
 
-    -- Tool ที่สอง ทวนกัน
     local tool2 = tools[2]
     if tool2 and Config.DualWieldEnabled then
         local angle2 = Config.OrbitOpposite and -self.OrbitOthersAngle or (self.OrbitOthersAngle + math.pi)
@@ -11050,7 +11339,6 @@ function ToolSystem:UpdateScatter()
     local pointIndex = math.floor((tick() * Config.ScatterSpeed) % count) + 1
     local angleStep = (math.pi * 2) / count
 
-    -- Tool แรก
     local tool1 = tools[1]
     if tool1 then
         local currentAngle1 = baseAngle + (pointIndex * angleStep)
@@ -11076,7 +11364,6 @@ function ToolSystem:UpdateScatter()
         end)
     end
 
-    -- Tool ที่สอง ทวนกัน
     local tool2 = tools[2]
     if tool2 and Config.DualWieldEnabled then
         local currentAngle2 = Config.OrbitOpposite and -(baseAngle + (pointIndex * angleStep)) or (baseAngle + (pointIndex * angleStep) + math.pi)
@@ -11135,7 +11422,6 @@ function ToolSystem:TeleportToAll()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    -- Tool แรก
     local tool1 = tools[1]
     if tool1 then
         pcall(function()
@@ -11144,7 +11430,6 @@ function ToolSystem:TeleportToAll()
         end)
     end
 
-    -- Tool ที่สอง วาปไปอีกคน
     local tool2 = tools[2]
     if tool2 and Config.DualWieldEnabled then
         local nextIndex = (currentIndex % #allPlayers) + 1
@@ -11216,31 +11501,22 @@ function ToolSystem:Start()
     end))
 
     table.insert(self.Connections, RunService.Heartbeat:Connect(function()
-        -- ถือ Tool คู่
         self:UpdateDualWield()
-
-        -- สลับ Tool
         self:AutoSwap()
-
-        -- วาปไปหาทุกคน
         self:TeleportToAll()
 
-        -- กระจายแบบเส้นตัด
         if Config.ScatterEnabled then
             self:UpdateScatter()
         end
 
-        -- หมุนรอบตัวเรา
         if Config.OrbitEnabled and not Config.ScatterEnabled then
             self:UpdateSelfOrbit()
         end
 
-        -- หมุนรอบผู้เล่นคนอื่น
         if Config.OrbitOthersEnabled and not Config.ScatterEnabled then
             self:UpdateOthersOrbit()
         end
 
-        -- อัปเดตสถานะ
         local status = "พร้อมใช้งาน"
         local color = Color3.fromRGB(50, 255, 100)
 
@@ -11263,7 +11539,6 @@ function ToolSystem:Start()
         end
     end))
 
-    -- โหมดรุ้ง
     table.insert(self.Connections, task.spawn(function()
         while true do
             if Config.RainbowMode and TitleText and TitleText.Parent then
@@ -11279,7 +11554,7 @@ function ToolSystem:Start()
         self:ApplyGrip(tool)
     end
 
-    print("Tool Orbit System (Dual Wield) Initialized")
+    print("Tool Orbit System (Position Control) Initialized")
 end
 
 function ToolSystem:Stop()
@@ -11302,8 +11577,8 @@ player.CharacterAdded:Connect(function()
     ToolSystem:Start()
 end)
 
-print("Tool Orbit System Dual Wield Loaded!")
-print("Features: DualWield | OppositeOrbit | SelfOrbit | AutoSwap | GripExtend | TeleportAll | ScatterLines | OrbitOthers | TH GUI")
+print("Tool Orbit System Position Control Loaded!")
+print("Features: DualWield | PositionControl | OppositeOrbit | SelfOrbit | AutoSwap | GripExtend | TeleportAll | ScatterLines | OrbitOthers | TH GUI")
 
 
 
