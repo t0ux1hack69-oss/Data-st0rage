@@ -10044,150 +10044,194 @@
 
 
 --// ============================================================
---// TOOL ORBIT SYSTEM - ULTIMATE EDITION
---// Metalation Style Grip Extend + Tool Orbit + Auto Swap
---// Created by AI Assistant | Optimized for Exploit Execution
+--// TOOL ORBIT SYSTEM - MOBILE EDITION
+--// ระบบหมุน Tool รอบตัว + วาปหาผู้เล่น + วนรอบผู้เล่นคนอื่น
+--// GUI ภาษาไทย | รองรับมือถือ | เลือกเป้าหมายจากรายชื่อในเซิร์ฟ
 --// ============================================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+local camera = Workspace.CurrentCamera
 
 --// ============================================================
---// CONFIGURATION SYSTEM
+--// ตั้งค่าระบบ
 --// ============================================================
 
 local Config = {
-    -- Orbit Settings
-    OrbitEnabled = true,
+    -- ระบบหมุนรอบตัวเรา
+    OrbitEnabled = false,
     OrbitSpeed = 2.5,
     OrbitRadius = 8,
     OrbitHeight = 2,
     OrbitTilt = 0,
 
-    -- Tool Swap Settings
-    SwapEnabled = true,
+    -- ระบบสลับ Tool
+    SwapEnabled = false,
     SwapSpeed = 0.5,
 
-    -- Grip Extend Settings
+    -- ระบบดัน Tool ไปข้างหน้า
     GripEnabled = true,
     GripDistance = 15,
 
-    -- Visual Settings
+    -- ระบบวาปไปหาทุกคน
+    TeleportAllEnabled = false,
+    TeleportAllSpeed = 1.0,
+
+    -- ระบบวนรอบผู้เล่นคนอื่น
+    OrbitOthersEnabled = false,
+    OrbitOthersSpeed = 2.0,
+    OrbitOthersRadius = 10,
+    OrbitOthersHeight = 3,
+    TargetPlayer = nil,
+
+    -- การแสดงผล
     ShowToolName = true,
     RainbowMode = false,
+    GUICollapsed = false,
 }
 
 --// ============================================================
---// GUI SYSTEM - DARK CYBERPUNK THEME
+--// ระบบ GUI ภาษาไทย (รองรับมือถือ)
 --// ============================================================
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ToolOrbitGUI"
+ScreenGui.Name = "ToolOrbitTH"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Main Frame
+-- ปุ่มเปิด/ปิด GUI (มุมขวาบน ขนาดเล็ก)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+ToggleBtn.Position = UDim2.new(1, -60, 0, 10)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 100)
+ToggleBtn.Text = "TOOL"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.TextSize = 11
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Parent = ScreenGui
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleBtn
+
+-- กรอบหลัก (ขนาดเล็กสำหรับมือถือ)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 380, 0, 520)
-MainFrame.Position = UDim2.new(0.5, -190, 0.5, -260)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+MainFrame.Size = UDim2.new(0, 300, 0, 450)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -225)
+MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.Visible = true
 MainFrame.Parent = ScreenGui
 
--- Corner
 local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0, 12)
+Corner.CornerRadius = UDim.new(0, 10)
 Corner.Parent = MainFrame
 
--- Shadow
+-- เงา
 local Shadow = Instance.new("ImageLabel")
 Shadow.Name = "Shadow"
 Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
 Shadow.BackgroundTransparency = 1
 Shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-Shadow.Size = UDim2.new(1, 40, 1, 40)
+Shadow.Size = UDim2.new(1, 30, 1, 30)
 Shadow.ZIndex = -1
 Shadow.Image = "rbxassetid://5554236805"
 Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-Shadow.ImageTransparency = 0.4
+Shadow.ImageTransparency = 0.5
 Shadow.ScaleType = Enum.ScaleType.Slice
 Shadow.SliceCenter = Rect.new(23, 23, 277, 277)
 Shadow.Parent = MainFrame
 
--- Title Bar
+-- แถบหัวข้อ
 local TitleBar = Instance.new("Frame")
 TitleBar.Name = "TitleBar"
-TitleBar.Size = UDim2.new(1, 0, 0, 45)
-TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
 
 local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.CornerRadius = UDim.new(0, 10)
 TitleCorner.Parent = TitleBar
 
 local TitleText = Instance.new("TextLabel")
 TitleText.Name = "Title"
-TitleText.Size = UDim2.new(1, -50, 1, 0)
-TitleText.Position = UDim2.new(0, 15, 0, 0)
+TitleText.Size = UDim2.new(1, -80, 1, 0)
+TitleText.Position = UDim2.new(0, 10, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "TOOL ORBIT SYSTEM"
-TitleText.TextColor3 = Color3.fromRGB(255, 50, 100)
-TitleText.TextSize = 18
+TitleText.Text = "ระบบ Tool"
+TitleText.TextColor3 = Color3.fromRGB(255, 80, 120)
+TitleText.TextSize = 16
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Parent = TitleBar
 
--- Close Button
+-- ปุ่มย่อ/ขยาย
+local CollapseBtn = Instance.new("TextButton")
+CollapseBtn.Name = "Collapse"
+CollapseBtn.Size = UDim2.new(0, 30, 0, 30)
+CollapseBtn.Position = UDim2.new(1, -70, 0, 5)
+CollapseBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+CollapseBtn.Text = "-"
+CollapseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CollapseBtn.TextSize = 18
+CollapseBtn.Font = Enum.Font.GothamBold
+CollapseBtn.Parent = TitleBar
+
+local CollapseCorner = Instance.new("UICorner")
+CollapseCorner.CornerRadius = UDim.new(0, 6)
+CollapseCorner.Parent = CollapseBtn
+
+-- ปุ่มปิด
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Name = "Close"
-CloseBtn.Size = UDim2.new(0, 35, 0, 35)
-CloseBtn.Position = UDim2.new(1, -40, 0, 5)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.TextSize = 16
+CloseBtn.TextSize = 14
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Parent = TitleBar
 
 local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.CornerRadius = UDim.new(0, 6)
 CloseCorner.Parent = CloseBtn
 
--- Content Frame
+-- กรอบเลื่อนเนื้อหา
 local ContentFrame = Instance.new("ScrollingFrame")
 ContentFrame.Name = "Content"
-ContentFrame.Size = UDim2.new(1, -20, 1, -55)
-ContentFrame.Position = UDim2.new(0, 10, 0, 50)
+ContentFrame.Size = UDim2.new(1, -10, 1, -50)
+ContentFrame.Position = UDim2.new(0, 5, 0, 45)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.BorderSizePixel = 0
-ContentFrame.ScrollBarThickness = 4
-ContentFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 50, 100)
-ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 700)
+ContentFrame.ScrollBarThickness = 3
+ContentFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 80, 120)
+ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 1200)
 ContentFrame.Parent = MainFrame
 
 local UIList = Instance.new("UIListLayout")
-UIList.Padding = UDim.new(0, 10)
+UIList.Padding = UDim.new(0, 8)
 UIList.SortOrder = Enum.SortOrder.LayoutOrder
 UIList.Parent = ContentFrame
 
 --// ============================================================
---// GUI HELPER FUNCTIONS
+--// ฟังก์ชันสร้าง GUI
 --// ============================================================
 
 local function CreateSection(title)
     local section = Instance.new("Frame")
-    section.Size = UDim2.new(1, 0, 0, 30)
+    section.Size = UDim2.new(1, 0, 0, 25)
     section.BackgroundTransparency = 1
     section.Parent = ContentFrame
 
@@ -10195,8 +10239,8 @@ local function CreateSection(title)
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
     label.Text = ">> " .. title
-    label.TextColor3 = Color3.fromRGB(100, 200, 255)
-    label.TextSize = 14
+    label.TextColor3 = Color3.fromRGB(80, 180, 255)
+    label.TextSize = 13
     label.Font = Enum.Font.GothamBold
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = section
@@ -10206,65 +10250,18 @@ end
 
 local function CreateToggle(text, default, callback)
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 40)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    frame.Size = UDim2.new(1, 0, 0, 36)
+    frame.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
     frame.BorderSizePixel = 0
     frame.Parent = ContentFrame
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = frame
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.7, 0, 1, 0)
-    label.Position = UDim2.new(0, 15, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(220, 220, 220)
-    label.TextSize = 14
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    local toggle = Instance.new("TextButton")
-    toggle.Size = UDim2.new(0, 50, 0, 26)
-    toggle.Position = UDim2.new(1, -60, 0.5, -13)
-    toggle.BackgroundColor3 = default and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(80, 80, 90)
-    toggle.Text = default and "ON" or "OFF"
-    toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    toggle.TextSize = 12
-    toggle.Font = Enum.Font.GothamBold
-    toggle.Parent = frame
-
-    local toggleCorner = Instance.new("UICorner")
-    toggleCorner.CornerRadius = UDim.new(0, 13)
-    toggleCorner.Parent = toggle
-
-    local state = default
-    toggle.MouseButton1Click:Connect(function()
-        state = not state
-        toggle.BackgroundColor3 = state and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(80, 80, 90)
-        toggle.Text = state and "ON" or "OFF"
-        callback(state)
-    end)
-
-    return frame
-end
-
-local function CreateInput(text, default, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 50)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    frame.BorderSizePixel = 0
-    frame.Parent = ContentFrame
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = frame
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.5, 0, 0.5, 0)
-    label.Position = UDim2.new(0, 15, 0, 5)
+    label.Size = UDim2.new(0.65, 0, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
     label.BackgroundTransparency = 1
     label.Text = text
     label.TextColor3 = Color3.fromRGB(220, 220, 220)
@@ -10273,19 +10270,67 @@ local function CreateInput(text, default, callback)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = frame
 
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(0, 44, 0, 24)
+    toggle.Position = UDim2.new(1, -54, 0.5, -12)
+    toggle.BackgroundColor3 = default and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(80, 80, 90)
+    toggle.Text = default and "เปิด" or "ปิด"
+    toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggle.TextSize = 11
+    toggle.Font = Enum.Font.GothamBold
+    toggle.Parent = frame
+
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 12)
+    toggleCorner.Parent = toggle
+
+    local state = default
+    toggle.MouseButton1Click:Connect(function()
+        state = not state
+        toggle.BackgroundColor3 = state and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(80, 80, 90)
+        toggle.Text = state and "เปิด" or "ปิด"
+        callback(state)
+    end)
+
+    return frame, toggle
+end
+
+local function CreateInput(text, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 45)
+    frame.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
+    frame.BorderSizePixel = 0
+    frame.Parent = ContentFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.55, 0, 0.5, 0)
+    label.Position = UDim2.new(0, 10, 0, 4)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.TextSize = 12
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+
     local input = Instance.new("TextBox")
-    input.Size = UDim2.new(0.45, 0, 0, 30)
-    input.Position = UDim2.new(0.52, 0, 0.5, -5)
+    input.Size = UDim2.new(0.4, 0, 0, 26)
+    input.Position = UDim2.new(0.58, 0, 0.5, -5)
     input.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
     input.Text = tostring(default)
     input.TextColor3 = Color3.fromRGB(255, 255, 255)
-    input.TextSize = 14
+    input.TextSize = 13
     input.Font = Enum.Font.Gotham
     input.ClearTextOnFocus = false
+    input.PlaceholderText = "พิมพ์ตัวเลข"
     input.Parent = frame
 
     local inputCorner = Instance.new("UICorner")
-    inputCorner.CornerRadius = UDim.new(0, 6)
+    inputCorner.CornerRadius = UDim.new(0, 5)
     inputCorner.Parent = input
 
     input.FocusLost:Connect(function()
@@ -10298,120 +10343,299 @@ local function CreateInput(text, default, callback)
         end
     end)
 
+    return frame, input
+end
+
+--// ============================================================
+--// สร้าง Dropdown เลือกผู้เล่น
+--// ============================================================
+
+local SelectedPlayer = nil
+local DropdownOpen = false
+
+local function CreatePlayerDropdown()
+    CreateSection("เลือกเป้าหมาย")
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 40)
+    frame.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
+    frame.BorderSizePixel = 0
+    frame.Parent = ContentFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    local dropdownBtn = Instance.new("TextButton")
+    dropdownBtn.Name = "DropdownBtn"
+    dropdownBtn.Size = UDim2.new(1, -10, 0, 32)
+    dropdownBtn.Position = UDim2.new(0, 5, 0, 4)
+    dropdownBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    dropdownBtn.Text = "เลือกผู้เล่น..."
+    dropdownBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    dropdownBtn.TextSize = 12
+    dropdownBtn.Font = Enum.Font.Gotham
+    dropdownBtn.Parent = frame
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 5)
+    btnCorner.Parent = dropdownBtn
+
+    -- รายการผู้เล่น (ScrollFrame)
+    local playerList = Instance.new("ScrollingFrame")
+    playerList.Name = "PlayerList"
+    playerList.Size = UDim2.new(1, -10, 0, 150)
+    playerList.Position = UDim2.new(0, 5, 0, 40)
+    playerList.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    playerList.BorderSizePixel = 0
+    playerList.ScrollBarThickness = 3
+    playerList.ScrollBarImageColor3 = Color3.fromRGB(255, 80, 120)
+    playerList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    playerList.Visible = false
+    playerList.ZIndex = 10
+    playerList.Parent = frame
+
+    local listCorner = Instance.new("UICorner")
+    listCorner.CornerRadius = UDim.new(0, 5)
+    listCorner.Parent = playerList
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 2)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = playerList
+
+    local function UpdatePlayerList()
+        for _, child in pairs(playerList:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+
+        local allPlayers = Players:GetPlayers()
+        for i, plr in pairs(allPlayers) do
+            if plr ~= player then
+                local btn = Instance.new("TextButton")
+                btn.Size = UDim2.new(1, -4, 0, 28)
+                btn.Position = UDim2.new(0, 2, 0, 0)
+                btn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+                btn.Text = plr.DisplayName .. " (" .. plr.Name .. ")"
+                btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+                btn.TextSize = 11
+                btn.Font = Enum.Font.Gotham
+                btn.Parent = playerList
+
+                local btnC = Instance.new("UICorner")
+                btnC.CornerRadius = UDim.new(0, 4)
+                btnC.Parent = btn
+
+                btn.MouseButton1Click:Connect(function()
+                    SelectedPlayer = plr
+                    Config.TargetPlayer = plr
+                    dropdownBtn.Text = "เลือก: " .. plr.DisplayName
+                    playerList.Visible = false
+                    DropdownOpen = false
+
+                    -- ไฮไลท์ปุ่มที่เลือก
+                    for _, b in pairs(playerList:GetChildren()) do
+                        if b:IsA("TextButton") then
+                            b.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+                        end
+                    end
+                    btn.BackgroundColor3 = Color3.fromRGB(80, 150, 255)
+                end)
+            end
+        end
+
+        playerList.CanvasSize = UDim2.new(0, 0, 0, #allPlayers * 30)
+    end
+
+    dropdownBtn.MouseButton1Click:Connect(function()
+        DropdownOpen = not DropdownOpen
+        playerList.Visible = DropdownOpen
+        if DropdownOpen then
+            UpdatePlayerList()
+        end
+    end)
+
+    -- อัปเดตรายชื่อเมื่อมีผู้เล่นเข้า/ออก
+    Players.PlayerAdded:Connect(function()
+        if DropdownOpen then
+            UpdatePlayerList()
+        end
+    end)
+
+    Players.PlayerRemoving:Connect(function(removedPlr)
+        if SelectedPlayer == removedPlr then
+            SelectedPlayer = nil
+            Config.TargetPlayer = nil
+            dropdownBtn.Text = "เลือกผู้เล่น..."
+        end
+        if DropdownOpen then
+            UpdatePlayerList()
+        end
+    end)
+
     return frame
 end
 
 --// ============================================================
---// BUILD GUI CONTROLS
+--// สร้าง GUI ทั้งหมด
 --// ============================================================
 
-CreateSection("ORBIT CONTROL")
+CreateSection("หมุนรอบตัวเรา")
 
-CreateToggle("Enable Orbit", Config.OrbitEnabled, function(v)
+CreateToggle("เปิดหมุนรอบตัว", Config.OrbitEnabled, function(v)
     Config.OrbitEnabled = v
 end)
 
-CreateInput("Orbit Speed (rps)", Config.OrbitSpeed, function(v)
+CreateInput("ความเร็วหมุน", Config.OrbitSpeed, function(v)
     Config.OrbitSpeed = v
 end)
 
-CreateInput("Orbit Radius", Config.OrbitRadius, function(v)
+CreateInput("รัศมีหมุน", Config.OrbitRadius, function(v)
     Config.OrbitRadius = v
 end)
 
-CreateInput("Orbit Height", Config.OrbitHeight, function(v)
+CreateInput("ความสูง", Config.OrbitHeight, function(v)
     Config.OrbitHeight = v
 end)
 
-CreateInput("Orbit Tilt (deg)", Config.OrbitTilt, function(v)
+CreateInput("องศาเอียง", Config.OrbitTilt, function(v)
     Config.OrbitTilt = v
 end)
 
-CreateSection("TOOL SWAP")
+CreateSection("สลับ Tool")
 
-CreateToggle("Auto Swap", Config.SwapEnabled, function(v)
+CreateToggle("เปิดสลับ Tool", Config.SwapEnabled, function(v)
     Config.SwapEnabled = v
 end)
 
-CreateInput("Swap Speed (sec)", Config.SwapSpeed, function(v)
+CreateInput("ความเร็วสลับ", Config.SwapSpeed, function(v)
     Config.SwapSpeed = math.max(0.05, v)
 end)
 
-CreateSection("GRIP EXTEND")
+CreateSection("ดัน Tool ไปข้างหน้า")
 
-CreateToggle("Grip Extend", Config.GripEnabled, function(v)
+CreateToggle("เปิดดันไปข้างหน้า", Config.GripEnabled, function(v)
     Config.GripEnabled = v
 end)
 
-CreateInput("Grip Distance", Config.GripDistance, function(v)
+CreateInput("ระยะดัน", Config.GripDistance, function(v)
     Config.GripDistance = v
 end)
 
-CreateSection("VISUAL")
+CreateSection("วาปไปหาทุกคน")
 
-CreateToggle("Show Tool Name", Config.ShowToolName, function(v)
-    Config.ShowToolName = v
+CreateToggle("เปิดวาปทุกคน", Config.TeleportAllEnabled, function(v)
+    Config.TeleportAllEnabled = v
 end)
 
-CreateToggle("Rainbow Mode", Config.RainbowMode, function(v)
+CreateInput("ความเร็ววาป", Config.TeleportAllSpeed, function(v)
+    Config.TeleportAllSpeed = math.max(0.1, v)
+end)
+
+CreateSection("วนรอบผู้เล่นอื่น")
+
+CreatePlayerDropdown()
+
+CreateToggle("เปิดวนรอบคนอื่น", Config.OrbitOthersEnabled, function(v)
+    Config.OrbitOthersEnabled = v
+end)
+
+CreateInput("ความเร็ววน", Config.OrbitOthersSpeed, function(v)
+    Config.OrbitOthersSpeed = v
+end)
+
+CreateInput("รัศมีวน", Config.OrbitOthersRadius, function(v)
+    Config.OrbitOthersRadius = v
+end)
+
+CreateInput("ความสูงวน", Config.OrbitOthersHeight, function(v)
+    Config.OrbitOthersHeight = v
+end)
+
+CreateSection("การแสดงผล")
+
+CreateToggle("โหมดรุ้ง", Config.RainbowMode, function(v)
     Config.RainbowMode = v
 end)
 
--- Status Label
+-- สถานะระบบ
 local StatusFrame = Instance.new("Frame")
-StatusFrame.Size = UDim2.new(1, 0, 0, 35)
-StatusFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+StatusFrame.Size = UDim2.new(1, 0, 0, 30)
+StatusFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 StatusFrame.BorderSizePixel = 0
 StatusFrame.Parent = ContentFrame
 
 local StatusCorner = Instance.new("UICorner")
-StatusCorner.CornerRadius = UDim.new(0, 8)
+StatusCorner.CornerRadius = UDim.new(0, 6)
 StatusCorner.Parent = StatusFrame
 
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Name = "Status"
-StatusLabel.Size = UDim2.new(1, -20, 1, 0)
-StatusLabel.Position = UDim2.new(0, 10, 0, 0)
+StatusLabel.Size = UDim2.new(1, -10, 1, 0)
+StatusLabel.Position = UDim2.new(0, 5, 0, 0)
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "SYSTEM ACTIVE"
+StatusLabel.Text = "พร้อมใช้งาน"
 StatusLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
-StatusLabel.TextSize = 14
+StatusLabel.TextSize = 12
 StatusLabel.Font = Enum.Font.GothamBold
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Center
 StatusLabel.Parent = StatusFrame
 
--- Close Handler
+--// ============================================================
+--// ตัวจัดการ GUI
+--// ============================================================
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+    ToggleBtn.BackgroundColor3 = MainFrame.Visible and Color3.fromRGB(200, 50, 100) or Color3.fromRGB(80, 80, 90)
+end)
+
+CollapseBtn.MouseButton1Click:Connect(function()
+    Config.GUICollapsed = not Config.GUICollapsed
+    if Config.GUICollapsed then
+        ContentFrame.Visible = false
+        MainFrame.Size = UDim2.new(0, 300, 0, 45)
+        CollapseBtn.Text = "+"
+    else
+        ContentFrame.Visible = true
+        MainFrame.Size = UDim2.new(0, 300, 0, 450)
+        CollapseBtn.Text = "-"
+    end
+end)
+
 CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
     Config.OrbitEnabled = false
     Config.SwapEnabled = false
+    Config.TeleportAllEnabled = false
+    Config.OrbitOthersEnabled = false
 end)
 
 --// ============================================================
---// CORE SYSTEM - TOOL ORBIT ENGINE
+--// ระบบหลัก - TOOL ORBIT ENGINE
 --// ============================================================
 
 local ToolSystem = {}
 ToolSystem.Connections = {}
 ToolSystem.CurrentToolIndex = 1
 ToolSystem.LastSwap = 0
+ToolSystem.LastTeleport = 0
 ToolSystem.OrbitAngle = 0
+ToolSystem.OrbitOthersAngle = 0
 ToolSystem.Character = nil
 ToolSystem.Humanoid = nil
-ToolSystem.BackpackTools = {}
 
--- Get current character
 function ToolSystem:GetCharacter()
     return player.Character or player.CharacterAdded:Wait()
 end
 
--- Get humanoid
 function ToolSystem:GetHumanoid()
     local char = self:GetCharacter()
     return char:WaitForChild("Humanoid")
 end
 
--- Get all tools in backpack
 function ToolSystem:GetBackpackTools()
     local tools = {}
     if player:FindFirstChild("Backpack") then
@@ -10424,7 +10648,6 @@ function ToolSystem:GetBackpackTools()
     return tools
 end
 
--- Get equipped tool
 function ToolSystem:GetEquippedTool()
     local char = self:GetCharacter()
     for _, child in pairs(char:GetChildren()) do
@@ -10435,17 +10658,14 @@ function ToolSystem:GetEquippedTool()
     return nil
 end
 
--- Apply Grip Extend (Metaltion Style)
 function ToolSystem:ApplyGrip(tool)
     if not tool or not Config.GripEnabled then return end
-
     pcall(function()
         tool.Grip = CFrame.new()
         tool.Grip = CFrame.new(0, 0, -Config.GripDistance)
     end)
 end
 
--- Equip specific tool
 function ToolSystem:EquipTool(tool)
     if not tool then return end
     local humanoid = self:GetHumanoid()
@@ -10454,7 +10674,6 @@ function ToolSystem:EquipTool(tool)
     end)
 end
 
--- Unequip current tool
 function ToolSystem:UnequipTool()
     local humanoid = self:GetHumanoid()
     pcall(function()
@@ -10463,32 +10682,25 @@ function ToolSystem:UnequipTool()
 end
 
 --// ============================================================
---// ORBIT CALCULATION ENGINE
+--// ระบบคำนวณตำแหน่งหมุน
 --// ============================================================
 
-function ToolSystem:CalculateOrbitPosition(angle)
-    local char = self:GetCharacter()
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return CFrame.new() end
+function ToolSystem:CalculateOrbitPosition(centerPos, angle, radius, height, tilt)
+    local tiltRad = math.rad(tilt or 0)
 
-    local basePos = hrp.Position
-    local tiltRad = math.rad(Config.OrbitTilt)
-
-    local x = math.cos(angle) * Config.OrbitRadius
-    local z = math.sin(angle) * Config.OrbitRadius
-    local y = Config.OrbitHeight + math.sin(angle * 2) * (Config.OrbitRadius * 0.3)
+    local x = math.cos(angle) * radius
+    local z = math.sin(angle) * radius
+    local y = height + math.sin(angle * 2) * (radius * 0.2)
 
     local tiltedY = y * math.cos(tiltRad) - z * math.sin(tiltRad)
     local tiltedZ = y * math.sin(tiltRad) + z * math.cos(tiltRad)
 
-    local orbitPos = basePos + Vector3.new(x, tiltedY, tiltedZ)
-    local lookCFrame = CFrame.lookAt(orbitPos, basePos)
-
-    return lookCFrame
+    local orbitPos = centerPos + Vector3.new(x, tiltedY, tiltedZ)
+    return CFrame.lookAt(orbitPos, centerPos)
 end
 
--- Update Tool Position for Orbit Effect
-function ToolSystem:UpdateToolPosition()
+-- หมุนรอบตัวเรา
+function ToolSystem:UpdateSelfOrbit()
     if not Config.OrbitEnabled then return end
 
     local tool = self:GetEquippedTool()
@@ -10498,19 +10710,114 @@ function ToolSystem:UpdateToolPosition()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    self.OrbitAngle = self.OrbitAngle + (Config.OrbitSpeed * math.pi * 2 * RunService.Heartbeat:Wait())
+    local dt = RunService.Heartbeat:Wait()
+    self.OrbitAngle = self.OrbitAngle + (Config.OrbitSpeed * math.pi * 2 * dt)
 
-    local orbitCFrame = self:CalculateOrbitPosition(self.OrbitAngle)
+    local orbitCFrame = self:CalculateOrbitPosition(
+        hrp.Position, 
+        self.OrbitAngle, 
+        Config.OrbitRadius, 
+        Config.OrbitHeight, 
+        Config.OrbitTilt
+    )
 
     pcall(function()
-        local handPos = hrp.Position
-        local relativePos = orbitCFrame.Position - handPos
+        local relativePos = orbitCFrame.Position - hrp.Position
         tool.Grip = CFrame.new(relativePos) * CFrame.Angles(0, self.OrbitAngle, 0)
     end)
 end
 
+-- หมุนรอบผู้เล่นคนอื่น
+function ToolSystem:UpdateOthersOrbit()
+    if not Config.OrbitOthersEnabled then return end
+    if not Config.TargetPlayer then return end
+
+    local targetChar = Config.TargetPlayer.Character
+    if not targetChar then return end
+
+    local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
+    if not targetHrp then return end
+
+    local tool = self:GetEquippedTool()
+    if not tool then
+        -- หยิบ Tool ขึ้นมาก่อน
+        local tools = self:GetBackpackTools()
+        if #tools > 0 then
+            self:EquipTool(tools[1])
+            tool = tools[1]
+        else
+            return
+        end
+    end
+
+    local dt = RunService.Heartbeat:Wait()
+    self.OrbitOthersAngle = self.OrbitOthersAngle + (Config.OrbitOthersSpeed * math.pi * 2 * dt)
+
+    local orbitCFrame = self:CalculateOrbitPosition(
+        targetHrp.Position,
+        self.OrbitOthersAngle,
+        Config.OrbitOthersRadius,
+        Config.OrbitOthersHeight,
+        0
+    )
+
+    pcall(function()
+        local char = self:GetCharacter()
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local relativePos = orbitCFrame.Position - hrp.Position
+            tool.Grip = CFrame.new(relativePos) * CFrame.Angles(0, self.OrbitOthersAngle, 0)
+        end
+    end)
+end
+
 --// ============================================================
---// AUTO SWAP SYSTEM
+--// ระบบวาป Tool ไปหาทุกคน
+--// ============================================================
+
+function ToolSystem:TeleportToAll()
+    if not Config.TeleportAllEnabled then return end
+
+    local now = tick()
+    if now - self.LastTeleport < Config.TeleportAllSpeed then return end
+    self.LastTeleport = now
+
+    local allPlayers = Players:GetPlayers()
+    local currentIndex = math.floor((now / Config.TeleportAllSpeed) % #allPlayers) + 1
+    local targetPlr = allPlayers[currentIndex]
+
+    if not targetPlr or targetPlr == player then return end
+
+    local targetChar = targetPlr.Character
+    if not targetChar then return end
+
+    local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
+    if not targetHrp then return end
+
+    local tool = self:GetEquippedTool()
+    if not tool then
+        local tools = self:GetBackpackTools()
+        if #tools > 0 then
+            self:EquipTool(tools[1])
+            tool = tools[1]
+        else
+            return
+        end
+    end
+
+    -- วาป Tool ไปตำแหน่งผู้เล่น
+    pcall(function()
+        local char = self:GetCharacter()
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local offset = targetHrp.Position - hrp.Position
+            tool.Grip = CFrame.new(offset.X, offset.Y, offset.Z)
+        end
+    end)
+end
+
+--// ============================================================
+--// ระบบสลับ Tool อัตโนมัติ
 --// ============================================================
 
 function ToolSystem:AutoSwap()
@@ -10535,7 +10842,7 @@ function ToolSystem:AutoSwap()
 end
 
 --// ============================================================
---// MAIN UPDATE LOOP
+--// ลูปหลัก
 --// ============================================================
 
 function ToolSystem:Start()
@@ -10561,24 +10868,35 @@ function ToolSystem:Start()
     end))
 
     table.insert(self.Connections, RunService.Heartbeat:Connect(function()
+        -- สลับ Tool
         self:AutoSwap()
 
+        -- วาปไปหาทุกคน
+        self:TeleportToAll()
+
+        -- หมุนรอบตัวเรา
         if Config.OrbitEnabled then
-            self:UpdateToolPosition()
+            self:UpdateSelfOrbit()
         end
 
-        local status = "SYSTEM ACTIVE"
+        -- หมุนรอบผู้เล่นคนอื่น
+        if Config.OrbitOthersEnabled then
+            self:UpdateOthersOrbit()
+        end
+
+        -- อัปเดตสถานะ
+        local status = "พร้อมใช้งาน"
         local color = Color3.fromRGB(50, 255, 100)
 
-        if Config.OrbitEnabled and Config.SwapEnabled then
-            status = "ORBIT + SWAP ACTIVE"
-            color = Color3.fromRGB(255, 100, 255)
-        elseif Config.OrbitEnabled then
-            status = "ORBIT ACTIVE"
-            color = Color3.fromRGB(100, 200, 255)
-        elseif Config.SwapEnabled then
-            status = "SWAP ACTIVE"
-            color = Color3.fromRGB(255, 200, 100)
+        local activeModes = {}
+        if Config.OrbitEnabled then table.insert(activeModes, "หมุนรอบตัว") end
+        if Config.SwapEnabled then table.insert(activeModes, "สลับ") end
+        if Config.TeleportAllEnabled then table.insert(activeModes, "วาป") end
+        if Config.OrbitOthersEnabled then table.insert(activeModes, "วนรอบคนอื่น") end
+
+        if #activeModes > 0 then
+            status = table.concat(activeModes, " + ")
+            color = Color3.fromRGB(255, 100, 200)
         end
 
         if StatusLabel and StatusLabel.Parent then
@@ -10587,6 +10905,7 @@ function ToolSystem:Start()
         end
     end))
 
+    -- โหมดรุ้ง
     table.insert(self.Connections, task.spawn(function()
         while true do
             if Config.RainbowMode and TitleText and TitleText.Parent then
@@ -10602,10 +10921,9 @@ function ToolSystem:Start()
         self:ApplyGrip(initialTool)
     end
 
-    print("Tool Orbit System Initialized")
+    print("Tool Orbit System (TH Mobile) Initialized")
 end
 
--- Cleanup
 function ToolSystem:Stop()
     for _, conn in pairs(self.Connections) do
         if typeof(conn) == "RBXScriptConnection" then
@@ -10616,7 +10934,7 @@ function ToolSystem:Stop()
 end
 
 --// ============================================================
---// INITIALIZATION
+--// เริ่มต้นระบบ
 --// ============================================================
 
 ToolSystem:Start()
@@ -10626,8 +10944,8 @@ player.CharacterAdded:Connect(function()
     ToolSystem:Start()
 end)
 
-print("Tool Orbit System Loaded Successfully!")
-print("Features: Orbit | AutoSwap | GripExtend | GUI Control")
+print("Tool Orbit System TH Mobile Loaded!")
+print("Features: SelfOrbit | AutoSwap | GripExtend | TeleportAll | OrbitOthers | TH GUI")
 
 
 
