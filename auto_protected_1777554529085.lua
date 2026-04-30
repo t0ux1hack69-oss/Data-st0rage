@@ -10044,9 +10044,8 @@
 
 
 --// ============================================================
---// TOOL ORBIT SYSTEM - SCATTER EDITION
---// ระบบหมุน Tool + กระจายเส้นตัด + วาปหาผู้เล่น + วนรอบผู้เล่นคนอื่น
---// GUI ภาษาไทย | รองรับมือถือ | ซ่อน/เปิด GUI ได้ | Dropdown ไม่ซ้อนทับ
+--// TOOL ORBIT SYSTEM - DUAL WIELD EDITION
+--// ระบบหมุน Tool คู่ + GUI แนวนอน/แนวตั้ง + หมุนทวนกัน
 --// ============================================================
 
 local Players = game:GetService("Players")
@@ -10063,27 +10062,34 @@ local camera = Workspace.CurrentCamera
 --// ============================================================
 
 local Config = {
+    -- หมุนรอบตัวเรา
     OrbitEnabled = false,
     OrbitSpeed = 2.5,
     OrbitRadius = 8,
     OrbitHeight = 2,
     OrbitTilt = 0,
+    OrbitOpposite = true, -- true = หมุนทวนกัน
 
+    -- สลับ Tool
     SwapEnabled = false,
     SwapSpeed = 0.5,
 
+    -- ดันไปข้างหน้า
     GripEnabled = true,
     GripDistance = 15,
 
+    -- วาปไปหาทุกคน
     TeleportAllEnabled = false,
     TeleportAllSpeed = 1.0,
 
+    -- วนรอบผู้เล่นอื่น
     OrbitOthersEnabled = false,
     OrbitOthersSpeed = 2.0,
     OrbitOthersRadius = 10,
     OrbitOthersHeight = 3,
     TargetPlayer = nil,
 
+    -- กระจาย Tool
     ScatterEnabled = false,
     ScatterCount = 8,
     ScatterRange = 30,
@@ -10092,23 +10098,27 @@ local Config = {
     ScatterLineChance = 0.3,
     ScatterSpeed = 3.0,
 
-    ShowToolName = true,
+    -- ถือ Tool คู่
+    DualWieldEnabled = false,
+    DualWieldOffset = 3,
+
+    -- GUI
+    GUILayout = "horizontal", -- "horizontal" หรือ "vertical"
     RainbowMode = false,
-    GUICollapsed = false,
     GUIVisible = true,
 }
 
 --// ============================================================
---// ระบบ GUI ภาษาไทย (รองรับมือถือ)
+--// ระบบ GUI ภาษาไทย (แนวนอน/แนวตั้ง)
 --// ============================================================
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ToolOrbitTH"
+ScreenGui.Name = "ToolOrbitDual"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- ปุ่มเปิด GUI (มุมขวาบน)
+-- ปุ่มเปิด GUI
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Name = "ToggleBtn"
 ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
@@ -10128,8 +10138,6 @@ ToggleCorner.Parent = ToggleBtn
 -- กรอบหลัก
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 480)
-MainFrame.Position = UDim2.new(0.5, -160, 0.5, -240)
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -10169,7 +10177,7 @@ TitleCorner.Parent = TitleBar
 
 local TitleText = Instance.new("TextLabel")
 TitleText.Name = "Title"
-TitleText.Size = UDim2.new(1, -90, 1, 0)
+TitleText.Size = UDim2.new(1, -130, 1, 0)
 TitleText.Position = UDim2.new(0, 10, 0, 0)
 TitleText.BackgroundTransparency = 1
 TitleText.Text = "ระบบ Tool"
@@ -10178,6 +10186,22 @@ TitleText.TextSize = 16
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Parent = TitleBar
+
+-- ปุ่มสลับแนว
+local LayoutBtn = Instance.new("TextButton")
+LayoutBtn.Name = "Layout"
+LayoutBtn.Size = UDim2.new(0, 30, 0, 30)
+LayoutBtn.Position = UDim2.new(1, -105, 0, 5)
+LayoutBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 200)
+LayoutBtn.Text = "H"
+LayoutBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+LayoutBtn.TextSize = 14
+LayoutBtn.Font = Enum.Font.GothamBold
+LayoutBtn.Parent = TitleBar
+
+local LayoutCorner = Instance.new("UICorner")
+LayoutCorner.CornerRadius = UDim.new(0, 6)
+LayoutCorner.Parent = LayoutBtn
 
 -- ปุ่มย่อ/ขยาย
 local CollapseBtn = Instance.new("TextButton")
@@ -10195,7 +10219,7 @@ local CollapseCorner = Instance.new("UICorner")
 CollapseCorner.CornerRadius = UDim.new(0, 6)
 CollapseCorner.Parent = CollapseBtn
 
--- ปุ่มซ่อน GUI (แก้จากลบเป็นซ่อน)
+-- ปุ่มซ่อน GUI
 local HideBtn = Instance.new("TextButton")
 HideBtn.Name = "Hide"
 HideBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -10214,19 +10238,40 @@ HideCorner.Parent = HideBtn
 -- กรอบเลื่อนเนื้อหา
 local ContentFrame = Instance.new("ScrollingFrame")
 ContentFrame.Name = "Content"
-ContentFrame.Size = UDim2.new(1, -10, 1, -50)
-ContentFrame.Position = UDim2.new(0, 5, 0, 45)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.BorderSizePixel = 0
 ContentFrame.ScrollBarThickness = 3
 ContentFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 80, 120)
-ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 1600)
 ContentFrame.Parent = MainFrame
 
 local UIList = Instance.new("UIListLayout")
 UIList.Padding = UDim.new(0, 8)
 UIList.SortOrder = Enum.SortOrder.LayoutOrder
 UIList.Parent = ContentFrame
+
+--// ============================================================
+--// ฟังก์ชันปรับ Layout
+--// ============================================================
+
+local function ApplyLayout()
+    if Config.GUILayout == "horizontal" then
+        MainFrame.Size = UDim2.new(0, 520, 0, 320)
+        MainFrame.Position = UDim2.new(0.5, -260, 0.5, -160)
+        ContentFrame.Size = UDim2.new(1, -10, 1, -50)
+        ContentFrame.Position = UDim2.new(0, 5, 0, 45)
+        ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 1200)
+        LayoutBtn.Text = "H"
+    else
+        MainFrame.Size = UDim2.new(0, 300, 0, 480)
+        MainFrame.Position = UDim2.new(0.5, -150, 0.5, -240)
+        ContentFrame.Size = UDim2.new(1, -10, 1, -50)
+        ContentFrame.Position = UDim2.new(0, 5, 0, 45)
+        ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 1600)
+        LayoutBtn.Text = "V"
+    end
+end
+
+ApplyLayout()
 
 --// ============================================================
 --// ฟังก์ชันสร้าง GUI
@@ -10350,7 +10395,7 @@ local function CreateInput(text, default, callback)
 end
 
 --// ============================================================
---// ระบบ Dropdown เลือกผู้เล่น (แก้ไม่ซ้อนทับ)
+--// Dropdown เลือกผู้เล่น
 --// ============================================================
 
 local SelectedPlayer = nil
@@ -10361,7 +10406,6 @@ local DropdownButton = nil
 local function CreatePlayerDropdown()
     CreateSection("เลือกเป้าหมาย")
 
-    -- กรอบ Dropdown หลัก
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 0, 42)
     frame.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
@@ -10373,7 +10417,6 @@ local function CreatePlayerDropdown()
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = frame
 
-    -- ปุ่ม Dropdown
     local dropdownBtn = Instance.new("TextButton")
     dropdownBtn.Name = "DropdownBtn"
     dropdownBtn.Size = UDim2.new(1, -10, 0, 32)
@@ -10390,7 +10433,6 @@ local function CreatePlayerDropdown()
     btnCorner.CornerRadius = UDim.new(0, 5)
     btnCorner.Parent = dropdownBtn
 
-    -- ลูกศรชี้ลง
     local arrow = Instance.new("TextLabel")
     arrow.Size = UDim2.new(0, 20, 1, 0)
     arrow.Position = UDim2.new(1, -25, 0, 0)
@@ -10401,7 +10443,6 @@ local function CreatePlayerDropdown()
     arrow.Font = Enum.Font.GothamBold
     arrow.Parent = dropdownBtn
 
-    -- รายการผู้เล่น (อยู่ในกรอบเดียวกัน ไม่ซ้อนทับ)
     local playerList = Instance.new("Frame")
     playerList.Name = "PlayerList"
     playerList.Size = UDim2.new(1, -10, 0, 0)
@@ -10456,13 +10497,11 @@ local function CreatePlayerDropdown()
                     Config.TargetPlayer = plr
                     dropdownBtn.Text = "เลือก: " .. plr.DisplayName
 
-                    -- ปิด Dropdown
                     DropdownOpen = false
                     playerList.Visible = false
                     frame.Size = UDim2.new(1, 0, 0, 42)
                     arrow.Text = "▼"
 
-                    -- รีเซ็ตสีทุกปุ่ม
                     for _, b in pairs(playerList:GetChildren()) do
                         if b:IsA("TextButton") then
                             b.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
@@ -10473,7 +10512,6 @@ local function CreatePlayerDropdown()
             end
         end
 
-        -- ปรับขนาดกรอบ Dropdown
         if DropdownOpen then
             local listHeight = math.min(count * 33, 200)
             frame.Size = UDim2.new(1, 0, 0, 45 + listHeight)
@@ -10497,7 +10535,6 @@ local function CreatePlayerDropdown()
         end
     end)
 
-    -- อัปเดตรายชื่อ Real-time
     Players.PlayerAdded:Connect(function()
         if DropdownOpen then
             UpdatePlayerList()
@@ -10521,6 +10558,20 @@ end
 --// ============================================================
 --// สร้าง GUI ทั้งหมด
 --// ============================================================
+
+CreateSection("ถือ Tool คู่")
+
+CreateToggle("เปิดถือคู่", Config.DualWieldEnabled, function(v)
+    Config.DualWieldEnabled = v
+end)
+
+CreateInput("ระยะห่างคู่", Config.DualWieldOffset, function(v)
+    Config.DualWieldOffset = v
+end)
+
+CreateToggle("หมุนทวนกัน", Config.OrbitOpposite, function(v)
+    Config.OrbitOpposite = v
+end)
 
 CreateSection("หมุนรอบตัวเรา")
 
@@ -10654,7 +10705,7 @@ StatusLabel.TextXAlignment = Enum.TextXAlignment.Center
 StatusLabel.Parent = StatusFrame
 
 --// ============================================================
---// ตัวจัดการ GUI (แก้ปุ่ม X เป็นซ่อน)
+--// ตัวจัดการ GUI
 --// ============================================================
 
 ToggleBtn.MouseButton1Click:Connect(function()
@@ -10668,7 +10719,6 @@ HideBtn.MouseButton1Click:Connect(function()
     ToggleBtn.Visible = true
     Config.GUIVisible = false
 
-    -- ปิด Dropdown ถ้าเปิดอยู่
     if DropdownOpen and DropdownFrame then
         DropdownOpen = false
         local list = DropdownFrame:FindFirstChild("PlayerList")
@@ -10685,13 +10735,22 @@ CollapseBtn.MouseButton1Click:Connect(function()
     Config.GUICollapsed = not Config.GUICollapsed
     if Config.GUICollapsed then
         ContentFrame.Visible = false
-        MainFrame.Size = UDim2.new(0, 320, 0, 45)
+        if Config.GUILayout == "horizontal" then
+            MainFrame.Size = UDim2.new(0, 520, 0, 45)
+        else
+            MainFrame.Size = UDim2.new(0, 300, 0, 45)
+        end
         CollapseBtn.Text = "+"
     else
         ContentFrame.Visible = true
-        MainFrame.Size = UDim2.new(0, 320, 0, 480)
+        ApplyLayout()
         CollapseBtn.Text = "-"
     end
+end)
+
+LayoutBtn.MouseButton1Click:Connect(function()
+    Config.GUILayout = Config.GUILayout == "horizontal" and "vertical" or "horizontal"
+    ApplyLayout()
 end)
 
 --// ============================================================
@@ -10709,6 +10768,7 @@ ToolSystem.ScatterAngle = 0
 ToolSystem.ScatterLineOffset = 0
 ToolSystem.Character = nil
 ToolSystem.Humanoid = nil
+ToolSystem.SecondTool = nil
 
 function ToolSystem:GetCharacter()
     return player.Character or player.CharacterAdded:Wait()
@@ -10731,21 +10791,36 @@ function ToolSystem:GetBackpackTools()
     return tools
 end
 
-function ToolSystem:GetEquippedTool()
+function ToolSystem:GetEquippedTools()
+    local tools = {}
     local char = self:GetCharacter()
     for _, child in pairs(char:GetChildren()) do
         if child:IsA("Tool") then
-            return child
+            table.insert(tools, child)
         end
     end
-    return nil
+    return tools
 end
 
-function ToolSystem:ApplyGrip(tool)
-    if not tool or not Config.GripEnabled then return end
+function ToolSystem:GetEquippedTool()
+    local tools = self:GetEquippedTools()
+    return tools[1]
+end
+
+function ToolSystem:GetSecondTool()
+    local tools = self:GetEquippedTools()
+    return tools[2]
+end
+
+function ToolSystem:ApplyGrip(tool, offset)
+    if not tool then return end
     pcall(function()
         tool.Grip = CFrame.new()
-        tool.Grip = CFrame.new(0, 0, -Config.GripDistance)
+        if offset then
+            tool.Grip = CFrame.new(offset)
+        elseif Config.GripEnabled then
+            tool.Grip = CFrame.new(0, 0, -Config.GripDistance)
+        end
     end)
 end
 
@@ -10762,6 +10837,45 @@ function ToolSystem:UnequipTool()
     pcall(function()
         humanoid:UnequipTools()
     end)
+end
+
+--// ============================================================
+--// ระบบถือ Tool คู่
+--// ============================================================
+
+function ToolSystem:UpdateDualWield()
+    if not Config.DualWieldEnabled then
+        -- ถ้าปิดระบบคู่ แต่ถืออยู่ 2 อัน ให้เก็บอันที่ 2
+        local tools = self:GetEquippedTools()
+        if #tools > 1 then
+            pcall(function()
+                tools[2].Parent = player.Backpack
+            end)
+        end
+        return
+    end
+
+    local tools = self:GetEquippedTools()
+    local backpackTools = self:GetBackpackTools()
+
+    -- ถ้าถืออยู่น้อยกว่า 2 อัน ให้หยิบเพิ่ม
+    if #tools < 2 and #backpackTools > 0 then
+        for _, tool in pairs(backpackTools) do
+            local alreadyEquipped = false
+            for _, equipped in pairs(tools) do
+                if equipped == tool then
+                    alreadyEquipped = true
+                    break
+                end
+            end
+            if not alreadyEquipped then
+                pcall(function()
+                    tool.Parent = self:GetCharacter()
+                end)
+                break
+            end
+        end
+    end
 end
 
 --// ============================================================
@@ -10782,12 +10896,12 @@ function ToolSystem:CalculateOrbitPosition(centerPos, angle, radius, height, til
     return CFrame.lookAt(orbitPos, centerPos)
 end
 
--- หมุนรอบตัวเรา
+-- หมุนรอบตัวเรา (รองรับคู่ + ทวนกัน)
 function ToolSystem:UpdateSelfOrbit()
     if not Config.OrbitEnabled then return end
 
-    local tool = self:GetEquippedTool()
-    if not tool then return end
+    local tools = self:GetEquippedTools()
+    if #tools == 0 then return end
 
     local char = self:GetCharacter()
     local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -10796,21 +10910,46 @@ function ToolSystem:UpdateSelfOrbit()
     local dt = RunService.Heartbeat:Wait()
     self.OrbitAngle = self.OrbitAngle + (Config.OrbitSpeed * math.pi * 2 * dt)
 
-    local orbitCFrame = self:CalculateOrbitPosition(
-        hrp.Position, 
-        self.OrbitAngle, 
-        Config.OrbitRadius, 
-        Config.OrbitHeight, 
-        Config.OrbitTilt
-    )
+    -- Tool แรก หมุนตามปกติ
+    local tool1 = tools[1]
+    if tool1 then
+        local angle1 = self.OrbitAngle
+        local orbitCFrame1 = self:CalculateOrbitPosition(
+            hrp.Position, 
+            angle1, 
+            Config.OrbitRadius, 
+            Config.OrbitHeight, 
+            Config.OrbitTilt
+        )
 
-    pcall(function()
-        local relativePos = orbitCFrame.Position - hrp.Position
-        tool.Grip = CFrame.new(relativePos) * CFrame.Angles(0, self.OrbitAngle, 0)
-    end)
+        pcall(function()
+            local relativePos = orbitCFrame1.Position - hrp.Position
+            tool1.Grip = CFrame.new(relativePos) * CFrame.Angles(0, angle1, 0)
+        end)
+    end
+
+    -- Tool ที่สอง หมุนทวนกัน (ถ้าเปิด)
+    local tool2 = tools[2]
+    if tool2 and Config.DualWieldEnabled then
+        local angle2 = Config.OrbitOpposite and -self.OrbitAngle or (self.OrbitAngle + math.pi)
+        local radius2 = Config.OrbitRadius + Config.DualWieldOffset
+
+        local orbitCFrame2 = self:CalculateOrbitPosition(
+            hrp.Position, 
+            angle2, 
+            radius2, 
+            Config.OrbitHeight, 
+            Config.OrbitTilt
+        )
+
+        pcall(function()
+            local relativePos = orbitCFrame2.Position - hrp.Position
+            tool2.Grip = CFrame.new(relativePos) * CFrame.Angles(0, angle2, 0)
+        end)
+    end
 end
 
--- หมุนรอบผู้เล่นคนอื่น
+-- หมุนรอบผู้เล่นคนอื่น (รองรับคู่ + ทวนกัน)
 function ToolSystem:UpdateOthersOrbit()
     if not Config.OrbitOthersEnabled then return end
     if not Config.TargetPlayer then return end
@@ -10821,12 +10960,12 @@ function ToolSystem:UpdateOthersOrbit()
     local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
     if not targetHrp then return end
 
-    local tool = self:GetEquippedTool()
-    if not tool then
-        local tools = self:GetBackpackTools()
-        if #tools > 0 then
-            self:EquipTool(tools[1])
-            tool = tools[1]
+    local tools = self:GetEquippedTools()
+    if #tools == 0 then
+        local backpackTools = self:GetBackpackTools()
+        if #backpackTools > 0 then
+            self:EquipTool(backpackTools[1])
+            tools = self:GetEquippedTools()
         else
             return
         end
@@ -10835,37 +10974,62 @@ function ToolSystem:UpdateOthersOrbit()
     local dt = RunService.Heartbeat:Wait()
     self.OrbitOthersAngle = self.OrbitOthersAngle + (Config.OrbitOthersSpeed * math.pi * 2 * dt)
 
-    local orbitCFrame = self:CalculateOrbitPosition(
-        targetHrp.Position,
-        self.OrbitOthersAngle,
-        Config.OrbitOthersRadius,
-        Config.OrbitOthersHeight,
-        0
-    )
+    local char = self:GetCharacter()
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
 
-    pcall(function()
-        local char = self:GetCharacter()
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local relativePos = orbitCFrame.Position - hrp.Position
-            tool.Grip = CFrame.new(relativePos) * CFrame.Angles(0, self.OrbitOthersAngle, 0)
-        end
-    end)
+    -- Tool แรก
+    local tool1 = tools[1]
+    if tool1 then
+        local angle1 = self.OrbitOthersAngle
+        local orbitCFrame1 = self:CalculateOrbitPosition(
+            targetHrp.Position,
+            angle1,
+            Config.OrbitOthersRadius,
+            Config.OrbitOthersHeight,
+            0
+        )
+
+        pcall(function()
+            local relativePos = orbitCFrame1.Position - hrp.Position
+            tool1.Grip = CFrame.new(relativePos) * CFrame.Angles(0, angle1, 0)
+        end)
+    end
+
+    -- Tool ที่สอง ทวนกัน
+    local tool2 = tools[2]
+    if tool2 and Config.DualWieldEnabled then
+        local angle2 = Config.OrbitOpposite and -self.OrbitOthersAngle or (self.OrbitOthersAngle + math.pi)
+        local radius2 = Config.OrbitOthersRadius + Config.DualWieldOffset
+
+        local orbitCFrame2 = self:CalculateOrbitPosition(
+            targetHrp.Position,
+            angle2,
+            radius2,
+            Config.OrbitOthersHeight,
+            0
+        )
+
+        pcall(function()
+            local relativePos = orbitCFrame2.Position - hrp.Position
+            tool2.Grip = CFrame.new(relativePos) * CFrame.Angles(0, angle2, 0)
+        end)
+    end
 end
 
 --// ============================================================
---// ระบบกระจาย Tool แบบเส้นตัด (Scatter Shot)
+--// ระบบกระจาย Tool แบบเส้นตัด
 --// ============================================================
 
 function ToolSystem:UpdateScatter()
     if not Config.ScatterEnabled then return end
 
-    local tool = self:GetEquippedTool()
-    if not tool then
-        local tools = self:GetBackpackTools()
-        if #tools > 0 then
-            self:EquipTool(tools[1])
-            tool = tools[1]
+    local tools = self:GetEquippedTools()
+    if #tools == 0 then
+        local backpackTools = self:GetBackpackTools()
+        if #backpackTools > 0 then
+            self:EquipTool(backpackTools[1])
+            tools = self:GetEquippedTools()
         else
             return
         end
@@ -10878,41 +11042,59 @@ function ToolSystem:UpdateScatter()
     local dt = RunService.Heartbeat:Wait()
     self.ScatterAngle = self.ScatterAngle + (Config.ScatterSpeed * math.pi * 2 * dt)
 
-    -- คำนวณตำแหน่งกระจายแบบวงกลมแนวนอน
     local baseAngle = self.ScatterAngle
     local count = Config.ScatterCount
     local radius = Config.ScatterRange
     local height = Config.ScatterHeight
 
-    -- เลือกจุดจากจำนวนที่ตั้งไว้
     local pointIndex = math.floor((tick() * Config.ScatterSpeed) % count) + 1
     local angleStep = (math.pi * 2) / count
-    local currentAngle = baseAngle + (pointIndex * angleStep)
 
-    -- เพิ่มเส้นตัดแบบสุ่ม
-    local lineOffset = 0
-    if Config.ScatterRandomLines and math.random() < Config.ScatterLineChance then
-        lineOffset = math.random(-10, 10)
-        self.ScatterLineOffset = lineOffset
-    else
-        lineOffset = self.ScatterLineOffset * 0.95 -- ค่อยๆ กลับมา
-        self.ScatterLineOffset = lineOffset
+    -- Tool แรก
+    local tool1 = tools[1]
+    if tool1 then
+        local currentAngle1 = baseAngle + (pointIndex * angleStep)
+
+        local lineOffset = 0
+        if Config.ScatterRandomLines and math.random() < Config.ScatterLineChance then
+            lineOffset = math.random(-10, 10)
+            self.ScatterLineOffset = lineOffset
+        else
+            lineOffset = self.ScatterLineOffset * 0.95
+            self.ScatterLineOffset = lineOffset
+        end
+
+        local x1 = math.cos(currentAngle1) * radius
+        local z1 = math.sin(currentAngle1) * radius
+        local y1 = height + lineOffset + math.sin(tick() * 5) * 2
+
+        local targetPos1 = hrp.Position + Vector3.new(x1, y1, z1)
+
+        pcall(function()
+            local relativePos = targetPos1 - hrp.Position
+            tool1.Grip = CFrame.new(relativePos) * CFrame.Angles(0, currentAngle1, math.rad(lineOffset))
+        end)
     end
 
-    -- คำนวณตำแหน่งแนวนอน
-    local x = math.cos(currentAngle) * radius
-    local z = math.sin(currentAngle) * radius
-    local y = height + lineOffset
+    -- Tool ที่สอง ทวนกัน
+    local tool2 = tools[2]
+    if tool2 and Config.DualWieldEnabled then
+        local currentAngle2 = Config.OrbitOpposite and -(baseAngle + (pointIndex * angleStep)) or (baseAngle + (pointIndex * angleStep) + math.pi)
+        local radius2 = radius + Config.DualWieldOffset
 
-    -- เพิ่มการส่ายไปมาแบบสุ่ม
-    local wobble = math.sin(tick() * 5) * 2
+        local lineOffset2 = -self.ScatterLineOffset
 
-    local targetPos = hrp.Position + Vector3.new(x, y + wobble, z)
+        local x2 = math.cos(currentAngle2) * radius2
+        local z2 = math.sin(currentAngle2) * radius2
+        local y2 = height + lineOffset2 + math.sin(tick() * 5 + math.pi) * 2
 
-    pcall(function()
-        local relativePos = targetPos - hrp.Position
-        tool.Grip = CFrame.new(relativePos) * CFrame.Angles(0, currentAngle, math.rad(lineOffset))
-    end)
+        local targetPos2 = hrp.Position + Vector3.new(x2, y2, z2)
+
+        pcall(function()
+            local relativePos = targetPos2 - hrp.Position
+            tool2.Grip = CFrame.new(relativePos) * CFrame.Angles(0, currentAngle2, math.rad(lineOffset2))
+        end)
+    end
 end
 
 --// ============================================================
@@ -10938,25 +11120,48 @@ function ToolSystem:TeleportToAll()
     local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
     if not targetHrp then return end
 
-    local tool = self:GetEquippedTool()
-    if not tool then
-        local tools = self:GetBackpackTools()
-        if #tools > 0 then
-            self:EquipTool(tools[1])
-            tool = tools[1]
+    local tools = self:GetEquippedTools()
+    if #tools == 0 then
+        local backpackTools = self:GetBackpackTools()
+        if #backpackTools > 0 then
+            self:EquipTool(backpackTools[1])
+            tools = self:GetEquippedTools()
         else
             return
         end
     end
 
-    pcall(function()
-        local char = self:GetCharacter()
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
+    local char = self:GetCharacter()
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    -- Tool แรก
+    local tool1 = tools[1]
+    if tool1 then
+        pcall(function()
             local offset = targetHrp.Position - hrp.Position
-            tool.Grip = CFrame.new(offset.X, offset.Y, offset.Z)
+            tool1.Grip = CFrame.new(offset.X, offset.Y, offset.Z)
+        end)
+    end
+
+    -- Tool ที่สอง วาปไปอีกคน
+    local tool2 = tools[2]
+    if tool2 and Config.DualWieldEnabled then
+        local nextIndex = (currentIndex % #allPlayers) + 1
+        local nextPlr = allPlayers[nextIndex]
+        if nextPlr and nextPlr ~= player then
+            local nextChar = nextPlr.Character
+            if nextChar then
+                local nextHrp = nextChar:FindFirstChild("HumanoidRootPart")
+                if nextHrp then
+                    pcall(function()
+                        local offset = nextHrp.Position - hrp.Position
+                        tool2.Grip = CFrame.new(offset.X, offset.Y, offset.Z)
+                    end)
+                end
+            end
         end
-    end)
+    end
 end
 
 --// ============================================================
@@ -10997,8 +11202,8 @@ function ToolSystem:Start()
         self.Humanoid = newChar:WaitForChild("Humanoid")
         task.wait(0.5)
 
-        local tool = self:GetEquippedTool()
-        if tool then
+        local tools = self:GetEquippedTools()
+        for _, tool in pairs(tools) do
             self:ApplyGrip(tool)
         end
     end))
@@ -11011,6 +11216,9 @@ function ToolSystem:Start()
     end))
 
     table.insert(self.Connections, RunService.Heartbeat:Connect(function()
+        -- ถือ Tool คู่
+        self:UpdateDualWield()
+
         -- สลับ Tool
         self:AutoSwap()
 
@@ -11037,6 +11245,7 @@ function ToolSystem:Start()
         local color = Color3.fromRGB(50, 255, 100)
 
         local activeModes = {}
+        if Config.DualWieldEnabled then table.insert(activeModes, "ถือคู่") end
         if Config.OrbitEnabled then table.insert(activeModes, "หมุนรอบตัว") end
         if Config.SwapEnabled then table.insert(activeModes, "สลับ") end
         if Config.TeleportAllEnabled then table.insert(activeModes, "วาป") end
@@ -11065,12 +11274,12 @@ function ToolSystem:Start()
         end
     end))
 
-    local initialTool = self:GetEquippedTool()
-    if initialTool then
-        self:ApplyGrip(initialTool)
+    local tools = self:GetEquippedTools()
+    for _, tool in pairs(tools) do
+        self:ApplyGrip(tool)
     end
 
-    print("Tool Orbit System (Scatter Edition) Initialized")
+    print("Tool Orbit System (Dual Wield) Initialized")
 end
 
 function ToolSystem:Stop()
@@ -11093,8 +11302,8 @@ player.CharacterAdded:Connect(function()
     ToolSystem:Start()
 end)
 
-print("Tool Orbit System Scatter Edition Loaded!")
-print("Features: SelfOrbit | AutoSwap | GripExtend | TeleportAll | ScatterLines | OrbitOthers | TH GUI")
+print("Tool Orbit System Dual Wield Loaded!")
+print("Features: DualWield | OppositeOrbit | SelfOrbit | AutoSwap | GripExtend | TeleportAll | ScatterLines | OrbitOthers | TH GUI")
 
 
 
