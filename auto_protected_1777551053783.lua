@@ -10044,10 +10044,10 @@
 
 
 --[[
-    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V13)
+    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V14)
     - ULTIMATE SILENT AIM (Ultra Precision, 16+ Guns)
     - HYPER PREDICTION ENGINE (Bullet Drop + Velocity + Ping Compensation)
-    - GUN POSITION LOCK (Gun floats above target's head)
+    - TOOL GRIP ORBIT (Gun orbits around locked target via Grip offset)
     - 3D Orbit System (Sky-dive + Wide swing)
     - Horizontal GUI Layout (Modern & Compact)
     - Whitelist System (Protected players cannot be targeted)
@@ -10103,14 +10103,16 @@ local _G = {
     VoidPosition = Vector3.new(0, -5000, 0),
     PredictOffset = Vector3.new(0, 0, 0),
     PredictStep = 0.15,
-    GunAboveHead = true,
-    GunOffset = Vector3.new(0, 2.5, 0),
-    GunLerpSpeed = 0.3
+    GripOrbit = true,
+    GripOrbitRadius = 12,
+    GripOrbitHeight = 5,
+    GripOrbitSpeed = 3,
+    GripDistance = 15
 }
 
 --// UI SETTINGS
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltimateExploit_V13"
+ScreenGui.Name = "UltimateExploit_V14"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -10201,7 +10203,7 @@ TitleBarFix.Parent = TitleBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 1, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "  DEATH NOTA V13 -- SUPREME EDITION"
+Title.Text = "  DEATH NOTA V14 -- SUPREME EDITION"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -10273,7 +10275,7 @@ local KillAllToggle = createButton("KillAllToggle", "KILL ALL: OFF", UDim2.new(0
 local SilentToggle = createButton("SilentToggle", "ULTIMATE AIM: OFF", UDim2.new(0, 15, 0, 93))
 local FastFireToggle = createButton("FastFireToggle", "Fast Fire V2: OFF", UDim2.new(0, 15, 0, 128))
 local PredictToggle = createButton("PredictToggle", "Prediction: OFF", UDim2.new(0, 15, 0, 163))
-local GunPosToggle = createButton("GunPosToggle", "Gun Above Head: OFF", UDim2.new(0, 15, 0, 198))
+local GripOrbitToggle = createButton("GripOrbitToggle", "Grip Orbit: OFF", UDim2.new(0, 15, 0, 198))
 local DupeBtn = createButton("DupeBtn", "Dupe Gun (V2)", UDim2.new(0, 15, 0, 233))
 
 --// RIGHT COLUMN (Settings)
@@ -10516,65 +10518,93 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
     return predictedPos
 end
 
---// GUN POSITION LOCK (Float above target's head)
-local gunPosConnection = nil
-local currentGunModel = nil
+--// TOOL GRIP ORBIT SYSTEM (Gun orbits around locked target)
+local gripOrbitConnection = nil
+local gripOrbitAngle = 0
 
-local function stopGunPos()
-    if gunPosConnection then gunPosConnection:Disconnect() gunPosConnection = nil end
-    currentGunModel = nil
+local function getCurrentTool()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    for _, v in pairs(char:GetChildren()) do
+        if v:IsA("Tool") then
+            return v
+        end
+    end
+    return nil
 end
 
-local function startGunPos()
-    if gunPosConnection then gunPosConnection:Disconnect() end
-    gunPosConnection = RunService.Heartbeat:Connect(function()
-        if not _G.GunAboveHead then stopGunPos() return end
+local function applyGripOrbit(tool, targetPos)
+    if not tool then return end
+    if not targetPos then return end
+
+    -- Calculate orbit position around target
+    local radius = _G.GripOrbitRadius
+    local height = _G.GripOrbitHeight
+
+    local offsetX = math.cos(gripOrbitAngle) * radius
+    local offsetZ = math.sin(gripOrbitAngle) * radius
+    local offsetY = math.sin(gripOrbitAngle * 2) * height
+
+    -- Convert world offset to local grip offset
+    -- Grip is relative to RightHand, so we need to calculate direction from hand to target orbit pos
+    local char = LocalPlayer.Character
+    if not char then return end
+    local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
+    if not rightHand then return end
+
+    local handPos = rightHand.Position
+    local orbitPos = targetPos + Vector3.new(offsetX, offsetY + 3, offsetZ)
+    local direction = orbitPos - handPos
+
+    -- Apply as Grip offset (CFrame.new with direction vector)
+    -- Grip CFrame: position offset from hand, lookAt toward target
+    tool.Grip = CFrame.new(direction)
+end
+
+local function stopGripOrbit()
+    if gripOrbitConnection then gripOrbitConnection:Disconnect() gripOrbitConnection = nil end
+    -- Reset grip on current tool
+    local tool = getCurrentTool()
+    if tool then
+        pcall(function() tool.Grip = CFrame.new() end)
+    end
+end
+
+local function startGripOrbit()
+    if gripOrbitConnection then gripOrbitConnection:Disconnect() end
+    gripOrbitAngle = 0
+    gripOrbitConnection = RunService.Heartbeat:Connect(function(dt)
+        if not _G.GripOrbit then stopGripOrbit() return end
 
         local target = getBestTarget(_G.KillAllEnabled)
         if not target or not target.Character then return end
 
-        local targetHead = target.Character:FindFirstChild("Head")
         local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
-        if not targetHead or not targetHRP then return end
+        if not targetHRP then return end
 
-        local myChar = LocalPlayer.Character
-        if not myChar then return end
+        local tool = getCurrentTool()
+        if not tool then return end
 
-        -- Find currently held gun
-        local currentTool = nil
-        for _, v in pairs(myChar:GetChildren()) do
-            if v:IsA("Tool") then
-                currentTool = v
-                break
-            end
-        end
+        -- Update orbit angle
+        gripOrbitAngle = (gripOrbitAngle + dt * _G.GripOrbitSpeed) % (math.pi * 2)
 
-        if not currentTool then return end
-
-        -- Find Handle or main Part of gun
-        local gunHandle = currentTool:FindFirstChild("Handle") or currentTool:FindFirstChildOfClass("Part") or currentTool:FindFirstChildOfClass("MeshPart")
-        if not gunHandle then return end
-
-        -- Calculate position above target's head
-        local headPos = targetHead.Position
-        local offset = _G.GunOffset
-        local desiredPos = headPos + offset
-
-        -- Lerp to desired position (smooth)
-        local currentPos = gunHandle.Position
-        local lerpFactor = _G.GunLerpSpeed
-        local newPos = currentPos:Lerp(desiredPos, lerpFactor)
-
-        -- Set CFrame so gun faces target
-        gunHandle.CFrame = CFrame.new(newPos, headPos)
-
-        -- Force gun to stay at this position (override animation)
-        if gunHandle:IsA("BasePart") then
-            gunHandle.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            gunHandle.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-        end
+        -- Apply orbit grip
+        applyGripOrbit(tool, targetHRP.Position)
     end)
 end
+
+-- Auto-apply grip when equipping tool
+LocalPlayer.Character.ChildAdded:Connect(function(v)
+    if v:IsA("Tool") then
+        task.wait(0.1)
+        if _G.GripOrbit then
+            local target = getBestTarget(_G.KillAllEnabled)
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                applyGripOrbit(v, target.Character.HumanoidRootPart.Position)
+            end
+        end
+    end
+end)
 
 --// DUPE SYSTEM V2
 local function runAutoDup(amount)
@@ -10799,14 +10829,14 @@ PredictToggle.MouseButton1Click:Connect(function()
     end
 end)
 
-GunPosToggle.MouseButton1Click:Connect(function()
-    _G.GunAboveHead = not _G.GunAboveHead
-    GunPosToggle.Text = _G.GunAboveHead and "Gun Above Head: ON" or "Gun Above Head: OFF"
-    GunPosToggle.BackgroundColor3 = _G.GunAboveHead and Color3.fromRGB(0, 60, 100) or Color3.fromRGB(25, 25, 25)
-    if _G.GunAboveHead then
-        startGunPos()
+GripOrbitToggle.MouseButton1Click:Connect(function()
+    _G.GripOrbit = not _G.GripOrbit
+    GripOrbitToggle.Text = _G.GripOrbit and "Grip Orbit: ON" or "Grip Orbit: OFF"
+    GripOrbitToggle.BackgroundColor3 = _G.GripOrbit and Color3.fromRGB(0, 60, 100) or Color3.fromRGB(25, 25, 25)
+    if _G.GripOrbit then
+        startGripOrbit()
     else
-        stopGunPos()
+        stopGripOrbit()
     end
 end)
 
@@ -10848,7 +10878,7 @@ task.spawn(function()
     end
 end)
 
-notify("SUPREME V13 Loaded!", 4)
+notify("SUPREME V14 Loaded!", 4)
 
 
 
