@@ -10044,10 +10044,12 @@
 
 
 --[[
-    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V14)
+    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V15)
     - ULTIMATE SILENT AIM (Ultra Precision, 16+ Guns)
     - HYPER PREDICTION ENGINE (Bullet Drop + Velocity + Ping Compensation)
-    - TOOL GRIP ORBIT (Gun orbits around locked target via Grip offset)
+    - TOOL GRIP ORBIT AROUND LOCKED TARGET (Not player)
+    - AUTO-SAVE ON DEATH (Stop shoot + Save remote 10x)
+    - RETRIEVE BUTTON (Get remote 10x from GUI)
     - 3D Orbit System (Sky-dive + Wide swing)
     - Horizontal GUI Layout (Modern & Compact)
     - Whitelist System (Protected players cannot be targeted)
@@ -10112,7 +10114,7 @@ local _G = {
 
 --// UI SETTINGS
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltimateExploit_V14"
+ScreenGui.Name = "UltimateExploit_V15"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -10166,8 +10168,8 @@ end)
 --// HORIZONTAL MAIN FRAME
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 460, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -230, 0.5, -155)
+MainFrame.Size = UDim2.new(0, 460, 0, 345)
+MainFrame.Position = UDim2.new(0.5, -230, 0.5, -172)
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainFrame.BorderSizePixel = 0
 MainFrame.Visible = true
@@ -10203,7 +10205,7 @@ TitleBarFix.Parent = TitleBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 1, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "  DEATH NOTA V14 -- SUPREME EDITION"
+Title.Text = "  DEATH NOTA V15 -- SUPREME EDITION"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -10276,7 +10278,8 @@ local SilentToggle = createButton("SilentToggle", "ULTIMATE AIM: OFF", UDim2.new
 local FastFireToggle = createButton("FastFireToggle", "Fast Fire V2: OFF", UDim2.new(0, 15, 0, 128))
 local PredictToggle = createButton("PredictToggle", "Prediction: OFF", UDim2.new(0, 15, 0, 163))
 local GripOrbitToggle = createButton("GripOrbitToggle", "Grip Orbit: OFF", UDim2.new(0, 15, 0, 198))
-local DupeBtn = createButton("DupeBtn", "Dupe Gun (V2)", UDim2.new(0, 15, 0, 233))
+local RetrieveBtn = createButton("RetrieveBtn", "Retrieve Guns", UDim2.new(0, 15, 0, 233), nil, Color3.fromRGB(0, 80, 0))
+local DupeBtn = createButton("DupeBtn", "Dupe Gun (V2)", UDim2.new(0, 15, 0, 268))
 
 --// RIGHT COLUMN (Settings)
 local NameBox = createTextBox("NameBox", "Target Name...", UDim2.new(0, 240, 0, 58))
@@ -10518,7 +10521,7 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
     return predictedPos
 end
 
---// TOOL GRIP ORBIT SYSTEM (Gun orbits around locked target)
+--// TOOL GRIP ORBIT AROUND LOCKED TARGET
 local gripOrbitConnection = nil
 local gripOrbitAngle = 0
 
@@ -10533,11 +10536,11 @@ local function getCurrentTool()
     return nil
 end
 
-local function applyGripOrbit(tool, targetPos)
+local function applyGripOrbitAroundTarget(tool, targetPos)
     if not tool then return end
     if not targetPos then return end
 
-    -- Calculate orbit position around target
+    -- Calculate orbit position AROUND THE TARGET (not player)
     local radius = _G.GripOrbitRadius
     local height = _G.GripOrbitHeight
 
@@ -10545,25 +10548,24 @@ local function applyGripOrbit(tool, targetPos)
     local offsetZ = math.sin(gripOrbitAngle) * radius
     local offsetY = math.sin(gripOrbitAngle * 2) * height
 
-    -- Convert world offset to local grip offset
-    -- Grip is relative to RightHand, so we need to calculate direction from hand to target orbit pos
+    -- The orbit position is around the TARGET's position
+    local orbitPos = targetPos + Vector3.new(offsetX, offsetY + 3, offsetZ)
+
+    -- Calculate direction from player's hand to the orbit position around target
     local char = LocalPlayer.Character
     if not char then return end
     local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
     if not rightHand then return end
 
     local handPos = rightHand.Position
-    local orbitPos = targetPos + Vector3.new(offsetX, offsetY + 3, offsetZ)
     local direction = orbitPos - handPos
 
-    -- Apply as Grip offset (CFrame.new with direction vector)
-    -- Grip CFrame: position offset from hand, lookAt toward target
+    -- Apply as Grip offset
     tool.Grip = CFrame.new(direction)
 end
 
 local function stopGripOrbit()
     if gripOrbitConnection then gripOrbitConnection:Disconnect() gripOrbitConnection = nil end
-    -- Reset grip on current tool
     local tool = getCurrentTool()
     if tool then
         pcall(function() tool.Grip = CFrame.new() end)
@@ -10588,8 +10590,8 @@ local function startGripOrbit()
         -- Update orbit angle
         gripOrbitAngle = (gripOrbitAngle + dt * _G.GripOrbitSpeed) % (math.pi * 2)
 
-        -- Apply orbit grip
-        applyGripOrbit(tool, targetHRP.Position)
+        -- Apply orbit grip AROUND TARGET
+        applyGripOrbitAroundTarget(tool, targetHRP.Position)
     end)
 end
 
@@ -10600,11 +10602,49 @@ LocalPlayer.Character.ChildAdded:Connect(function(v)
         if _G.GripOrbit then
             local target = getBestTarget(_G.KillAllEnabled)
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                applyGripOrbit(v, target.Character.HumanoidRootPart.Position)
+                applyGripOrbitAroundTarget(v, target.Character.HumanoidRootPart.Position)
             end
         end
     end
 end)
+
+--// AUTO-SAVE ON DEATH
+LocalPlayer.Character:WaitForChild("Humanoid").Died:Connect(function()
+    -- Stop all shooting immediately
+    _G.AutoShoot = false
+    _G.V2Shoot = false
+    _G.KillAllEnabled = false
+
+    -- Update UI
+    SilentToggle.Text = "ULTIMATE AIM: OFF"
+    SilentToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    FastFireToggle.Text = "Fast Fire: OFF"
+    FastFireToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    KillAllToggle.Text = "KILL ALL: OFF"
+    KillAllToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+
+    notify("DIED! Stopping shoot + Saving guns...", 2)
+
+    -- Fire Save remote 10x fast
+    for i = 1, 10 do
+        local args = {"Save", "Gun"}
+        ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
+        task.wait(0.05)
+    end
+
+    notify("All guns saved!", 2)
+end)
+
+--// RETRIEVE GUNS FUNCTION
+local function retrieveGuns()
+    notify("Retrieving saved guns...", 2)
+    for i = 1, 10 do
+        local args = {"Get", "Gun"}
+        ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
+        task.wait(0.05)
+    end
+    notify("Guns retrieved!", 2)
+end
 
 --// DUPE SYSTEM V2
 local function runAutoDup(amount)
@@ -10856,6 +10896,10 @@ ModeBtn.MouseButton1Click:Connect(function()
     ModeBtn.Text = "Mode: " .. _G.V2Mode
 end)
 
+RetrieveBtn.MouseButton1Click:Connect(function()
+    task.spawn(function() retrieveGuns() end)
+end)
+
 DupeBtn.MouseButton1Click:Connect(function()
     task.spawn(function() runAutoDup(10) end)
 end)
@@ -10878,7 +10922,7 @@ task.spawn(function()
     end
 end)
 
-notify("SUPREME V14 Loaded!", 4)
+notify("SUPREME V15 Loaded!", 4)
 
 
 
