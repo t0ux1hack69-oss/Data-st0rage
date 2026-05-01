@@ -10044,10 +10044,12 @@
 
 
 --[[
-    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V18)
-    - FIXED: Gun floats ABOVE locked target's head
-    - FULL THAI GUI MENU
-    - Death auto-save (works every time)
+    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V19)
+    - SETTINGS GUI (Gear button): Fire Speed, Anti-Friend, Gun Mode
+    - NO TOOL ANIMATION (Remove idle/raise anim instantly)
+    - Gun floats ABOVE locked target's head
+    - FULL THAI GUI
+    - Death auto-save
     - Wallbang
     - Hyper Prediction
     - 3D Orbit System
@@ -10099,12 +10101,13 @@ local _G = {
     PredictStep = 0.15,
     GunAboveHead = false,
     GunAboveOffset = Vector3.new(0, 3.5, 0),
-    Wallbang = false
+    Wallbang = false,
+    NoToolAnim = true
 }
 
 --// UI SETTINGS
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltimateExploit_V18"
+ScreenGui.Name = "UltimateExploit_V19"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -10206,7 +10209,7 @@ TitleBarFix.Parent = TitleBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 1, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "  DEATH NOTA V18 -- SUPREME EDITION"
+Title.Text = "  DEATH NOTA V19 -- SUPREME EDITION"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -10286,10 +10289,9 @@ local RetrieveBtn = createButton("RetrieveBtn", "📦 เอาปืนออ�
 
 --// RIGHT COLUMN (Settings - THAI)
 local NameBox = createTextBox("NameBox", "🎯 ชื่อเป้าหมาย...", UDim2.new(0, 240, 0, 58))
-local AntiFriendToggle = createButton("AntiFriendToggle", "🛡️ ไม่ยิงเพื่อน: เปิด", UDim2.new(0, 240, 0, 93), nil, Color3.fromRGB(0, 60, 0))
+local SettingsBtn = createButton("SettingsBtn", "⚙️ ตั้งค่าขั้นสูง", UDim2.new(0, 240, 0, 93), nil, Color3.fromRGB(60, 60, 0))
 local AimPartBtn = createButton("AimPartBtn", "🎯 จุดยิง: หัว", UDim2.new(0, 240, 0, 128))
-local ModeBtn = createButton("ModeBtn", "⚙️ โหมด: 1 กระบอก", UDim2.new(0, 240, 0, 163))
-local DupeBtn = createButton("DupeBtn", "💎 ดูปปืน (V2)", UDim2.new(0, 240, 0, 198))
+local DupeBtn = createButton("DupeBtn", "💎 ดูปปืน (V2)", UDim2.new(0, 240, 0, 163))
 
 -- Status Bar (THAI)
 local StatusBar = Instance.new("TextLabel")
@@ -10304,6 +10306,98 @@ StatusBar.TextSize = 10
 StatusBar.TextXAlignment = Enum.TextXAlignment.Left
 StatusBar.Parent = MainFrame
 Instance.new("UICorner", StatusBar).CornerRadius = UDim.new(0, 4)
+
+--// SETTINGS GUI (Gear Button)
+local SettingsFrame = Instance.new("Frame")
+SettingsFrame.Name = "SettingsFrame"
+SettingsFrame.Size = UDim2.new(0, 300, 0, 280)
+SettingsFrame.Position = UDim2.new(0.5, -150, 0.5, -140)
+SettingsFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+SettingsFrame.BackgroundTransparency = 0.1
+SettingsFrame.BorderSizePixel = 0
+SettingsFrame.Visible = false
+SettingsFrame.Active = true
+SettingsFrame.Draggable = true
+SettingsFrame.Parent = ScreenGui
+
+local SettingsBg = Instance.new("ImageLabel")
+SettingsBg.Size = UDim2.new(1, 0, 1, 0)
+SettingsBg.BackgroundTransparency = 1
+SettingsBg.Image = BG_IMAGE_ID
+SettingsBg.ImageColor3 = Color3.fromRGB(150, 150, 150)
+SettingsBg.ImageTransparency = 0.8
+SettingsBg.ScaleType = Enum.ScaleType.Crop
+SettingsBg.Parent = SettingsFrame
+
+local SettingsCorner = Instance.new("UICorner")
+SettingsCorner.CornerRadius = UDim.new(0, 12)
+SettingsCorner.Parent = SettingsFrame
+
+local SettingsStroke = Instance.new("UIStroke")
+SettingsStroke.Color = Color3.fromRGB(200, 150, 0)
+SettingsStroke.Thickness = 2
+SettingsStroke.Parent = SettingsFrame
+
+-- Settings Title
+local SettingsTitle = Instance.new("TextLabel")
+SettingsTitle.Size = UDim2.new(1, 0, 0, 32)
+SettingsTitle.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
+SettingsTitle.BackgroundTransparency = 0.2
+SettingsTitle.Text = "  ⚙️ ตั้งค่าขั้นสูง"
+SettingsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+SettingsTitle.Font = Enum.Font.GothamBold
+SettingsTitle.TextSize = 14
+SettingsTitle.TextXAlignment = Enum.TextXAlignment.Left
+SettingsTitle.Parent = SettingsFrame
+Instance.new("UICorner", SettingsTitle).CornerRadius = UDim.new(0, 12)
+
+local SettingsTitleFix = Instance.new("Frame")
+SettingsTitleFix.Size = UDim2.new(1, 0, 0, 12)
+SettingsTitleFix.Position = UDim2.new(0, 0, 1, -12)
+SettingsTitleFix.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
+SettingsTitleFix.BorderSizePixel = 0
+SettingsTitleFix.Parent = SettingsTitle
+
+-- Fire Speed Slider
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Size = UDim2.new(0, 260, 0, 20)
+SpeedLabel.Position = UDim2.new(0, 20, 0, 45)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text = "ความเร็วยิง: 0.001 วิ"
+SpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedLabel.Font = Enum.Font.GothamBold
+SpeedLabel.TextSize = 12
+SpeedLabel.Parent = SettingsFrame
+
+local SpeedSlider = Instance.new("TextButton")
+SpeedSlider.Size = UDim2.new(0, 260, 0, 25)
+SpeedSlider.Position = UDim2.new(0, 20, 0, 68)
+SpeedSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SpeedSlider.Text = "||||||||||||||||||||"
+SpeedSlider.TextColor3 = Color3.fromRGB(255, 200, 0)
+SpeedSlider.Font = Enum.Font.GothamBold
+SpeedSlider.TextSize = 10
+SpeedSlider.Parent = SettingsFrame
+Instance.new("UICorner", SpeedSlider).CornerRadius = UDim.new(0, 6)
+
+local SpeedValue = Instance.new("Frame")
+SpeedValue.Size = UDim2.new(0.5, 0, 1, 0)
+SpeedValue.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
+SpeedValue.BorderSizePixel = 0
+SpeedValue.Parent = SpeedSlider
+Instance.new("UICorner", SpeedValue).CornerRadius = UDim.new(0, 6)
+
+-- Anti-Friend Toggle (in Settings)
+local SettingsAntiFriend = createButton("SettingsAntiFriend", "🛡️ ไม่ยิงเพื่อน: เปิด", UDim2.new(0, 20, 0, 105), SettingsFrame, Color3.fromRGB(0, 60, 0))
+
+-- Gun Mode Toggle (in Settings)
+local SettingsGunMode = createButton("SettingsGunMode", "🔫 โหมดปืน: 1 กระบอก", UDim2.new(0, 20, 0, 145), SettingsFrame)
+
+-- No Tool Anim Toggle
+local SettingsNoAnim = createButton("SettingsNoAnim", "🚫 ลบอนิเมชั่นถือปืน: เปิด", UDim2.new(0, 20, 0, 185), SettingsFrame, Color3.fromRGB(60, 0, 60))
+
+-- Close Button
+local CloseSettings = createButton("CloseSettings", "❌ ปิด", UDim2.new(0, 20, 0, 230), SettingsFrame, Color3.fromRGB(100, 0, 0))
 
 --// Notification System
 local NotifyFrame = Instance.new("Frame")
@@ -10348,6 +10442,54 @@ end
 local function isWhitelisted(plr)
     return WHITELIST[plr.Name:lower()] == true
 end
+
+--// NO TOOL ANIMATION SYSTEM
+-- Remove tool holding animation immediately
+local function removeToolAnimation(tool)
+    if not tool then return end
+    if not _G.NoToolAnim then return end
+
+    pcall(function()
+        -- Remove tool animations
+        local animator = tool:FindFirstChildOfClass("Animator")
+        if animator then
+            for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                track:Stop()
+            end
+        end
+
+        -- Remove character tool animations
+        local char = LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                local charAnimator = humanoid:FindFirstChildOfClass("Animator")
+                if charAnimator then
+                    for _, track in pairs(charAnimator:GetPlayingAnimationTracks()) do
+                        if string.find(track.Name:lower(), "tool") or 
+                           string.find(track.Name:lower(), "idle") or
+                           string.find(track.Name:lower(), "equip") then
+                            track:Stop()
+                        end
+                    end
+                end
+            end
+        end
+
+        -- Set grip immediately to skip raise animation
+        if tool:FindFirstChild("Handle") then
+            tool.Grip = CFrame.new()
+        end
+    end)
+end
+
+-- Monitor tool equip and remove animation
+LocalPlayer.Character.ChildAdded:Connect(function(v)
+    if v:IsA("Tool") then
+        task.wait(0.05)
+        removeToolAnimation(v)
+    end
+end)
 
 --// ANTI-3-GUN SAFETY MONITOR
 task.spawn(function()
@@ -10510,8 +10652,7 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
     return predictedPos
 end
 
---// TOOL GRIP ABOVE TARGET'S HEAD (FIXED)
--- Gun floats ABOVE the locked target's head, not orbiting around player
+--// TOOL GRIP ABOVE TARGET'S HEAD
 local gunAboveConnection = nil
 
 local function getCurrentTool()
@@ -10536,22 +10677,18 @@ local function applyGunAboveTarget(tool, targetHead)
     if not tool then return end
     if not targetHead then return end
 
-    -- Calculate position ABOVE target's head
     local headPos = targetHead.Position
     local abovePos = headPos + _G.GunAboveOffset
 
-    -- Get player's RightHand
     local char = LocalPlayer.Character
     if not char then return end
     local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
     if not rightHand then return end
 
     local handPos = rightHand.Position
-
-    -- Vector from hand to above-target position
     local gripOffset = abovePos - handPos
 
-    -- Apply Grip - gun points DOWN at target
+    -- Gun points DOWN at target
     tool.Grip = CFrame.new(gripOffset) * CFrame.Angles(math.rad(90), 0, 0)
 end
 
@@ -10594,7 +10731,6 @@ local function startGunAbove()
         local tool = getCurrentTool()
         if not tool then return end
 
-        -- Apply gun ABOVE target's head
         applyGunAboveTarget(tool, targetHead)
     end)
 end
@@ -10612,7 +10748,7 @@ LocalPlayer.Character.ChildAdded:Connect(function(v)
     end
 end)
 
---// AUTO-SAVE ON DEATH (FIXED)
+--// AUTO-SAVE ON DEATH
 local deathConnection = nil
 
 local function onDeath()
@@ -10819,6 +10955,8 @@ task.spawn(function()
                             if not _G.AutoShoot or _G.IsRecovering or _G.KillAllEnabled or _G.IsDead then break end
                             forceUnequip()
                             gun.Parent = LocalPlayer.Character
+                            -- Remove animation immediately
+                            removeToolAnimation(gun)
                             if gun:FindFirstChild("shot") then 
                                 gun.shot:FireServer(pos)
                             end
@@ -10856,8 +10994,14 @@ task.spawn(function()
                             forceUnequip()
                             local g1 = guns[i]
                             local g2 = (step == 2) and guns[i+1] or nil
-                            if g1 then g1.Parent = LocalPlayer.Character end
-                            if g2 then g2.Parent = LocalPlayer.Character end
+                            if g1 then 
+                                g1.Parent = LocalPlayer.Character 
+                                removeToolAnimation(g1)
+                            end
+                            if g2 then 
+                                g2.Parent = LocalPlayer.Character 
+                                removeToolAnimation(g2)
+                            end
                             if g1 and g1:FindFirstChild("shot") then g1.shot:FireServer(pos) end
                             if g2 and g2:FindFirstChild("shot") then g2.shot:FireServer(pos) end
                             task.wait(_G.FastFireDelay)
@@ -10892,6 +11036,54 @@ end)
 --// UI INTERACTIONS (THAI)
 ToggleBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- Settings Button
+SettingsBtn.MouseButton1Click:Connect(function()
+    SettingsFrame.Visible = not SettingsFrame.Visible
+end)
+
+CloseSettings.MouseButton1Click:Connect(function()
+    SettingsFrame.Visible = false
+end)
+
+-- Fire Speed Slider
+local speedLevels = {0.0001, 0.001, 0.005, 0.01, 0.05, 0.1, 0.2}
+local currentSpeedIndex = 2
+
+SpeedSlider.MouseButton1Click:Connect(function()
+    currentSpeedIndex = currentSpeedIndex + 1
+    if currentSpeedIndex > #speedLevels then
+        currentSpeedIndex = 1
+    end
+    _G.FastFireDelay = speedLevels[currentSpeedIndex]
+    SpeedLabel.Text = "ความเร็วยิง: " .. tostring(_G.FastFireDelay) .. " วิ"
+    local percent = currentSpeedIndex / #speedLevels
+    SpeedValue.Size = UDim2.new(percent, 0, 1, 0)
+end)
+
+-- Settings Anti-Friend
+SettingsAntiFriend.MouseButton1Click:Connect(function()
+    _G.AntiFriend = not _G.AntiFriend
+    local text = _G.AntiFriend and "🛡️ ไม่ยิงเพื่อน: เปิด" or "🛡️ ไม่ยิงเพื่อน: ปิด"
+    local color = _G.AntiFriend and Color3.fromRGB(0, 60, 0) or Color3.fromRGB(25, 25, 25)
+    SettingsAntiFriend.Text = text
+    SettingsAntiFriend.BackgroundColor3 = color
+end)
+
+-- Settings Gun Mode
+SettingsGunMode.MouseButton1Click:Connect(function()
+    _G.V2Mode = (_G.V2Mode == "1 กระบอก") and "2 กระบอก" or "1 กระบอก"
+    SettingsGunMode.Text = "🔫 โหมดปืน: " .. _G.V2Mode
+end)
+
+-- Settings No Anim
+SettingsNoAnim.MouseButton1Click:Connect(function()
+    _G.NoToolAnim = not _G.NoToolAnim
+    local text = _G.NoToolAnim and "🚫 ลบอนิเมชั่นถือปืน: เปิด" or "🚫 ลบอนิเมชั่นถือปืน: ปิด"
+    local color = _G.NoToolAnim and Color3.fromRGB(60, 0, 60) or Color3.fromRGB(25, 25, 25)
+    SettingsNoAnim.Text = text
+    SettingsNoAnim.BackgroundColor3 = color
 end)
 
 KillAllToggle.MouseButton1Click:Connect(function()
@@ -10949,20 +11141,9 @@ WallbangToggle.MouseButton1Click:Connect(function()
     WallbangToggle.BackgroundColor3 = _G.Wallbang and Color3.fromRGB(100, 0, 100) or Color3.fromRGB(25, 25, 25)
 end)
 
-AntiFriendToggle.MouseButton1Click:Connect(function()
-    _G.AntiFriend = not _G.AntiFriend
-    AntiFriendToggle.Text = _G.AntiFriend and "🛡️ ไม่ยิงเพื่อน: เปิด" or "🛡️ ไม่ยิงเพื่อน: ปิด"
-    AntiFriendToggle.BackgroundColor3 = _G.AntiFriend and Color3.fromRGB(0, 60, 0) or Color3.fromRGB(25, 25, 25)
-end)
-
 AimPartBtn.MouseButton1Click:Connect(function()
     _G.AimPart = (_G.AimPart == "Head") and "HumanoidRootPart" or "Head"
     AimPartBtn.Text = (_G.AimPart == "Head") and "🎯 จุดยิง: หัว" or "🎯 จุดยิง: ตัว"
-end)
-
-ModeBtn.MouseButton1Click:Connect(function()
-    _G.V2Mode = (_G.V2Mode == "1 กระบอก") and "2 กระบอก" or "1 กระบอก"
-    ModeBtn.Text = "⚙️ โหมด: " .. _G.V2Mode
 end)
 
 SaveAllBtn.MouseButton1Click:Connect(function()
@@ -10995,7 +11176,7 @@ task.spawn(function()
     end
 end)
 
-notify("SUPREME V18 โหลดเสร็จแล้ว!", 4)
+notify("SUPREME V19 โหลดเสร็จแล้ว!", 4)
 
 
 
