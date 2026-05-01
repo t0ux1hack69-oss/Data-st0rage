@@ -10044,9 +10044,11 @@
 
 
 --[[
-    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V19)
-    - SETTINGS GUI (Gear button): Fire Speed, Anti-Friend, Gun Mode
-    - NO TOOL ANIMATION (Remove idle/raise anim instantly)
+    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V20)
+    - Remove idle animation when shooting active
+    - Fix gun position with max distance clamp
+    - Settings GUI with Fire Speed, Anti-Friend, Gun Mode
+    - NO TOOL ANIMATION
     - Gun floats ABOVE locked target's head
     - FULL THAI GUI
     - Death auto-save
@@ -10102,12 +10104,13 @@ local _G = {
     GunAboveHead = false,
     GunAboveOffset = Vector3.new(0, 3.5, 0),
     Wallbang = false,
-    NoToolAnim = true
+    NoToolAnim = true,
+    MaxGunDistance = 50
 }
 
 --// UI SETTINGS
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltimateExploit_V19"
+ScreenGui.Name = "UltimateExploit_V20"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -10209,7 +10212,7 @@ TitleBarFix.Parent = TitleBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 1, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "  DEATH NOTA V19 -- SUPREME EDITION"
+Title.Text = "  DEATH NOTA V20 -- SUPREME EDITION"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -10396,8 +10399,11 @@ local SettingsGunMode = createButton("SettingsGunMode", "🔫 โหมดปื
 -- No Tool Anim Toggle
 local SettingsNoAnim = createButton("SettingsNoAnim", "🚫 ลบอนิเมชั่นถือปืน: เปิด", UDim2.new(0, 20, 0, 185), SettingsFrame, Color3.fromRGB(60, 0, 60))
 
+-- No Idle Anim Toggle
+local SettingsNoIdle = createButton("SettingsNoIdle", "🚶 ลบอนิเมชั่นยืน: เปิด", UDim2.new(0, 20, 0, 225), SettingsFrame, Color3.fromRGB(60, 30, 0))
+
 -- Close Button
-local CloseSettings = createButton("CloseSettings", "❌ ปิด", UDim2.new(0, 20, 0, 230), SettingsFrame, Color3.fromRGB(100, 0, 0))
+local CloseSettings = createButton("CloseSettings", "❌ ปิด", UDim2.new(0, 20, 0, 255), SettingsFrame, Color3.fromRGB(100, 0, 0))
 
 --// Notification System
 local NotifyFrame = Instance.new("Frame")
@@ -10443,14 +10449,53 @@ local function isWhitelisted(plr)
     return WHITELIST[plr.Name:lower()] == true
 end
 
+--// NO IDLE ANIMATION SYSTEM
+local idleAnimConnection = nil
+
+local function removeIdleAnimation()
+    pcall(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+
+        local animator = humanoid:FindFirstChildOfClass("Animator")
+        if not animator then return end
+
+        for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+            local name = track.Name:lower()
+            if string.find(name, "idle") or 
+               string.find(name, "stand") or
+               string.find(name, "walk") or
+               string.find(name, "run") then
+                track:Stop()
+            end
+        end
+    end)
+end
+
+local function startNoIdle()
+    if idleAnimConnection then idleAnimConnection:Disconnect() end
+    idleAnimConnection = RunService.Heartbeat:Connect(function()
+        if _G.AutoShoot or _G.V2Shoot or _G.KillAllEnabled then
+            removeIdleAnimation()
+        end
+    end)
+end
+
+local function stopNoIdle()
+    if idleAnimConnection then
+        idleAnimConnection:Disconnect()
+        idleAnimConnection = nil
+    end
+end
+
 --// NO TOOL ANIMATION SYSTEM
--- Remove tool holding animation immediately
 local function removeToolAnimation(tool)
     if not tool then return end
     if not _G.NoToolAnim then return end
 
     pcall(function()
-        -- Remove tool animations
         local animator = tool:FindFirstChildOfClass("Animator")
         if animator then
             for _, track in pairs(animator:GetPlayingAnimationTracks()) do
@@ -10458,7 +10503,6 @@ local function removeToolAnimation(tool)
             end
         end
 
-        -- Remove character tool animations
         local char = LocalPlayer.Character
         if char then
             local humanoid = char:FindFirstChildOfClass("Humanoid")
@@ -10466,9 +10510,11 @@ local function removeToolAnimation(tool)
                 local charAnimator = humanoid:FindFirstChildOfClass("Animator")
                 if charAnimator then
                     for _, track in pairs(charAnimator:GetPlayingAnimationTracks()) do
-                        if string.find(track.Name:lower(), "tool") or 
-                           string.find(track.Name:lower(), "idle") or
-                           string.find(track.Name:lower(), "equip") then
+                        local name = track.Name:lower()
+                        if string.find(name, "tool") or 
+                           string.find(name, "idle") or
+                           string.find(name, "equip") or
+                           string.find(name, "hold") then
                             track:Stop()
                         end
                     end
@@ -10476,7 +10522,6 @@ local function removeToolAnimation(tool)
             end
         end
 
-        -- Set grip immediately to skip raise animation
         if tool:FindFirstChild("Handle") then
             tool.Grip = CFrame.new()
         end
@@ -10652,7 +10697,7 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
     return predictedPos
 end
 
---// TOOL GRIP ABOVE TARGET'S HEAD
+--// TOOL GRIP ABOVE TARGET'S HEAD (FIXED WITH MAX DISTANCE)
 local gunAboveConnection = nil
 
 local function getCurrentTool()
@@ -10677,18 +10722,34 @@ local function applyGunAboveTarget(tool, targetHead)
     if not tool then return end
     if not targetHead then return end
 
-    local headPos = targetHead.Position
-    local abovePos = headPos + _G.GunAboveOffset
-
     local char = LocalPlayer.Character
     if not char then return end
     local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
     if not rightHand then return end
 
     local handPos = rightHand.Position
-    local gripOffset = abovePos - handPos
+    local headPos = targetHead.Position
 
-    -- Gun points DOWN at target
+    -- Calculate desired position above target's head
+    local desiredPos = headPos + _G.GunAboveOffset
+
+    -- Calculate distance from player to target
+    local distToTarget = (headPos - handPos).Magnitude
+
+    -- If target is too far, clamp the gun position to max distance from player
+    -- This prevents the gun from teleporting too far
+    local finalPos = desiredPos
+    if distToTarget > _G.MaxGunDistance then
+        -- Calculate direction from player to target
+        local direction = (headPos - handPos).Unit
+        -- Clamp position to max distance sphere around player
+        finalPos = handPos + (direction * _G.MaxGunDistance) + _G.GunAboveOffset
+    end
+
+    -- Calculate grip offset from hand to final position
+    local gripOffset = finalPos - handPos
+
+    -- Apply Grip - gun points DOWN at target
     tool.Grip = CFrame.new(gripOffset) * CFrame.Angles(math.rad(90), 0, 0)
 end
 
@@ -10760,6 +10821,7 @@ local function onDeath()
 
     stopOrbit()
     stopGunAbove()
+    stopNoIdle()
     forceUnequip()
 
     SilentToggle.Text = "🎯 ล็อคเป้าหมาย: ปิด"
@@ -10940,6 +11002,9 @@ task.spawn(function()
     while true do
         if _G.AutoShoot and not _G.KillAllEnabled and not _G.IsRecovering and not _G.IsDead then
             pcall(function()
+                -- Remove idle animation
+                removeIdleAnimation()
+
                 local t = getBestTarget(false)
                 if t and t.Character and t.Character:FindFirstChild(_G.AimPart) then
                     local part = t.Character[_G.AimPart]
@@ -10955,7 +11020,6 @@ task.spawn(function()
                             if not _G.AutoShoot or _G.IsRecovering or _G.KillAllEnabled or _G.IsDead then break end
                             forceUnequip()
                             gun.Parent = LocalPlayer.Character
-                            -- Remove animation immediately
                             removeToolAnimation(gun)
                             if gun:FindFirstChild("shot") then 
                                 gun.shot:FireServer(pos)
@@ -10977,6 +11041,9 @@ task.spawn(function()
     while true do
         if (_G.V2Shoot or _G.KillAllEnabled) and not _G.IsRecovering and not _G.IsDead then
             pcall(function()
+                -- Remove idle animation
+                removeIdleAnimation()
+
                 local t = getBestTarget(_G.KillAllEnabled)
                 if t and t.Character and t.Character:FindFirstChild(_G.AimPart) then
                     local part = t.Character[_G.AimPart]
@@ -11086,6 +11153,20 @@ SettingsNoAnim.MouseButton1Click:Connect(function()
     SettingsNoAnim.BackgroundColor3 = color
 end)
 
+-- Settings No Idle
+SettingsNoIdle.MouseButton1Click:Connect(function()
+    local isActive = idleAnimConnection ~= nil
+    if isActive then
+        stopNoIdle()
+        SettingsNoIdle.Text = "🚶 ลบอนิเมชั่นยืน: ปิด"
+        SettingsNoIdle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    else
+        startNoIdle()
+        SettingsNoIdle.Text = "🚶 ลบอนิเมชั่นยืน: เปิด"
+        SettingsNoIdle.BackgroundColor3 = Color3.fromRGB(60, 30, 0)
+    end
+end)
+
 KillAllToggle.MouseButton1Click:Connect(function()
     _G.KillAllEnabled = not _G.KillAllEnabled
     KillAllToggle.Text = _G.KillAllEnabled and "🌀 สังหารทั้งหมด: เปิด" or "🌀 สังหารทั้งหมด: ปิด"
@@ -11176,7 +11257,7 @@ task.spawn(function()
     end
 end)
 
-notify("SUPREME V19 โหลดเสร็จแล้ว!", 4)
+notify("SUPREME V20 โหลดเสร็จแล้ว!", 4)
 
 
 
