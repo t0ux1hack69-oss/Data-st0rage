@@ -10044,18 +10044,17 @@
 
 
 --[[
-    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V17)
-    - FIXED: Death stops all shooting + saves guns properly
-    - FIXED: Tool Grip Orbit around target (calculated from target CFrame)
-    - FIXED: Wallbang simplified (direct fire, no raycast block)
-    - ULTIMATE SILENT AIM (Ultra Precision)
-    - HYPER PREDICTION ENGINE
+    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V18)
+    - FIXED: Gun floats ABOVE locked target's head
+    - FULL THAI GUI MENU
+    - Death auto-save (works every time)
+    - Wallbang
+    - Hyper Prediction
     - 3D Orbit System
-    - KILL ALL
+    - Kill All
     - Fast Fire V2
-    - Anti-Warp Follow
-    - Advanced Dupe System
-    - Custom GUI Background
+    - Anti-Warp
+    - Dupe System
 ]]
 
 local Players = game:GetService("Players")
@@ -10078,7 +10077,7 @@ local WHITELIST = {
 local _G = {
     AutoShoot = false,
     V2Shoot = false,
-    V2Mode = "1 Gun",
+    V2Mode = "1 กระบอก",
     SilentDelay = 0.0001,
     FastFireDelay = 0.001,
     AimPart = "Head",
@@ -10098,22 +10097,20 @@ local _G = {
     VoidPosition = Vector3.new(0, -5000, 0),
     PredictOffset = Vector3.new(0, 0, 0),
     PredictStep = 0.15,
-    GripOrbit = false,
-    GripOrbitRadius = 8,
-    GripOrbitHeight = 4,
-    GripOrbitSpeed = 4,
+    GunAboveHead = false,
+    GunAboveOffset = Vector3.new(0, 3.5, 0),
     Wallbang = false
 }
 
 --// UI SETTINGS
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltimateExploit_V17"
+ScreenGui.Name = "UltimateExploit_V18"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
 local BG_IMAGE_ID = "rbxassetid://78415999505202"
 
---// INDEPENDENT TOGGLE BUTTON (DRAGGABLE + IMAGE)
+--// TOGGLE BUTTON (DRAGGABLE + IMAGE)
 local ToggleBtn = Instance.new("ImageButton")
 ToggleBtn.Name = "MainToggle"
 ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
@@ -10157,7 +10154,7 @@ ToggleBtn.InputEnded:Connect(function(input)
     end
 end)
 
---// HORIZONTAL MAIN FRAME WITH BACKGROUND IMAGE
+--// MAIN FRAME WITH BACKGROUND IMAGE
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 460, 0, 380)
@@ -10209,14 +10206,14 @@ TitleBarFix.Parent = TitleBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 1, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "  DEATH NOTA V17 -- SUPREME EDITION"
+Title.Text = "  DEATH NOTA V18 -- SUPREME EDITION"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TitleBar
 
---// UI Elements Factory
+--// UI Factory
 local function createButton(name, text, pos, parent, color)
     local btn = Instance.new("TextButton")
     btn.Name = name
@@ -10254,12 +10251,12 @@ local function createTextBox(name, placeholder, pos, parent)
     return box
 end
 
--- Column Labels
+-- Column Labels (THAI)
 local ColLeft = Instance.new("TextLabel")
 ColLeft.Size = UDim2.new(0, 200, 0, 18)
 ColLeft.Position = UDim2.new(0, 15, 0, 36)
 ColLeft.BackgroundTransparency = 1
-ColLeft.Text = "COMBAT"
+ColLeft.Text = "⚔️ ระบบต่อสู้"
 ColLeft.TextColor3 = Color3.fromRGB(255, 80, 80)
 ColLeft.Font = Enum.Font.GothamBold
 ColLeft.TextSize = 11
@@ -10270,37 +10267,37 @@ local ColRight = Instance.new("TextLabel")
 ColRight.Size = UDim2.new(0, 200, 0, 18)
 ColRight.Position = UDim2.new(0, 240, 0, 36)
 ColRight.BackgroundTransparency = 1
-ColRight.Text = "SETTINGS"
+ColRight.Text = "⚙️ ตั้งค่า"
 ColRight.TextColor3 = Color3.fromRGB(255, 80, 80)
 ColRight.Font = Enum.Font.GothamBold
 ColRight.TextSize = 11
 ColRight.TextXAlignment = Enum.TextXAlignment.Left
 ColRight.Parent = MainFrame
 
---// LEFT COLUMN (Combat)
-local KillAllToggle = createButton("KillAllToggle", "KILL ALL: OFF", UDim2.new(0, 15, 0, 58))
-local SilentToggle = createButton("SilentToggle", "ULTIMATE AIM: OFF", UDim2.new(0, 15, 0, 93))
-local FastFireToggle = createButton("FastFireToggle", "Fast Fire V2: OFF", UDim2.new(0, 15, 0, 128))
-local PredictToggle = createButton("PredictToggle", "Prediction: OFF", UDim2.new(0, 15, 0, 163))
-local GripOrbitToggle = createButton("GripOrbitToggle", "Grip Orbit: OFF", UDim2.new(0, 15, 0, 198))
-local WallbangToggle = createButton("WallbangToggle", "Wallbang: OFF", UDim2.new(0, 15, 0, 233))
-local SaveAllBtn = createButton("SaveAllBtn", "Save All Guns", UDim2.new(0, 15, 0, 268), nil, Color3.fromRGB(80, 0, 0))
-local RetrieveBtn = createButton("RetrieveBtn", "Retrieve Guns", UDim2.new(0, 15, 0, 303), nil, Color3.fromRGB(0, 80, 0))
+--// LEFT COLUMN (Combat - THAI)
+local KillAllToggle = createButton("KillAllToggle", "🌀 สังหารทั้งหมด: ปิด", UDim2.new(0, 15, 0, 58))
+local SilentToggle = createButton("SilentToggle", "🎯 ล็อคเป้าหมาย: ปิด", UDim2.new(0, 15, 0, 93))
+local FastFireToggle = createButton("FastFireToggle", "🧨 ยิงเร็ว V2: ปิด", UDim2.new(0, 15, 0, 128))
+local PredictToggle = createButton("PredictToggle", "🧠 คำนวณล่วงหน้า: ปิด", UDim2.new(0, 15, 0, 163))
+local GunAboveToggle = createButton("GunAboveToggle", "🔫 ปืนบนหัวเป้า: ปิด", UDim2.new(0, 15, 0, 198))
+local WallbangToggle = createButton("WallbangToggle", "🧱 ยิงทะลุ: ปิด", UDim2.new(0, 15, 0, 233))
+local SaveAllBtn = createButton("SaveAllBtn", "💾 เซฟปืนทั้งหมด", UDim2.new(0, 15, 0, 268), nil, Color3.fromRGB(80, 0, 0))
+local RetrieveBtn = createButton("RetrieveBtn", "📦 เอาปืนออก", UDim2.new(0, 15, 0, 303), nil, Color3.fromRGB(0, 80, 0))
 
---// RIGHT COLUMN (Settings)
-local NameBox = createTextBox("NameBox", "Target Name...", UDim2.new(0, 240, 0, 58))
-local AntiFriendToggle = createButton("AntiFriendToggle", "Anti-Friend: ON", UDim2.new(0, 240, 0, 93), nil, Color3.fromRGB(0, 60, 0))
-local AimPartBtn = createButton("AimPartBtn", "Aim: Head", UDim2.new(0, 240, 0, 128))
-local ModeBtn = createButton("ModeBtn", "Mode: 1 Gun", UDim2.new(0, 240, 0, 163))
-local DupeBtn = createButton("DupeBtn", "Dupe Gun (V2)", UDim2.new(0, 240, 0, 198))
+--// RIGHT COLUMN (Settings - THAI)
+local NameBox = createTextBox("NameBox", "🎯 ชื่อเป้าหมาย...", UDim2.new(0, 240, 0, 58))
+local AntiFriendToggle = createButton("AntiFriendToggle", "🛡️ ไม่ยิงเพื่อน: เปิด", UDim2.new(0, 240, 0, 93), nil, Color3.fromRGB(0, 60, 0))
+local AimPartBtn = createButton("AimPartBtn", "🎯 จุดยิง: หัว", UDim2.new(0, 240, 0, 128))
+local ModeBtn = createButton("ModeBtn", "⚙️ โหมด: 1 กระบอก", UDim2.new(0, 240, 0, 163))
+local DupeBtn = createButton("DupeBtn", "💎 ดูปปืน (V2)", UDim2.new(0, 240, 0, 198))
 
--- Status Bar
+-- Status Bar (THAI)
 local StatusBar = Instance.new("TextLabel")
 StatusBar.Size = UDim2.new(1, -30, 0, 22)
 StatusBar.Position = UDim2.new(0, 15, 1, -30)
 StatusBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 StatusBar.BackgroundTransparency = 0.5
-StatusBar.Text = " Ready | Target: None"
+StatusBar.Text = " 🟢 พร้อม | เป้าหมาย: ไม่มี"
 StatusBar.TextColor3 = Color3.fromRGB(200, 200, 200)
 StatusBar.Font = Enum.Font.Gotham
 StatusBar.TextSize = 10
@@ -10513,11 +10510,9 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
     return predictedPos
 end
 
---// TOOL GRIP ORBIT AROUND LOCKED TARGET (FIXED)
--- The gun orbits around the TARGET, not the player
--- We calculate the orbit position in world space around target, then convert to Grip offset
-local gripOrbitConnection = nil
-local gripOrbitAngle = 0
+--// TOOL GRIP ABOVE TARGET'S HEAD (FIXED)
+-- Gun floats ABOVE the locked target's head, not orbiting around player
+local gunAboveConnection = nil
 
 local function getCurrentTool()
     local char = LocalPlayer.Character
@@ -10530,38 +10525,6 @@ local function getCurrentTool()
     return nil
 end
 
-local function applyGripOrbitAroundTarget(tool, targetHRP)
-    if not tool then return end
-    if not targetHRP then return end
-
-    -- Calculate orbit position AROUND THE TARGET
-    local radius = _G.GripOrbitRadius
-    local height = _G.GripOrbitHeight
-
-    local offsetX = math.cos(gripOrbitAngle) * radius
-    local offsetZ = math.sin(gripOrbitAngle) * radius
-    local offsetY = math.sin(gripOrbitAngle * 2) * height + 2
-
-    -- World position of orbit point around target
-    local targetPos = targetHRP.Position
-    local orbitWorldPos = targetPos + Vector3.new(offsetX, offsetY, offsetZ)
-
-    -- Get player's RightHand position
-    local char = LocalPlayer.Character
-    if not char then return end
-    local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
-    if not rightHand then return end
-
-    local handPos = rightHand.Position
-
-    -- Calculate vector from hand to orbit position
-    -- Grip CFrame is relative to the hand, so we use the difference
-    local gripOffset = orbitWorldPos - handPos
-
-    -- Apply Grip with lookAt toward target
-    tool.Grip = CFrame.new(gripOffset) * CFrame.Angles(0, gripOrbitAngle, 0)
-end
-
 local function resetToolGrip(tool)
     if not tool then return end
     pcall(function()
@@ -10569,10 +10532,33 @@ local function resetToolGrip(tool)
     end)
 end
 
-local function stopGripOrbit()
-    if gripOrbitConnection then 
-        gripOrbitConnection:Disconnect() 
-        gripOrbitConnection = nil 
+local function applyGunAboveTarget(tool, targetHead)
+    if not tool then return end
+    if not targetHead then return end
+
+    -- Calculate position ABOVE target's head
+    local headPos = targetHead.Position
+    local abovePos = headPos + _G.GunAboveOffset
+
+    -- Get player's RightHand
+    local char = LocalPlayer.Character
+    if not char then return end
+    local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
+    if not rightHand then return end
+
+    local handPos = rightHand.Position
+
+    -- Vector from hand to above-target position
+    local gripOffset = abovePos - handPos
+
+    -- Apply Grip - gun points DOWN at target
+    tool.Grip = CFrame.new(gripOffset) * CFrame.Angles(math.rad(90), 0, 0)
+end
+
+local function stopGunAbove()
+    if gunAboveConnection then 
+        gunAboveConnection:Disconnect() 
+        gunAboveConnection = nil 
     end
     local tool = getCurrentTool()
     if tool then
@@ -10580,28 +10566,26 @@ local function stopGripOrbit()
     end
 end
 
-local function startGripOrbit()
-    if gripOrbitConnection then 
-        gripOrbitConnection:Disconnect() 
+local function startGunAbove()
+    if gunAboveConnection then 
+        gunAboveConnection:Disconnect() 
     end
-    gripOrbitAngle = 0
-    gripOrbitConnection = RunService.Heartbeat:Connect(function(dt)
-        if not _G.GripOrbit then 
-            stopGripOrbit() 
+    gunAboveConnection = RunService.Heartbeat:Connect(function()
+        if not _G.GunAboveHead then 
+            stopGunAbove() 
             return 
         end
         if _G.IsDead then return end
 
         local target = getBestTarget(_G.KillAllEnabled)
         if not target or not target.Character then 
-            -- No target, reset grip
             local tool = getCurrentTool()
             if tool then resetToolGrip(tool) end
             return 
         end
 
-        local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
-        if not targetHRP then 
+        local targetHead = target.Character:FindFirstChild("Head")
+        if not targetHead then 
             local tool = getCurrentTool()
             if tool then resetToolGrip(tool) end
             return 
@@ -10610,59 +10594,49 @@ local function startGripOrbit()
         local tool = getCurrentTool()
         if not tool then return end
 
-        -- Update orbit angle
-        gripOrbitAngle = (gripOrbitAngle + dt * _G.GripOrbitSpeed) % (math.pi * 2)
-
-        -- Apply orbit grip AROUND TARGET
-        applyGripOrbitAroundTarget(tool, targetHRP)
+        -- Apply gun ABOVE target's head
+        applyGunAboveTarget(tool, targetHead)
     end)
 end
 
--- Auto-apply grip when equipping tool
+-- Auto-apply when equipping tool
 LocalPlayer.Character.ChildAdded:Connect(function(v)
     if v:IsA("Tool") then
         task.wait(0.1)
-        if _G.GripOrbit then
+        if _G.GunAboveHead then
             local target = getBestTarget(_G.KillAllEnabled)
-            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                applyGripOrbitAroundTarget(v, target.Character.HumanoidRootPart)
+            if target and target.Character and target.Character:FindFirstChild("Head") then
+                applyGunAboveTarget(v, target.Character.Head)
             end
         end
     end
 end)
 
---// AUTO-SAVE ON DEATH (FIXED - works on EVERY death)
+--// AUTO-SAVE ON DEATH (FIXED)
 local deathConnection = nil
 
 local function onDeath()
-    -- Set dead flag FIRST
     _G.IsDead = true
-
-    -- Stop ALL shooting systems
     _G.AutoShoot = false
     _G.V2Shoot = false
     _G.KillAllEnabled = false
+    _G.GunAboveHead = false
 
-    -- Stop orbit
     stopOrbit()
-    stopGripOrbit()
-
-    -- Force unequip all tools
+    stopGunAbove()
     forceUnequip()
 
-    -- Update UI
-    SilentToggle.Text = "ULTIMATE AIM: OFF"
+    SilentToggle.Text = "🎯 ล็อคเป้าหมาย: ปิด"
     SilentToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    FastFireToggle.Text = "Fast Fire: OFF"
+    FastFireToggle.Text = "🧨 ยิงเร็ว V2: ปิด"
     FastFireToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    KillAllToggle.Text = "KILL ALL: OFF"
+    KillAllToggle.Text = "🌀 สังหารทั้งหมด: ปิด"
     KillAllToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    GripOrbitToggle.Text = "Grip Orbit: OFF"
-    GripOrbitToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    GunAboveToggle.Text = "🔫 ปืนบนหัวเป้า: ปิด"
+    GunAboveToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 
-    notify("DIED! Stopping all systems + Saving guns...", 2)
+    notify("💀 ตายแล้ว! หยุดยิง + เซฟปืน...", 2)
 
-    -- Fire Save remote 10x fast
     for i = 1, 10 do
         pcall(function()
             local args = {"Save", "Gun"}
@@ -10671,7 +10645,7 @@ local function onDeath()
         task.wait(0.05)
     end
 
-    notify("All guns saved!", 2)
+    notify("✅ เซฟปืนทั้งหมดแล้ว!", 2)
 end
 
 local function setupDeathDetection()
@@ -10680,32 +10654,25 @@ local function setupDeathDetection()
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
-    -- Disconnect old connection if exists
     if deathConnection then
         deathConnection:Disconnect()
         deathConnection = nil
     end
 
-    -- Connect new death event
     deathConnection = humanoid.Died:Connect(onDeath)
 end
 
--- Setup on current character
 setupDeathDetection()
 
--- Re-setup on EVERY respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
-    -- Reset dead flag on respawn
     _G.IsDead = false
-
-    -- Wait for humanoid to load
     task.wait(0.5)
     setupDeathDetection()
 end)
 
---// SAVE ALL GUNS FUNCTION
+--// SAVE ALL GUNS
 local function saveAllGuns()
-    notify("Saving all guns...", 2)
+    notify("💾 กำลังเซฟปืนทั้งหมด...", 2)
     for i = 1, 10 do
         pcall(function()
             local args = {"Save", "Gun"}
@@ -10713,12 +10680,12 @@ local function saveAllGuns()
         end)
         task.wait(0.05)
     end
-    notify("All guns saved!", 2)
+    notify("✅ เซฟปืนทั้งหมดแล้ว!", 2)
 end
 
---// RETRIEVE GUNS FUNCTION
+--// RETRIEVE GUNS
 local function retrieveGuns()
-    notify("Retrieving saved guns...", 2)
+    notify("📦 กำลังเอาปืนออก...", 2)
     for i = 1, 10 do
         pcall(function()
             local args = {"Get", "Gun"}
@@ -10726,7 +10693,7 @@ local function retrieveGuns()
         end)
         task.wait(0.05)
     end
-    notify("Guns retrieved!", 2)
+    notify("✅ เอาปืนออกแล้ว!", 2)
 end
 
 --// DUPE SYSTEM V2
@@ -10740,7 +10707,7 @@ local function runAutoDup(amount)
         end
     end
     if closestClick then
-        notify("Dupe V2 Started...", 2)
+        notify("💎 เริ่มดูปปืน...", 2)
         for i = 1, amount do
             fireclickdetector(closestClick)
             task.wait(0.1)
@@ -10757,13 +10724,13 @@ local function runAutoDup(amount)
             task.wait(0.05)
         end
         forceUnequip()
-        notify("Dupe Complete!", 1)
+        notify("✅ ดูปเสร็จแล้ว!", 1)
     else
-        notify("Shop not found!", 2)
+        notify("❌ ไม่พบร้านค้า!", 2)
     end
 end
 
---// 3D ORBIT SYSTEM (Sky-dive + Wide Swing)
+--// 3D ORBIT SYSTEM
 local timeCounter = 0
 local orbitConnection = nil
 local orbitPhase = 0
@@ -10832,7 +10799,7 @@ end
 
 --// SHOOTING SYSTEMS
 
--- ULTIMATE SILENT AIM (Safe 1-Gun Equip + Wallbang)
+-- ULTIMATE SILENT AIM
 task.spawn(function()
     while true do
         if _G.AutoShoot and not _G.KillAllEnabled and not _G.IsRecovering and not _G.IsDead then
@@ -10859,7 +10826,7 @@ task.spawn(function()
                         end
                         forceUnequip()
                     end
-                    StatusBar.Text = " Targeting: " .. t.Name .. " | Predict: x" .. string.format("%.1f", predictionMultiplier)
+                    StatusBar.Text = " 🔴 กำลังล็อค: " .. t.Name .. " | คาดการณ์: x" .. string.format("%.1f", predictionMultiplier)
                 end
             end)
         end
@@ -10867,7 +10834,7 @@ task.spawn(function()
     end
 end)
 
--- Fast Fire V2 Mode (Kill All or Manual)
+-- Fast Fire V2
 task.spawn(function()
     while true do
         if (_G.V2Shoot or _G.KillAllEnabled) and not _G.IsRecovering and not _G.IsDead then
@@ -10883,7 +10850,7 @@ task.spawn(function()
                                 table.insert(guns, tool)
                             end
                         end
-                        local step = (_G.V2Mode == "2 Guns") and 2 or 1
+                        local step = (_G.V2Mode == "2 กระบอก") and 2 or 1
                         for i = 1, #guns, step do
                             if (not _G.V2Shoot and not _G.KillAllEnabled) or _G.IsRecovering or _G.IsDead then break end
                             forceUnequip()
@@ -10899,7 +10866,7 @@ task.spawn(function()
                         end
                         forceUnequip()
                     end
-                    StatusBar.Text = " Targeting: " .. t.Name .. " | Predict: x" .. string.format("%.1f", predictionMultiplier)
+                    StatusBar.Text = " 🔴 กำลังล็อค: " .. t.Name .. " | คาดการณ์: x" .. string.format("%.1f", predictionMultiplier)
                 end
             end)
         end
@@ -10907,29 +10874,29 @@ task.spawn(function()
     end
 end)
 
---// ANTI-WARP FOLLOW & INSTANT RECOVERY
+--// ANTI-WARP FOLLOW
 LocalPlayer.CharacterAdded:Connect(function(char)
     if _G.KillAllEnabled then
         _G.IsRecovering = true
         local hrp = char:WaitForChild("HumanoidRootPart")
         hrp.CFrame = CFrame.new(_G.VoidPosition)
-        notify("Void Trap Active!", 1)
+        notify("🌌 กับดักห้วงอวกาศ!", 1)
         task.wait(1)
         runAutoDup(10)
         _G.IsRecovering = false
         startOrbit()
-        notify("Instant Resumed!", 1)
+        notify("⚡ กลับมายิงต่อ!", 1)
     end
 end)
 
---// UI INTERACTIONS
+--// UI INTERACTIONS (THAI)
 ToggleBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
 KillAllToggle.MouseButton1Click:Connect(function()
     _G.KillAllEnabled = not _G.KillAllEnabled
-    KillAllToggle.Text = _G.KillAllEnabled and "KILL ALL: ON" or "KILL ALL: OFF"
+    KillAllToggle.Text = _G.KillAllEnabled and "🌀 สังหารทั้งหมด: เปิด" or "🌀 สังหารทั้งหมด: ปิด"
     KillAllToggle.BackgroundColor3 = _G.KillAllEnabled and Color3.fromRGB(100, 0, 0) or Color3.fromRGB(25, 25, 25)
     if _G.KillAllEnabled then
         cycleState = "Nearest"
@@ -10942,21 +10909,21 @@ end)
 
 SilentToggle.MouseButton1Click:Connect(function()
     _G.AutoShoot = not _G.AutoShoot
-    SilentToggle.Text = _G.AutoShoot and "ULTIMATE AIM: ON" or "ULTIMATE AIM: OFF"
+    SilentToggle.Text = _G.AutoShoot and "🎯 ล็อคเป้าหมาย: เปิด" or "🎯 ล็อคเป้าหมาย: ปิด"
     SilentToggle.BackgroundColor3 = _G.AutoShoot and Color3.fromRGB(100, 0, 0) or Color3.fromRGB(25, 25, 25)
     if _G.AutoShoot then forceUnequip() end
 end)
 
 FastFireToggle.MouseButton1Click:Connect(function()
     _G.V2Shoot = not _G.V2Shoot
-    FastFireToggle.Text = _G.V2Shoot and "Fast Fire: ON" or "Fast Fire: OFF"
+    FastFireToggle.Text = _G.V2Shoot and "🧨 ยิงเร็ว V2: เปิด" or "🧨 ยิงเร็ว V2: ปิด"
     FastFireToggle.BackgroundColor3 = _G.V2Shoot and Color3.fromRGB(100, 0, 0) or Color3.fromRGB(25, 25, 25)
     if _G.V2Shoot then forceUnequip() end
 end)
 
 PredictToggle.MouseButton1Click:Connect(function()
     _G.AdaptivePredict = not _G.AdaptivePredict
-    PredictToggle.Text = _G.AdaptivePredict and "Prediction: ON" or "Prediction: OFF"
+    PredictToggle.Text = _G.AdaptivePredict and "🧠 คำนวณล่วงหน้า: เปิด" or "🧠 คำนวณล่วงหน้า: ปิด"
     PredictToggle.BackgroundColor3 = _G.AdaptivePredict and Color3.fromRGB(0, 60, 100) or Color3.fromRGB(25, 25, 25)
     if not _G.AdaptivePredict then
         predictionMultiplier = 1.0
@@ -10965,37 +10932,37 @@ PredictToggle.MouseButton1Click:Connect(function()
     end
 end)
 
-GripOrbitToggle.MouseButton1Click:Connect(function()
-    _G.GripOrbit = not _G.GripOrbit
-    GripOrbitToggle.Text = _G.GripOrbit and "Grip Orbit: ON" or "Grip Orbit: OFF"
-    GripOrbitToggle.BackgroundColor3 = _G.GripOrbit and Color3.fromRGB(0, 60, 100) or Color3.fromRGB(25, 25, 25)
-    if _G.GripOrbit then
-        startGripOrbit()
+GunAboveToggle.MouseButton1Click:Connect(function()
+    _G.GunAboveHead = not _G.GunAboveHead
+    GunAboveToggle.Text = _G.GunAboveHead and "🔫 ปืนบนหัวเป้า: เปิด" or "🔫 ปืนบนหัวเป้า: ปิด"
+    GunAboveToggle.BackgroundColor3 = _G.GunAboveHead and Color3.fromRGB(0, 60, 100) or Color3.fromRGB(25, 25, 25)
+    if _G.GunAboveHead then
+        startGunAbove()
     else
-        stopGripOrbit()
+        stopGunAbove()
     end
 end)
 
 WallbangToggle.MouseButton1Click:Connect(function()
     _G.Wallbang = not _G.Wallbang
-    WallbangToggle.Text = _G.Wallbang and "Wallbang: ON" or "Wallbang: OFF"
+    WallbangToggle.Text = _G.Wallbang and "🧱 ยิงทะลุ: เปิด" or "🧱 ยิงทะลุ: ปิด"
     WallbangToggle.BackgroundColor3 = _G.Wallbang and Color3.fromRGB(100, 0, 100) or Color3.fromRGB(25, 25, 25)
 end)
 
 AntiFriendToggle.MouseButton1Click:Connect(function()
     _G.AntiFriend = not _G.AntiFriend
-    AntiFriendToggle.Text = _G.AntiFriend and "Anti-Friend: ON" or "Anti-Friend: OFF"
+    AntiFriendToggle.Text = _G.AntiFriend and "🛡️ ไม่ยิงเพื่อน: เปิด" or "🛡️ ไม่ยิงเพื่อน: ปิด"
     AntiFriendToggle.BackgroundColor3 = _G.AntiFriend and Color3.fromRGB(0, 60, 0) or Color3.fromRGB(25, 25, 25)
 end)
 
 AimPartBtn.MouseButton1Click:Connect(function()
     _G.AimPart = (_G.AimPart == "Head") and "HumanoidRootPart" or "Head"
-    AimPartBtn.Text = (_G.AimPart == "Head") and "Aim: Head" or "Aim: Body"
+    AimPartBtn.Text = (_G.AimPart == "Head") and "🎯 จุดยิง: หัว" or "🎯 จุดยิง: ตัว"
 end)
 
 ModeBtn.MouseButton1Click:Connect(function()
-    _G.V2Mode = (_G.V2Mode == "1 Gun") and "2 Guns" or "1 Gun"
-    ModeBtn.Text = "Mode: " .. _G.V2Mode
+    _G.V2Mode = (_G.V2Mode == "1 กระบอก") and "2 กระบอก" or "1 กระบอก"
+    ModeBtn.Text = "⚙️ โหมด: " .. _G.V2Mode
 end)
 
 SaveAllBtn.MouseButton1Click:Connect(function()
@@ -11018,17 +10985,17 @@ LocalPlayer.Chatted:Connect(function(msg)
     end
 end)
 
--- Status Update Loop
+-- Status Update Loop (THAI)
 task.spawn(function()
     while true do
         if not _G.AutoShoot and not _G.V2Shoot and not _G.KillAllEnabled then
-            StatusBar.Text = " Ready | Target: None"
+            StatusBar.Text = " 🟢 พร้อม | เป้าหมาย: ไม่มี"
         end
         task.wait(1)
     end
 end)
 
-notify("SUPREME V17 Loaded!", 4)
+notify("SUPREME V18 โหลดเสร็จแล้ว!", 4)
 
 
 
