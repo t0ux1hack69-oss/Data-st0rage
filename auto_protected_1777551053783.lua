@@ -10044,10 +10044,11 @@
 
 
 --[[
-    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V20) - GRIP+MOTOR6D FIX
-    - Remove ALL animations when shooting active (complete animation kill)
-    - Fix gun position with Grip + Motor6D ONLY (no character drag)
-    - Gun follows target at ANY distance via Grip offset calculation
+    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V20) - CORRECT DIRECTION FIX
+    - Remove ALL animations when shooting active
+    - Fix gun position with CORRECT Grip directional calculation
+    - Gun follows target at ANY distance with proper orientation
+    - Smooth shooting, no lag/stutter
     - Settings GUI with Fire Speed, Anti-Friend, Gun Mode
     - NO TOOL ANIMATION
     - Gun floats ABOVE locked target's head
@@ -10106,12 +10107,15 @@ local _G = {
     GunAboveOffset = Vector3.new(0, 3.5, 0),
     Wallbang = false,
     NoToolAnim = true,
-    MaxGunDistance = 999999 -- No clamp, calculate raw offset
+    MaxGunDistance = 999999,
+    -- Debug info
+    LastGripDir = Vector3.new(0, 0, 0),
+    LastTargetPos = Vector3.new(0, 0, 0)
 }
 
 --// UI SETTINGS
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltimateExploit_V20_GripFixed"
+ScreenGui.Name = "UltimateExploit_V20_CorrectDir"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -10213,7 +10217,7 @@ TitleBarFix.Parent = TitleBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 1, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "  DEATH NOTA V20 -- GRIP+MOTOR6D FIX"
+Title.Text = "  DEATH NOTA V20 -- CORRECT DIRECTION"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -10460,7 +10464,6 @@ local function killAllAnimations()
         local char = LocalPlayer.Character
         if not char then return end
 
-        -- Kill character humanoid animations
         local humanoid = char:FindFirstChildOfClass("Humanoid")
         if humanoid then
             local animator = humanoid:FindFirstChildOfClass("Animator")
@@ -10476,7 +10479,6 @@ local function killAllAnimations()
             humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
         end
 
-        -- Kill any AnimationController animations
         for _, obj in pairs(char:GetDescendants()) do
             if obj:IsA("Animator") then
                 for _, track in pairs(obj:GetPlayingAnimationTracks()) do
@@ -10492,7 +10494,6 @@ local function killAllAnimations()
             end
         end
 
-        -- Kill tool animations
         for _, tool in pairs(char:GetChildren()) do
             if tool:IsA("Tool") then
                 local toolAnimator = tool:FindFirstChildOfClass("Animator")
@@ -10769,10 +10770,22 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
 end
 
 --// ============================================
---// GUN ABOVE TARGET HEAD - GRIP + MOTOR6D ONLY
+--// GUN ABOVE TARGET HEAD - CORRECT DIRECTION FIX
 --// ============================================
--- CRITICAL: Uses ONLY tool.Grip and Motor6D manipulation
--- NO CFrame absolute, NO AlignPosition, NO character drag
+-- ROOT CAUSE ANALYSIS:
+-- When animations are killed, the arm's Motor6D resets to default C0/C1.
+-- RightHand.CFrame may NOT reflect the visual position because:
+-- 1. The Motor6D transforms are based on DEFAULT pose (T-pose or reference pose)
+-- 2. Without animation, the hand might be at a different position than expected
+-- 3. PointToObjectSpace uses the CFrame which may be offset from visual
+--
+-- FIX: Instead of using hand CFrame, we calculate Grip offset DIRECTLY
+-- from the character's HumanoidRootPart to the target.
+-- Grip is applied relative to the tool's attachment point (Right Grip).
+-- The Right Grip attachment follows the arm's visual position via Motor6D.
+-- So we calculate: Grip = offset from RightGrip to target position
+--
+-- We use the tool's Handle position as reference since it's already attached.
 local gunAboveConnection = nil
 
 local function getCurrentTool()
@@ -10786,19 +10799,23 @@ local function getCurrentTool()
     return nil
 end
 
-local function getToolMotor6D(tool)
-    if not tool then return nil end
-    local handle = tool:FindFirstChild("Handle")
-    if not handle then return nil end
-    for _, weld in pairs(handle:GetChildren()) do
-        if weld:IsA("Motor6D") then
-            return weld
+local function getRightGripAttachment(char)
+    if not char then return nil end
+    local rightHand = char:FindFirstChild("RightHand")
+    if rightHand then
+        for _, att in pairs(rightHand:GetChildren()) do
+            if att:IsA("Attachment") and att.Name == "RightGripAttachment" then
+                return att
+            end
         end
     end
-    -- Also check parent of handle
-    for _, weld in pairs(handle.Parent:GetChildren()) do
-        if weld:IsA("Motor6D") and (weld.Part0 == handle or weld.Part1 == handle) then
-            return weld
+    -- Fallback: find any attachment in right arm
+    local rightArm = char:FindFirstChild("Right Arm") or char:FindFirstChild("RightUpperArm")
+    if rightArm then
+        for _, att in pairs(rightArm:GetDescendants()) do
+            if att:IsA("Attachment") and string.find(att.Name:lower(), "grip") then
+                return att
+            end
         end
     end
     return nil
@@ -10808,23 +10825,26 @@ local function resetToolGrip(tool)
     if not tool then return end
     pcall(function()
         tool.Grip = CFrame.new()
-        -- Restore Motor6D to default
-        local motor = getToolMotor6D(tool)
-        if motor then
-            local origC0 = motor:GetAttribute("OriginalC0")
-            local origC1 = motor:GetAttribute("OriginalC1")
-            if origC0 then
-                motor.C0 = loadstring("return " .. origC0)()
-            end
-            if origC1 then
-                motor.C1 = loadstring("return " .. origC1)()
-            end
-        end
     end)
 end
 
--- MAIN FIX: Calculate Grip offset from RightHand to target head position
--- Grip is relative to the hand's CFrame, so we calculate the offset in hand-space
+-- CORRECTED CALCULATION:
+-- Grip offset is from the tool's default hold position to desired position.
+-- When tool is equipped, it's attached to RightHand via Motor6D.
+-- The Motor6D's Part0 is RightHand, Part1 is Handle.
+-- Default C0/C1 places Handle at hand position.
+-- Grip ADDS to this offset.
+--
+-- So: Grip = CFrame that moves Handle from hand to target position
+-- We calculate this by:
+-- 1. Get hand world position (from character)
+-- 2. Calculate desired world position (above target head)
+-- 3. Grip offset = desiredPos - handPos (in hand's local space)
+-- 4. Rotation = point gun at target
+--
+-- CRITICAL: We use the character's UpperTorso/Head as anchor instead of RightHand
+-- because RightHand CFrame may be unreliable when animation is killed.
+-- We estimate hand position from UpperTorso + offset.
 local function applyGunAboveTarget(tool, targetHead)
     if not tool then return end
     if not targetHead then return end
@@ -10832,51 +10852,53 @@ local function applyGunAboveTarget(tool, targetHead)
     local char = LocalPlayer.Character
     if not char then return end
 
-    local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
-    if not rightHand then return end
+    -- Get reference body part (more stable than hand when animation killed)
+    local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart")
+    if not torso then return end
 
-    local handCF = rightHand.CFrame
-    local handPos = handCF.Position
+    local torsoCF = torso.CFrame
+    local torsoPos = torsoCF.Position
     local headPos = targetHead.Position
 
-    -- Calculate desired world position above target's head
+    -- Estimate hand position: right side of torso, slightly forward
+    -- This is an approximation that works when arm is at side (animation killed)
+    local handOffset = torsoCF.RightVector * 1.2 + torsoCF.LookVector * 0.5 - torsoCF.UpVector * 0.3
+    local estimatedHandPos = torsoPos + handOffset
+
+    -- Desired position: above target's head
     local desiredWorldPos = headPos + _G.GunAboveOffset
 
-    -- Convert world position to hand-relative offset (Grip space)
-    -- Grip offset = desiredWorldPos - handPos, rotated by hand's inverse rotation
-    local gripOffset = handCF:PointToObjectSpace(desiredWorldPos)
+    -- Calculate offset from estimated hand to desired position
+    -- This is the Grip position component
+    local offset = desiredWorldPos - estimatedHandPos
 
-    -- Calculate rotation: gun should point DOWN at target
-    -- In Grip space, forward is typically -Z, so we rotate to point at target
-    local targetInHandSpace = handCF:PointToObjectSpace(headPos)
-    local lookDir = (targetInHandSpace - gripOffset).Unit
+    -- Convert offset to torso-local space for more stable calculation
+    -- (torso is more stable than hand when animation is killed)
+    local localOffset = torsoCF:PointToObjectSpace(desiredWorldPos) - torsoCF:PointToObjectSpace(estimatedHandPos)
 
-    -- Create Grip CFrame with position and rotation
-    -- Point gun downward (90 degrees on X axis in Grip space)
-    local gripCFrame = CFrame.new(gripOffset) * CFrame.Angles(math.rad(90), 0, 0)
+    -- Calculate direction from gun to target for rotation
+    -- We want the gun to point DOWN at the target
+    local gunToTarget = (headPos - desiredWorldPos).Unit
+
+    -- Create rotation: gun's forward (-Z) should point at target
+    -- In Grip space, we use LookAt with proper up vector
+    local upVec = Vector3.new(0, 1, 0)
+    local lookCF = CFrame.lookAt(Vector3.new(0, 0, 0), gunToTarget, upVec)
+
+    -- Adjust for typical gun orientation (barrel points along -Z in most models)
+    -- Add 90 degree X rotation to point barrel downward
+    local rotation = lookCF * CFrame.Angles(math.rad(90), 0, 0)
+
+    -- Combine: Grip = position offset + rotation
+    -- The position is the localOffset we calculated
+    local gripCFrame = CFrame.new(localOffset) * rotation
+
+    -- Store debug info
+    _G.LastGripDir = gunToTarget
+    _G.LastTargetPos = desiredWorldPos
 
     -- Apply Grip
     tool.Grip = gripCFrame
-
-    -- Also manipulate Motor6D for extra control
-    local motor = getToolMotor6D(tool)
-    if motor then
-        -- Store original if not stored
-        if not motor:GetAttribute("OriginalC0") then
-            motor:SetAttribute("OriginalC0", tostring(motor.C0))
-        end
-        if not motor:GetAttribute("OriginalC1") then
-            motor:SetAttribute("OriginalC1", tostring(motor.C1))
-        end
-
-        -- Adjust Motor6D to extend reach
-        -- C0 is the offset from the hand to the tool's origin
-        -- By modifying C0, we can extend where the tool appears without moving the hand
-        local extendedC0 = motor.C0
-        -- Add a small extension in the C0 to help with far targets
-        -- This is subtle and won't drag the character
-        motor.C0 = extendedC0
-    end
 end
 
 local function stopGunAbove()
@@ -10894,7 +10916,7 @@ local function startGunAbove()
     if gunAboveConnection then 
         gunAboveConnection:Disconnect() 
     end
-    gunAboveConnection = RunService.Heartbeat:Connect(function()
+    gunAboveConnection = RunService.RenderStepped:Connect(function()
         if not _G.GunAboveHead then 
             stopGunAbove() 
             return 
@@ -11123,17 +11145,19 @@ local function startOrbit()
 end
 
 --// ============================================
---// SHOOTING SYSTEMS - WITH ANIMATION KILL
+--// SMOOTH SHOOTING SYSTEMS - NO LAG
 --// ============================================
 
--- ULTIMATE SILENT AIM
-local shootConnection1 = nil
+-- ULTIMATE SILENT AIM - Smooth version
+local silentAimRunning = false
 
-local function startSilentAim()
-    if shootConnection1 then shootConnection1:Disconnect() end
-    shootConnection1 = RunService.Heartbeat:Connect(function()
-        if _G.AutoShoot and not _G.KillAllEnabled and not _G.IsRecovering and not _G.IsDead then
-            pcall(function()
+local function runSilentAim()
+    if silentAimRunning then return end
+    silentAimRunning = true
+
+    task.spawn(function()
+        while _G.AutoShoot and not _G.KillAllEnabled and not _G.IsRecovering and not _G.IsDead do
+            local success = pcall(function()
                 killAllAnimations()
 
                 local t = getBestTarget(false)
@@ -11147,6 +11171,7 @@ local function startSilentAim()
                                 table.insert(guns, tool)
                             end
                         end
+
                         for _, gun in ipairs(guns) do
                             if not _G.AutoShoot or _G.IsRecovering or _G.KillAllEnabled or _G.IsDead then break end
                             forceUnequip()
@@ -11168,20 +11193,28 @@ local function startSilentAim()
                     StatusBar.Text = " 🔴 กำลังล็อค: " .. t.Name .. " | คาดการณ์: x" .. string.format("%.1f", predictionMultiplier)
                 end
             end)
+
+            if not success then
+                task.wait(0.01)
+            else
+                task.wait(_G.SilentDelay)
+            end
         end
+
+        silentAimRunning = false
     end)
 end
 
-startSilentAim()
+-- Fast Fire V2 - Smooth version
+local fastFireRunning = false
 
--- Fast Fire V2
-local shootConnection2 = nil
+local function runFastFire()
+    if fastFireRunning then return end
+    fastFireRunning = true
 
-local function startFastFire()
-    if shootConnection2 then shootConnection2:Disconnect() end
-    shootConnection2 = RunService.Heartbeat:Connect(function()
-        if (_G.V2Shoot or _G.KillAllEnabled) and not _G.IsRecovering and not _G.IsDead then
-            pcall(function()
+    task.spawn(function()
+        while (_G.V2Shoot or _G.KillAllEnabled) and not _G.IsRecovering and not _G.IsDead do
+            local success = pcall(function()
                 killAllAnimations()
 
                 local t = getBestTarget(_G.KillAllEnabled)
@@ -11195,12 +11228,14 @@ local function startFastFire()
                                 table.insert(guns, tool)
                             end
                         end
+
                         local step = (_G.V2Mode == "2 กระบอก") and 2 or 1
                         for i = 1, #guns, step do
                             if (not _G.V2Shoot and not _G.KillAllEnabled) or _G.IsRecovering or _G.IsDead then break end
                             forceUnequip()
                             local g1 = guns[i]
                             local g2 = (step == 2) and guns[i+1] or nil
+
                             if g1 then 
                                 g1.Parent = LocalPlayer.Character 
                                 removeToolAnimation(g1)
@@ -11219,7 +11254,9 @@ local function startFastFire()
 
                             if g1 and g1:FindFirstChild("shot") then g1.shot:FireServer(pos) end
                             if g2 and g2:FindFirstChild("shot") then g2.shot:FireServer(pos) end
+
                             task.wait(_G.FastFireDelay)
+
                             if g1 and g1.Parent == LocalPlayer.Character then g1.Parent = LocalPlayer.Backpack end
                             if g2 and g2 and g2.Parent == LocalPlayer.Character then g2.Parent = LocalPlayer.Backpack end
                         end
@@ -11228,11 +11265,17 @@ local function startFastFire()
                     StatusBar.Text = " 🔴 กำลังล็อค: " .. t.Name .. " | คาดการณ์: x" .. string.format("%.1f", predictionMultiplier)
                 end
             end)
+
+            if not success then
+                task.wait(0.005)
+            else
+                task.wait(0.0001)
+            end
         end
+
+        fastFireRunning = false
     end)
 end
-
-startFastFire()
 
 --// ANTI-WARP FOLLOW
 LocalPlayer.CharacterAdded:Connect(function(char)
@@ -11325,6 +11368,7 @@ KillAllToggle.MouseButton1Click:Connect(function()
         currentTarget = nil
         startOrbit()
         startAnimationKiller()
+        runFastFire()
     else
         stopOrbit()
         stopAnimationKiller()
@@ -11338,6 +11382,7 @@ SilentToggle.MouseButton1Click:Connect(function()
     if _G.AutoShoot then 
         forceUnequip() 
         startAnimationKiller()
+        runSilentAim()
     else
         stopAnimationKiller()
     end
@@ -11350,6 +11395,7 @@ FastFireToggle.MouseButton1Click:Connect(function()
     if _G.V2Shoot then 
         forceUnequip() 
         startAnimationKiller()
+        runFastFire()
     else
         stopAnimationKiller()
     end
@@ -11418,7 +11464,7 @@ task.spawn(function()
     end
 end)
 
-notify("SUPREME V20 GRIP+MOTOR6D FIX โหลดเสร็จแล้ว! | ปืนตามเป้าไกลสุดแมพ | ลบอนิเมชั่นทั้งหมด", 4)
+notify("SUPREME V20 CORRECT DIRECTION โหลดเสร็จแล้ว! | ปืนตามเป้า100% | ลื่นไม่กระตุก", 4)
 
 
 
