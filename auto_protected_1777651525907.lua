@@ -10044,9 +10044,9 @@
 
 
 -- ============================================================
--- ⚡️ SIGMA COMBO SCRIPT - Hitbox + AutoFarm + Teleport ⚡️
+-- SCRIPT | รุ่นใหญ่ HUB
 -- Game: Roblox (Melee-based Combat)
--- Features: Hitbox Expander | Auto Attack | Auto Buy | Auto Farm
+-- Features: Hitbox Expander | Auto Attack | Auto Farm
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -10070,11 +10070,6 @@ _G.HitboxSize = 10
 _G.AttackRange = 12
 _G.AttackDelay = 0.3
 _G.FarmInterval = 0.5
-_G.BuyLocations = {
-    Gun = "GunCollector",
-    Knife = "KnifeCollector",
-    Remington = "Remington 870Collector"
-}
 
 local TargetPlayers = {}
 local AttackMoves = {"Stomp", "Slap", "Kick"}
@@ -10249,7 +10244,7 @@ local function PerformAutoAttack()
 end
 
 -- ============================================================
--- AUTO FARM LOGIC
+-- AUTO FARM LOGIC (with movement to collect money)
 -- ============================================================
 
 local function GetFarmZone()
@@ -10265,44 +10260,33 @@ local function PerformAutoFarm()
     if currentTime - LastFarmTime < _G.FarmInterval then return end
 
     local zone = GetFarmZone()
-    if zone then
-        TeleportToPart(zone)
-    end
-
-    LastFarmTime = currentTime
-end
-
--- ============================================================
--- BUY ITEMS LOGIC
--- ============================================================
-
-local function GetCollectible(name)
-    local collectibles = Workspace:FindFirstChild("Collectibles")
-    if collectibles then
-        return collectibles:FindFirstChild(name)
-    end
-    return nil
-end
-
-local function BuyAllItems()
-    local items = {
-        _G.BuyLocations.Gun,
-        _G.BuyLocations.Knife,
-        _G.BuyLocations.Remington
-    }
-
-    for _, itemName in ipairs(items) do
-        local item = GetCollectible(itemName)
-        if item then
-            TeleportToPart(item)
-            wait(0.2)
-        end
-    end
+    if not zone then return end
 
     local hrp = GetHumanoidRootPart()
-    if hrp then
-        wait(0.3)
-    end
+    if not hrp then return end
+
+    local zonePos = zone.Position
+    local offset = 5
+
+    -- Random movement pattern to collect money
+    local positions = {
+        zonePos + Vector3.new(offset, 3, 0),
+        zonePos + Vector3.new(-offset, 3, 0),
+        zonePos + Vector3.new(0, 3, offset),
+        zonePos + Vector3.new(0, 3, -offset),
+        zonePos + Vector3.new(offset, 3, offset),
+        zonePos + Vector3.new(-offset, 3, -offset),
+        zonePos + Vector3.new(offset, 3, -offset),
+        zonePos + Vector3.new(-offset, 3, offset),
+    }
+
+    local randomPos = positions[math.random(1, #positions)]
+
+    pcall(function()
+        hrp.CFrame = CFrame.new(randomPos)
+    end)
+
+    LastFarmTime = currentTime
 end
 
 -- ============================================================
@@ -10322,7 +10306,7 @@ MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Position = UDim2.new(0.02, 0, 0.15, 0)
-MainFrame.Size = UDim2.new(0, 200, 0, 280)
+MainFrame.Size = UDim2.new(0, 200, 0, 220)
 MainFrame.Active = true
 MainFrame.ClipsDescendants = true
 
@@ -10353,7 +10337,7 @@ TitleLabel.Parent = TitleBar
 TitleLabel.BackgroundTransparency = 1
 TitleLabel.Position = UDim2.new(0, 8, 0, 0)
 TitleLabel.Size = UDim2.new(0.7, 0, 1, 0)
-TitleLabel.Text = "SIGMA COMBO"
+TitleLabel.Text = "SCRIPT | รุ่นใหญ่ HUB"
 TitleLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
 TitleLabel.TextScaled = true
 TitleLabel.Font = Enum.Font.GothamBold
@@ -10434,40 +10418,12 @@ local AttackToggleCorner = Instance.new("UICorner")
 AttackToggleCorner.CornerRadius = UDim.new(0, 8)
 AttackToggleCorner.Parent = AttackToggle
 
--- Buy Items Section
-local BuyLabel = Instance.new("TextLabel")
-BuyLabel.Name = "BuyLabel"
-BuyLabel.Parent = ContentFrame
-BuyLabel.BackgroundTransparency = 1
-BuyLabel.Position = UDim2.new(0, 8, 0, 120)
-BuyLabel.Size = UDim2.new(1, -16, 0, 18)
-BuyLabel.Text = "BUY ALL ITEMS"
-BuyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-BuyLabel.TextScaled = true
-BuyLabel.Font = Enum.Font.GothamBold
-BuyLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-local BuyButton = Instance.new("TextButton")
-BuyButton.Name = "BuyButton"
-BuyButton.Parent = ContentFrame
-BuyButton.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
-BuyButton.Position = UDim2.new(0, 8, 0, 142)
-BuyButton.Size = UDim2.new(1, -16, 0, 30)
-BuyButton.Text = "BUY ALL"
-BuyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-BuyButton.TextScaled = true
-BuyButton.Font = Enum.Font.GothamBold
-
-local BuyButtonCorner = Instance.new("UICorner")
-BuyButtonCorner.CornerRadius = UDim.new(0, 8)
-BuyButtonCorner.Parent = BuyButton
-
 -- Auto Farm Section
 local FarmLabel = Instance.new("TextLabel")
 FarmLabel.Name = "FarmLabel"
 FarmLabel.Parent = ContentFrame
 FarmLabel.BackgroundTransparency = 1
-FarmLabel.Position = UDim2.new(0, 8, 0, 178)
+FarmLabel.Position = UDim2.new(0, 8, 0, 120)
 FarmLabel.Size = UDim2.new(1, -16, 0, 18)
 FarmLabel.Text = "AUTO FARM"
 FarmLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -10479,7 +10435,7 @@ local FarmToggle = Instance.new("TextButton")
 FarmToggle.Name = "FarmToggle"
 FarmToggle.Parent = ContentFrame
 FarmToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-FarmToggle.Position = UDim2.new(0, 8, 0, 200)
+FarmToggle.Position = UDim2.new(0, 8, 0, 142)
 FarmToggle.Size = UDim2.new(1, -16, 0, 30)
 FarmToggle.Text = "OFF"
 FarmToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -10495,7 +10451,7 @@ local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Name = "Status"
 StatusLabel.Parent = ContentFrame
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Position = UDim2.new(0, 8, 0, 236)
+StatusLabel.Position = UDim2.new(0, 8, 0, 178)
 StatusLabel.Size = UDim2.new(1, -16, 0, 16)
 StatusLabel.Text = "Ready"
 StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
@@ -10585,22 +10541,6 @@ AttackToggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- Buy All Button
-BuyButton.MouseButton1Click:Connect(function()
-    StatusLabel.Text = "Buying Items..."
-    StatusLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
-
-    spawn(function()
-        BuyAllItems()
-        StatusLabel.Text = "Items Bought!"
-        StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        wait(2)
-        if StatusLabel.Text == "Items Bought!" then
-            StatusLabel.Text = "Ready"
-        end
-    end)
-end)
-
 -- Auto Farm Toggle
 FarmToggle.MouseButton1Click:Connect(function()
     _G.AutoFarmEnabled = not _G.AutoFarmEnabled
@@ -10623,7 +10563,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         MinimizeBtn.Text = "^"
         ContentFrame.Visible = false
     else
-        MainFrame:TweenSize(UDim2.new(0, 200, 0, 280), "Out", "Quad", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 200, 0, 220), "Out", "Quad", 0.25, true)
         MinimizeBtn.Text = "v"
         wait(0.25)
         ContentFrame.Visible = true
@@ -10695,9 +10635,9 @@ spawn(function()
     end
 end)
 
-Notify("SIGMA COMBO", "Script Loaded Successfully!", 5)
-print("SIGMA COMBO SCRIPT LOADED")
-print("Hitbox Expander | Auto Attack | Buy All | Auto Farm")
+Notify("SCRIPT | รุ่นใหญ่ HUB", "Loaded Successfully!", 5)
+print("SCRIPT | รุ่นใหญ่ HUB LOADED")
+print("Hitbox Expander | Auto Attack | Auto Farm")
 print("Ready to dominate!")
 
 
