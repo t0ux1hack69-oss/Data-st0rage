@@ -10044,25 +10044,18 @@
 
 
 --[[
-    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V15)
-    - ULTIMATE SILENT AIM (Ultra Precision, 16+ Guns)
-    - HYPER PREDICTION ENGINE (Bullet Drop + Velocity + Ping Compensation)
-    - TOOL GRIP ORBIT AROUND LOCKED TARGET (Not player)
-    - AUTO-SAVE ON DEATH (Stop shoot + Save remote 10x)
-    - RETRIEVE BUTTON (Get remote 10x from GUI)
-    - 3D Orbit System (Sky-dive + Wide swing)
-    - Horizontal GUI Layout (Modern & Compact)
-    - Whitelist System (Protected players cannot be targeted)
-    - Strict Max 1-Gun Equip (Prevents 3-gun kick)
-    - Anti-Friend System
-    - Dynamic Target Switching (Always targets nearest)
-    - KILL ALL (Auto Orbit Cycling: Nearest -> Farthest)
-    - Forced Fast Fire V2 during KILL ALL
-    - Zero Delay Recovery (Instant resume after Auto-Dupe)
-    - Anti-Warp Follow (Void Trap)
-    - Self-Damage Protection
-    - Advanced Dupe System (V2 ClickDetector)
-    - Mobile-Friendly & Draggable Toggle
+    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V16)
+    - WALLBANG (Shoot through walls/objects)
+    - AUTO-SAVE ON EVERY DEATH (Fixed - reconnects on respawn)
+    - SAVE ALL GUNS BUTTON (Save remote 10x)
+    - CUSTOM GUI BACKGROUND (Image ID support)
+    - TOOL GRIP ORBIT AROUND LOCKED TARGET
+    - HYPER PREDICTION ENGINE
+    - 3D Orbit System
+    - KILL ALL
+    - Fast Fire V2
+    - Anti-Warp Follow
+    - Advanced Dupe System
 ]]
 
 local Players = game:GetService("Players")
@@ -10072,9 +10065,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
-local TweenService = game:GetService("TweenService")
 
---// WHITELIST (Cannot be targeted or shot)
+--// WHITELIST
 local WHITELIST = {
     ["wsghoi2744"] = true,
     ["libbyeli1091"] = true,
@@ -10109,25 +10101,26 @@ local _G = {
     GripOrbitRadius = 12,
     GripOrbitHeight = 5,
     GripOrbitSpeed = 3,
-    GripDistance = 15
+    Wallbang = true
 }
 
 --// UI SETTINGS
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltimateExploit_V15"
+ScreenGui.Name = "UltimateExploit_V16"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
---// INDEPENDENT TOGGLE BUTTON (DRAGGABLE)
-local ToggleBtn = Instance.new("TextButton")
+--// BACKGROUND IMAGE ID
+local BG_IMAGE_ID = "rbxassetid://78415999505202"
+
+--// INDEPENDENT TOGGLE BUTTON (DRAGGABLE + IMAGE)
+local ToggleBtn = Instance.new("ImageButton")
 ToggleBtn.Name = "MainToggle"
 ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
 ToggleBtn.Position = UDim2.new(1, -65, 0, 10)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-ToggleBtn.Text = "X"
-ToggleBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.TextSize = 26
+ToggleBtn.Image = BG_IMAGE_ID
+ToggleBtn.ImageColor3 = Color3.fromRGB(255, 0, 0)
 ToggleBtn.Parent = ScreenGui
 
 local ToggleCorner = Instance.new("UICorner")
@@ -10165,17 +10158,29 @@ ToggleBtn.InputEnded:Connect(function(input)
     end
 end)
 
---// HORIZONTAL MAIN FRAME
+--// HORIZONTAL MAIN FRAME WITH BACKGROUND IMAGE
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 460, 0, 345)
-MainFrame.Position = UDim2.new(0.5, -230, 0.5, -172)
+MainFrame.Size = UDim2.new(0, 460, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -230, 0.5, -190)
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MainFrame.BackgroundTransparency = 0.3
 MainFrame.BorderSizePixel = 0
 MainFrame.Visible = true
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
+
+-- Background Image
+local BgImage = Instance.new("ImageLabel")
+BgImage.Name = "BgImage"
+BgImage.Size = UDim2.new(1, 0, 1, 0)
+BgImage.BackgroundTransparency = 1
+BgImage.Image = BG_IMAGE_ID
+BgImage.ImageColor3 = Color3.fromRGB(180, 180, 180)
+BgImage.ImageTransparency = 0.7
+BgImage.ScaleType = Enum.ScaleType.Crop
+BgImage.Parent = MainFrame
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 12)
@@ -10191,6 +10196,7 @@ MainStroke.Parent = MainFrame
 local TitleBar = Instance.new("Frame")
 TitleBar.Size = UDim2.new(1, 0, 0, 32)
 TitleBar.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+TitleBar.BackgroundTransparency = 0.2
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
 Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 12)
@@ -10205,7 +10211,7 @@ TitleBarFix.Parent = TitleBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 1, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "  DEATH NOTA V15 -- SUPREME EDITION"
+Title.Text = "  DEATH NOTA V16 -- SUPREME EDITION"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -10219,6 +10225,7 @@ local function createButton(name, text, pos, parent, color)
     btn.Size = UDim2.new(0, 200, 0, 30)
     btn.Position = pos
     btn.BackgroundColor3 = color or Color3.fromRGB(25, 25, 25)
+    btn.BackgroundTransparency = 0.3
     btn.Text = text
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.GothamSemibold
@@ -10278,14 +10285,16 @@ local SilentToggle = createButton("SilentToggle", "ULTIMATE AIM: OFF", UDim2.new
 local FastFireToggle = createButton("FastFireToggle", "Fast Fire V2: OFF", UDim2.new(0, 15, 0, 128))
 local PredictToggle = createButton("PredictToggle", "Prediction: OFF", UDim2.new(0, 15, 0, 163))
 local GripOrbitToggle = createButton("GripOrbitToggle", "Grip Orbit: OFF", UDim2.new(0, 15, 0, 198))
-local RetrieveBtn = createButton("RetrieveBtn", "Retrieve Guns", UDim2.new(0, 15, 0, 233), nil, Color3.fromRGB(0, 80, 0))
-local DupeBtn = createButton("DupeBtn", "Dupe Gun (V2)", UDim2.new(0, 15, 0, 268))
+local WallbangToggle = createButton("WallbangToggle", "Wallbang: OFF", UDim2.new(0, 15, 0, 233))
+local SaveAllBtn = createButton("SaveAllBtn", "Save All Guns", UDim2.new(0, 15, 0, 268), nil, Color3.fromRGB(80, 0, 0))
+local RetrieveBtn = createButton("RetrieveBtn", "Retrieve Guns", UDim2.new(0, 15, 0, 303), nil, Color3.fromRGB(0, 80, 0))
 
 --// RIGHT COLUMN (Settings)
 local NameBox = createTextBox("NameBox", "Target Name...", UDim2.new(0, 240, 0, 58))
 local AntiFriendToggle = createButton("AntiFriendToggle", "Anti-Friend: ON", UDim2.new(0, 240, 0, 93), nil, Color3.fromRGB(0, 60, 0))
 local AimPartBtn = createButton("AimPartBtn", "Aim: Head", UDim2.new(0, 240, 0, 128))
 local ModeBtn = createButton("ModeBtn", "Mode: 1 Gun", UDim2.new(0, 240, 0, 163))
+local DupeBtn = createButton("DupeBtn", "Dupe Gun (V2)", UDim2.new(0, 240, 0, 198))
 
 -- Status Bar
 local StatusBar = Instance.new("TextLabel")
@@ -10315,6 +10324,7 @@ local function notify(msg, dur)
     local n = Instance.new("TextLabel")
     n.Size = UDim2.new(1, 0, 0, 28)
     n.BackgroundColor3 = Color3.fromRGB(20, 0, 0)
+    n.BackgroundTransparency = 0.3
     n.Text = " [!] " .. msg
     n.TextColor3 = Color3.fromRGB(255, 50, 50)
     n.Font = Enum.Font.GothamBold
@@ -10366,12 +10376,40 @@ local function isSafeToShoot(targetPos)
     local myHRP = LocalPlayer.Character.HumanoidRootPart
     local origin = myHRP.Position
     if (targetPos - origin).Magnitude < 3 then return false end
-    local rayParam = RaycastParams.new()
-    rayParam.FilterDescendantsInstances = {LocalPlayer.Character}
-    rayParam.FilterType = Enum.RaycastFilterType.Exclude
-    local result = workspace:Raycast(origin, (targetPos - origin).Unit * 5, rayParam)
-    if result and result.Distance < 2 then return false end
     return true
+end
+
+--// WALLBANG RAYCAST (Ignore all objects except target)
+local function wallbangRaycast(origin, direction, targetCharacter)
+    if not _G.Wallbang then
+        -- Normal raycast
+        local rayParam = RaycastParams.new()
+        rayParam.FilterDescendantsInstances = {LocalPlayer.Character}
+        rayParam.FilterType = Enum.RaycastFilterType.Exclude
+        local result = workspace:Raycast(origin, direction, rayParam)
+        return result
+    end
+
+    -- Wallbang: raycast that ignores everything except target character
+    local rayParam = RaycastParams.new()
+    local ignoreList = {}
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character ~= targetCharacter then
+            table.insert(ignoreList, plr.Character)
+        end
+    end
+    -- Ignore all workspace parts except target
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and not obj:IsDescendantOf(targetCharacter) then
+            table.insert(ignoreList, obj)
+        end
+    end
+    table.insert(ignoreList, LocalPlayer.Character)
+
+    rayParam.FilterDescendantsInstances = ignoreList
+    rayParam.FilterType = Enum.RaycastFilterType.Exclude
+    local result = workspace:Raycast(origin, direction, rayParam)
+    return result
 end
 
 --// SMART TARGET CYCLING
@@ -10400,7 +10438,6 @@ local function getBestTarget(isKillAll)
     local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position
     if not myPos then return nil end
 
-    -- Priority 1: Specific Target Name
     if NameBox.Text ~= "" then
         for _, p in pairs(Players:GetPlayers()) do
             if string.find(p.Name:lower(), NameBox.Text:lower()) and canTarget(p) then
@@ -10409,12 +10446,10 @@ local function getBestTarget(isKillAll)
         end
     end
 
-    -- Priority 2: Focus Lock (Only for Kill All)
     if isKillAll and currentTarget and isAlive(currentTarget) and not isWhitelisted(currentTarget) then
         return currentTarget
     end
 
-    -- Priority 3: Dynamic Target Switching
     local players = {}
     for _, p in pairs(Players:GetPlayers()) do
         if canTarget(p) then
@@ -10461,23 +10496,19 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
     local targetVel = targetPart.Velocity
     local targetAcc = Vector3.new(0, 0, 0)
 
-    -- If Prediction OFF or target standing still -> shoot straight
     if not _G.AdaptivePredict then return targetPos end
     if targetVel.Magnitude < 0.5 then
         predictionMultiplier = 1.0
         return targetPos
     end
 
-    -- Calculate distance and bullet travel time
     local dist = (targetPos - myPos).Magnitude
     local speed = _G.BulletSpeed
     local travelTime = dist / speed
 
-    -- Ping Compensation
     local ping = getPing()
     travelTime = travelTime + ping + pingCompensation
 
-    -- Calculate Acceleration from Velocity Change
     local uid = targetPlayer.UserId
     local lastVel = hitHistory[uid] and hitHistory[uid].lastVel
     if lastVel then
@@ -10485,19 +10516,15 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
     end
     hitHistory[uid] = {lastVel = targetVel, time = tick()}
 
-    -- HYPER PREDICTION FORMULA:
-    -- Position = P0 + V*t + 0.5*a*t^2 + offset*multiplier
     local predictedPos = targetPos 
         + (targetVel * travelTime * predictionMultiplier) 
         + (0.5 * targetAcc * travelTime * travelTime)
 
-    -- Bullet Drop Compensation (for long distances)
     if dist > 100 then
         local dropCompensation = Vector3.new(0, (gravity.Y * travelTime * travelTime) / 2, 0)
         predictedPos = predictedPos - dropCompensation
     end
 
-    -- Adaptive Logic: Check if health decreased
     local hum = targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid")
     if hum then
         local currentHP = hum.Health
@@ -10505,9 +10532,8 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
 
         if lastHP then
             if currentHP < lastHP then
-                -- Health dropped = hit confirmed -> lock multiplier
+                -- Hit confirmed
             else
-                -- Health not dropped = missed -> slowly adjust offset
                 predictionMultiplier = predictionMultiplier + _G.PredictStep
                 if predictionMultiplier > 3.0 then predictionMultiplier = 0.5 end
             end
@@ -10515,7 +10541,6 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
         lastTargetHealth[uid] = currentHP
     end
 
-    -- Clamp minimum
     if predictionMultiplier < 0.3 then predictionMultiplier = 0.3 end
 
     return predictedPos
@@ -10540,7 +10565,6 @@ local function applyGripOrbitAroundTarget(tool, targetPos)
     if not tool then return end
     if not targetPos then return end
 
-    -- Calculate orbit position AROUND THE TARGET (not player)
     local radius = _G.GripOrbitRadius
     local height = _G.GripOrbitHeight
 
@@ -10548,10 +10572,8 @@ local function applyGripOrbitAroundTarget(tool, targetPos)
     local offsetZ = math.sin(gripOrbitAngle) * radius
     local offsetY = math.sin(gripOrbitAngle * 2) * height
 
-    -- The orbit position is around the TARGET's position
     local orbitPos = targetPos + Vector3.new(offsetX, offsetY + 3, offsetZ)
 
-    -- Calculate direction from player's hand to the orbit position around target
     local char = LocalPlayer.Character
     if not char then return end
     local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
@@ -10560,7 +10582,6 @@ local function applyGripOrbitAroundTarget(tool, targetPos)
     local handPos = rightHand.Position
     local direction = orbitPos - handPos
 
-    -- Apply as Grip offset
     tool.Grip = CFrame.new(direction)
 end
 
@@ -10587,10 +10608,7 @@ local function startGripOrbit()
         local tool = getCurrentTool()
         if not tool then return end
 
-        -- Update orbit angle
         gripOrbitAngle = (gripOrbitAngle + dt * _G.GripOrbitSpeed) % (math.pi * 2)
-
-        -- Apply orbit grip AROUND TARGET
         applyGripOrbitAroundTarget(tool, targetHRP.Position)
     end)
 end
@@ -10608,32 +10626,59 @@ LocalPlayer.Character.ChildAdded:Connect(function(v)
     end
 end)
 
---// AUTO-SAVE ON DEATH
-LocalPlayer.Character:WaitForChild("Humanoid").Died:Connect(function()
-    -- Stop all shooting immediately
-    _G.AutoShoot = false
-    _G.V2Shoot = false
-    _G.KillAllEnabled = false
+--// AUTO-SAVE ON DEATH (FIXED - reconnects on every respawn)
+local function setupDeathSave()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
 
-    -- Update UI
-    SilentToggle.Text = "ULTIMATE AIM: OFF"
-    SilentToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    FastFireToggle.Text = "Fast Fire: OFF"
-    FastFireToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    KillAllToggle.Text = "KILL ALL: OFF"
-    KillAllToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    humanoid.Died:Connect(function()
+        -- Stop all shooting immediately
+        _G.AutoShoot = false
+        _G.V2Shoot = false
+        _G.KillAllEnabled = false
 
-    notify("DIED! Stopping shoot + Saving guns...", 2)
+        -- Update UI
+        SilentToggle.Text = "ULTIMATE AIM: OFF"
+        SilentToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        FastFireToggle.Text = "Fast Fire: OFF"
+        FastFireToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        KillAllToggle.Text = "KILL ALL: OFF"
+        KillAllToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 
-    -- Fire Save remote 10x fast
+        notify("DIED! Stopping shoot + Saving guns...", 2)
+
+        -- Fire Save remote 10x fast
+        for i = 1, 10 do
+            local args = {"Save", "Gun"}
+            ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
+            task.wait(0.05)
+        end
+
+        notify("All guns saved!", 2)
+    end)
+end
+
+-- Setup on current character
+setupDeathSave()
+
+-- Re-setup on every respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+    setupDeathSave()
+end)
+
+--// SAVE ALL GUNS FUNCTION
+local function saveAllGuns()
+    notify("Saving all guns...", 2)
     for i = 1, 10 do
         local args = {"Save", "Gun"}
         ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
         task.wait(0.05)
     end
-
     notify("All guns saved!", 2)
-end)
+end
 
 --// RETRIEVE GUNS FUNCTION
 local function retrieveGuns()
@@ -10716,7 +10761,6 @@ local function startOrbit()
         timeCounter = (timeCounter + dt * _G.OrbitSpeed) % (math.pi * 2)
         orbitPhase = (orbitPhase + dt * 3.5) % (math.pi * 2)
 
-        -- 3D Orbit Calculation
         local baseRadius = _G.OrbitRadiusMin + ((math.sin(timeCounter * 0.7) + 1) / 2) * (_G.OrbitRadiusMax - _G.OrbitRadiusMin)
         local widePulse = math.sin(orbitPhase * 1.3) * 6
         local radius = baseRadius + widePulse
@@ -10736,7 +10780,7 @@ end
 
 --// SHOOTING SYSTEMS
 
--- ULTIMATE SILENT AIM (Safe 1-Gun Equip)
+-- ULTIMATE SILENT AIM (Safe 1-Gun Equip + Wallbang)
 task.spawn(function()
     while true do
         if _G.AutoShoot and not _G.KillAllEnabled and not _G.IsRecovering then
@@ -10756,12 +10800,18 @@ task.spawn(function()
                             if not _G.AutoShoot or _G.IsRecovering or _G.KillAllEnabled then break end
                             forceUnequip()
                             gun.Parent = LocalPlayer.Character
-                            if gun:FindFirstChild("shot") then gun.shot:FireServer(pos) end
+                            if gun:FindFirstChild("shot") then 
+                                if _G.Wallbang then
+                                    -- Wallbang: fire at predicted position directly
+                                    gun.shot:FireServer(pos)
+                                else
+                                    gun.shot:FireServer(pos)
+                                end
+                            end
                             gun.Parent = LocalPlayer.Backpack
                         end
                         forceUnequip()
                     end
-                    -- Update Status
                     StatusBar.Text = " Targeting: " .. t.Name .. " | Predict: x" .. string.format("%.1f", predictionMultiplier)
                 end
             end)
@@ -10828,7 +10878,6 @@ end)
 --// UI INTERACTIONS
 ToggleBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
-    ToggleBtn.Text = MainFrame.Visible and "X" or "O"
 end)
 
 KillAllToggle.MouseButton1Click:Connect(function()
@@ -10880,6 +10929,12 @@ GripOrbitToggle.MouseButton1Click:Connect(function()
     end
 end)
 
+WallbangToggle.MouseButton1Click:Connect(function()
+    _G.Wallbang = not _G.Wallbang
+    WallbangToggle.Text = _G.Wallbang and "Wallbang: ON" or "Wallbang: OFF"
+    WallbangToggle.BackgroundColor3 = _G.Wallbang and Color3.fromRGB(100, 0, 100) or Color3.fromRGB(25, 25, 25)
+end)
+
 AntiFriendToggle.MouseButton1Click:Connect(function()
     _G.AntiFriend = not _G.AntiFriend
     AntiFriendToggle.Text = _G.AntiFriend and "Anti-Friend: ON" or "Anti-Friend: OFF"
@@ -10894,6 +10949,10 @@ end)
 ModeBtn.MouseButton1Click:Connect(function()
     _G.V2Mode = (_G.V2Mode == "1 Gun") and "2 Guns" or "1 Gun"
     ModeBtn.Text = "Mode: " .. _G.V2Mode
+end)
+
+SaveAllBtn.MouseButton1Click:Connect(function()
+    task.spawn(function() saveAllGuns() end)
 end)
 
 RetrieveBtn.MouseButton1Click:Connect(function()
@@ -10922,7 +10981,7 @@ task.spawn(function()
     end
 end)
 
-notify("SUPREME V15 Loaded!", 4)
+notify("SUPREME V16 Loaded!", 4)
 
 
 
