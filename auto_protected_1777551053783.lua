@@ -10043,7 +10043,1427 @@
 
 
 
-do local Players=game:GetService("Players");local LocalPlayer=Players.LocalPlayer;local RunService=game:GetService("RunService");local ReplicatedStorage=game:GetService("ReplicatedStorage");local CoreGui=game:GetService("CoreGui");local UserInputService=game:GetService("UserInputService");local Camera=workspace.CurrentCamera;local WHITELIST={wsghoi2744=true,libbyeli1091=true,nrjrjrjrjtjhs=true,shooby43=true};local _G={AutoShoot=false,V2Shoot=false,V2Mode="1 กระบอก",SilentDelay=0.0001,FastFireDelay=0.001,AimPart="Head",BulletSpeed=900,KillAllEnabled=false,AntiFriend=true,AdaptivePredict=false,TargetName="",OrbitSpeed=180,OrbitRadiusMin=8,OrbitRadiusMax=18,OrbitHeightMin= -4,OrbitHeightMax=14,SwitchTime=0.01,IsRecovering=false,IsDead=false,VoidPosition=Vector3.new(0, -5000,0),PredictOffset=Vector3.new(0,0,0),PredictStep=0.15,GunAboveHead=false,GunAboveOffset=Vector3.new(0,3.5,0),Wallbang=false,NoToolAnim=true,MaxGunDistance=50};local ScreenGui=Instance.new("ScreenGui");ScreenGui.Name="UltimateExploit_V20";ScreenGui.Parent=CoreGui;ScreenGui.ResetOnSpawn=false;local BG_IMAGE_ID="rbxassetid://78415999505202";local ToggleBtn=Instance.new("ImageButton");ToggleBtn.Name="MainToggle";ToggleBtn.Size=UDim2.new(0,55,0,55);ToggleBtn.Position=UDim2.new(1, -65,0,10);ToggleBtn.BackgroundColor3=Color3.fromRGB(20,20,20);ToggleBtn.Image=BG_IMAGE_ID;ToggleBtn.ImageColor3=Color3.fromRGB(255,0,0);ToggleBtn.Parent=ScreenGui;local ToggleCorner=Instance.new("UICorner");ToggleCorner.CornerRadius=UDim.new(1,0);ToggleCorner.Parent=ToggleBtn;local ToggleStroke=Instance.new("UIStroke");ToggleStroke.Color=Color3.fromRGB(255,0,0);ToggleStroke.Thickness=2;ToggleStroke.Parent=ToggleBtn;local dragging,dragInput,dragStart,startPos;ToggleBtn.InputBegan:Connect(function(input) if ((input.UserInputType==Enum.UserInputType.MouseButton1) or (input.UserInputType==Enum.UserInputType.Touch)) then dragging=true;dragStart=input.Position;startPos=ToggleBtn.Position;end end);ToggleBtn.InputChanged:Connect(function(input) if ((input.UserInputType==Enum.UserInputType.MouseMovement) or (input.UserInputType==Enum.UserInputType.Touch)) then dragInput=input;end end);UserInputService.InputChanged:Connect(function(input) if ((input==dragInput) and dragging) then local delta=input.Position-dragStart ;ToggleBtn.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset + delta.X ,startPos.Y.Scale,startPos.Y.Offset + delta.Y );end end);ToggleBtn.InputEnded:Connect(function(input) if ((input.UserInputType==Enum.UserInputType.MouseButton1) or (input.UserInputType==Enum.UserInputType.Touch)) then dragging=false;end end);local MainFrame=Instance.new("Frame");MainFrame.Name="MainFrame";MainFrame.Size=UDim2.new(0,460,0,380);MainFrame.Position=UDim2.new(0.5, -230,0.5, -190);MainFrame.BackgroundColor3=Color3.fromRGB(12,12,12);MainFrame.BackgroundTransparency=0.3;MainFrame.BorderSizePixel=0;MainFrame.Visible=true;MainFrame.Active=true;MainFrame.Draggable=true;MainFrame.Parent=ScreenGui;local BgImage=Instance.new("ImageLabel");BgImage.Name="BgImage";BgImage.Size=UDim2.new(1,0,1,0);BgImage.BackgroundTransparency=1;BgImage.Image=BG_IMAGE_ID;BgImage.ImageColor3=Color3.fromRGB(180,180,180);BgImage.ImageTransparency=0.7;BgImage.ScaleType=Enum.ScaleType.Crop;BgImage.Parent=MainFrame;local MainCorner=Instance.new("UICorner");MainCorner.CornerRadius=UDim.new(0,12);MainCorner.Parent=MainFrame;local MainStroke=Instance.new("UIStroke");MainStroke.Color=Color3.fromRGB(180,0,0);MainStroke.Thickness=1.5;MainStroke.Transparency=0.3;MainStroke.Parent=MainFrame;local TitleBar=Instance.new("Frame");TitleBar.Size=UDim2.new(1,0,0,32);TitleBar.BackgroundColor3=Color3.fromRGB(180,0,0);TitleBar.BackgroundTransparency=0.2;TitleBar.BorderSizePixel=0;TitleBar.Parent=MainFrame;Instance.new("UICorner",TitleBar).CornerRadius=UDim.new(0,12);local TitleBarFix=Instance.new("Frame");TitleBarFix.Size=UDim2.new(1,0,0,12);TitleBarFix.Position=UDim2.new(0,0,1, -12);TitleBarFix.BackgroundColor3=Color3.fromRGB(180,0,0);TitleBarFix.BorderSizePixel=0;TitleBarFix.Parent=TitleBar;local Title=Instance.new("TextLabel");Title.Size=UDim2.new(1,0,1,0);Title.BackgroundTransparency=1;Title.Text="  DEATH NOTA V20 -- SUPREME EDITION";Title.TextColor3=Color3.fromRGB(255,255,255);Title.Font=Enum.Font.GothamBold;Title.TextSize=14;Title.TextXAlignment=Enum.TextXAlignment.Left;Title.Parent=TitleBar;local function createButton(name,text,pos,parent,color) local btn=Instance.new("TextButton");btn.Name=name;btn.Size=UDim2.new(0,200,0,30);btn.Position=pos;btn.BackgroundColor3=color or Color3.fromRGB(25,25,25) ;btn.BackgroundTransparency=0.3;btn.Text=text;btn.TextColor3=Color3.fromRGB(255,255,255);btn.Font=Enum.Font.GothamSemibold;btn.TextSize=12;btn.Parent=parent or MainFrame ;Instance.new("UICorner",btn).CornerRadius=UDim.new(0,6);local s=Instance.new("UIStroke",btn);s.Color=Color3.fromRGB(120,0,0);s.Thickness=1;s.Transparency=0.5;return btn;end local function createTextBox(name,placeholder,pos,parent) local box=Instance.new("TextBox");box.Name=name;box.Size=UDim2.new(0,200,0,30);box.Position=pos;box.BackgroundColor3=Color3.fromRGB(0,0,0);box.BackgroundTransparency=0.4;box.PlaceholderText=placeholder;box.Text="";box.TextColor3=Color3.fromRGB(255,255,255);box.Font=Enum.Font.Gotham;box.TextSize=11;box.Parent=parent or MainFrame ;Instance.new("UICorner",box).CornerRadius=UDim.new(0,6);return box;end local ColLeft=Instance.new("TextLabel");ColLeft.Size=UDim2.new(0,200,0,18);ColLeft.Position=UDim2.new(0,15,0,36);ColLeft.BackgroundTransparency=1;ColLeft.Text="⚔️ ระบบต่อสู้";ColLeft.TextColor3=Color3.fromRGB(255,80,80);ColLeft.Font=Enum.Font.GothamBold;ColLeft.TextSize=11;ColLeft.TextXAlignment=Enum.TextXAlignment.Left;ColLeft.Parent=MainFrame;local ColRight=Instance.new("TextLabel");ColRight.Size=UDim2.new(0,200,0,18);ColRight.Position=UDim2.new(0,240,0,36);ColRight.BackgroundTransparency=1;ColRight.Text="⚙️ ตั้งค่า";ColRight.TextColor3=Color3.fromRGB(255,80,80);ColRight.Font=Enum.Font.GothamBold;ColRight.TextSize=11;ColRight.TextXAlignment=Enum.TextXAlignment.Left;ColRight.Parent=MainFrame;local KillAllToggle=createButton("KillAllToggle","🌀 สังหารทั้งหมด: ปิด",UDim2.new(0,15,0,58));local SilentToggle=createButton("SilentToggle","🎯 ล็อคเป้าหมาย: ปิด",UDim2.new(0,15,0,93));local FastFireToggle=createButton("FastFireToggle","🧨 ยิงเร็ว V2: ปิด",UDim2.new(0,15,0,128));local PredictToggle=createButton("PredictToggle","🧠 คำนวณล่วงหน้า: ปิด",UDim2.new(0,15,0,163));local GunAboveToggle=createButton("GunAboveToggle","🔫 ปืนบนหัวเป้า: ปิด",UDim2.new(0,15,0,198));local WallbangToggle=createButton("WallbangToggle","🧱 ยิงทะลุ: ปิด",UDim2.new(0,15,0,233));local SaveAllBtn=createButton("SaveAllBtn","💾 เซฟปืนทั้งหมด",UDim2.new(0,15,0,268),nil,Color3.fromRGB(80,0,0));local RetrieveBtn=createButton("RetrieveBtn","📦 เอาปืนออก",UDim2.new(0,15,0,303),nil,Color3.fromRGB(0,80,0));local NameBox=createTextBox("NameBox","🎯 ชื่อเป้าหมาย...",UDim2.new(0,240,0,58));local SettingsBtn=createButton("SettingsBtn","⚙️ ตั้งค่าขั้นสูง",UDim2.new(0,240,0,93),nil,Color3.fromRGB(60,60,0));local AimPartBtn=createButton("AimPartBtn","🎯 จุดยิง: หัว",UDim2.new(0,240,0,128));local DupeBtn=createButton("DupeBtn","💎 ดูปปืน (V2)",UDim2.new(0,240,0,163));local StatusBar=Instance.new("TextLabel");StatusBar.Size=UDim2.new(1, -30,0,22);StatusBar.Position=UDim2.new(0,15,1, -30);StatusBar.BackgroundColor3=Color3.fromRGB(0,0,0);StatusBar.BackgroundTransparency=0.5;StatusBar.Text=" 🟢 พร้อม | เป้าหมาย: ไม่มี";StatusBar.TextColor3=Color3.fromRGB(200,200,200);StatusBar.Font=Enum.Font.Gotham;StatusBar.TextSize=10;StatusBar.TextXAlignment=Enum.TextXAlignment.Left;StatusBar.Parent=MainFrame;Instance.new("UICorner",StatusBar).CornerRadius=UDim.new(0,4);local SettingsFrame=Instance.new("Frame");SettingsFrame.Name="SettingsFrame";SettingsFrame.Size=UDim2.new(0,300,0,280);SettingsFrame.Position=UDim2.new(0.5, -150,0.5, -140);SettingsFrame.BackgroundColor3=Color3.fromRGB(15,15,15);SettingsFrame.BackgroundTransparency=0.1;SettingsFrame.BorderSizePixel=0;SettingsFrame.Visible=false;SettingsFrame.Active=true;SettingsFrame.Draggable=true;SettingsFrame.Parent=ScreenGui;local SettingsBg=Instance.new("ImageLabel");SettingsBg.Size=UDim2.new(1,0,1,0);SettingsBg.BackgroundTransparency=1;SettingsBg.Image=BG_IMAGE_ID;SettingsBg.ImageColor3=Color3.fromRGB(150,150,150);SettingsBg.ImageTransparency=0.8;SettingsBg.ScaleType=Enum.ScaleType.Crop;SettingsBg.Parent=SettingsFrame;local SettingsCorner=Instance.new("UICorner");SettingsCorner.CornerRadius=UDim.new(0,12);SettingsCorner.Parent=SettingsFrame;local SettingsStroke=Instance.new("UIStroke");SettingsStroke.Color=Color3.fromRGB(200,150,0);SettingsStroke.Thickness=2;SettingsStroke.Parent=SettingsFrame;local SettingsTitle=Instance.new("TextLabel");SettingsTitle.Size=UDim2.new(1,0,0,32);SettingsTitle.BackgroundColor3=Color3.fromRGB(200,150,0);SettingsTitle.BackgroundTransparency=0.2;SettingsTitle.Text="  ⚙️ ตั้งค่าขั้นสูง";SettingsTitle.TextColor3=Color3.fromRGB(255,255,255);SettingsTitle.Font=Enum.Font.GothamBold;SettingsTitle.TextSize=14;SettingsTitle.TextXAlignment=Enum.TextXAlignment.Left;SettingsTitle.Parent=SettingsFrame;Instance.new("UICorner",SettingsTitle).CornerRadius=UDim.new(0,12);local SettingsTitleFix=Instance.new("Frame");SettingsTitleFix.Size=UDim2.new(1,0,0,12);SettingsTitleFix.Position=UDim2.new(0,0,1, -12);SettingsTitleFix.BackgroundColor3=Color3.fromRGB(200,150,0);SettingsTitleFix.BorderSizePixel=0;SettingsTitleFix.Parent=SettingsTitle;local SpeedLabel=Instance.new("TextLabel");SpeedLabel.Size=UDim2.new(0,260,0,20);SpeedLabel.Position=UDim2.new(0,20,0,45);SpeedLabel.BackgroundTransparency=1;SpeedLabel.Text="ความเร็วยิง: 0.001 วิ";SpeedLabel.TextColor3=Color3.fromRGB(255,255,255);SpeedLabel.Font=Enum.Font.GothamBold;SpeedLabel.TextSize=12;SpeedLabel.Parent=SettingsFrame;local SpeedSlider=Instance.new("TextButton");SpeedSlider.Size=UDim2.new(0,260,0,25);SpeedSlider.Position=UDim2.new(0,20,0,68);SpeedSlider.BackgroundColor3=Color3.fromRGB(40,40,40);SpeedSlider.Text="||||||||||||||||||||";SpeedSlider.TextColor3=Color3.fromRGB(255,200,0);SpeedSlider.Font=Enum.Font.GothamBold;SpeedSlider.TextSize=10;SpeedSlider.Parent=SettingsFrame;Instance.new("UICorner",SpeedSlider).CornerRadius=UDim.new(0,6);local SpeedValue=Instance.new("Frame");SpeedValue.Size=UDim2.new(0.5,0,1,0);SpeedValue.BackgroundColor3=Color3.fromRGB(200,150,0);SpeedValue.BorderSizePixel=0;SpeedValue.Parent=SpeedSlider;Instance.new("UICorner",SpeedValue).CornerRadius=UDim.new(0,6);local SettingsAntiFriend=createButton("SettingsAntiFriend","🛡️ ไม่ยิงเพื่อน: เปิด",UDim2.new(0,20,0,105),SettingsFrame,Color3.fromRGB(0,60,0));local SettingsGunMode=createButton("SettingsGunMode","🔫 โหมดปืน: 1 กระบอก",UDim2.new(0,20,0,145),SettingsFrame);local SettingsNoAnim=createButton("SettingsNoAnim","🚫 ลบอนิเมชั่นถือปืน: เปิด",UDim2.new(0,20,0,185),SettingsFrame,Color3.fromRGB(60,0,60));local SettingsNoIdle=createButton("SettingsNoIdle","🚶 ลบอนิเมชั่นยืน: เปิด",UDim2.new(0,20,0,225),SettingsFrame,Color3.fromRGB(60,30,0));local CloseSettings=createButton("CloseSettings","❌ ปิด",UDim2.new(0,20,0,255),SettingsFrame,Color3.fromRGB(100,0,0));local NotifyFrame=Instance.new("Frame");NotifyFrame.Size=UDim2.new(0,200,0,200);NotifyFrame.Position=UDim2.new(1, -210,0.5, -100);NotifyFrame.BackgroundTransparency=1;NotifyFrame.Parent=ScreenGui;local UIList=Instance.new("UIListLayout",NotifyFrame);UIList.VerticalAlignment=Enum.VerticalAlignment.Bottom;UIList.Padding=UDim.new(0,5);local function notify(msg,dur) local n=Instance.new("TextLabel");n.Size=UDim2.new(1,0,0,28);n.BackgroundColor3=Color3.fromRGB(20,0,0);n.BackgroundTransparency=0.3;n.Text=" [!] "   .. msg ;n.TextColor3=Color3.fromRGB(255,50,50);n.Font=Enum.Font.GothamBold;n.TextSize=11;n.Parent=NotifyFrame;Instance.new("UICorner",n).CornerRadius=UDim.new(0,5);task.spawn(function() task.wait(dur or 3 );n:Destroy();end);end local function forceUnequip() pcall(function() if (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")) then LocalPlayer.Character.Humanoid:UnequipTools();end end);end local function isAlive(plr) if (plr and plr.Character and plr.Character:FindFirstChild("Humanoid") and (plr.Character.Humanoid.Health>0)) then return true;end return false;end local function isWhitelisted(plr) return WHITELIST[plr.Name:lower()]==true ;end local idleAnimConnection=nil;local function removeIdleAnimation() pcall(function() local char=LocalPlayer.Character;if  not char then return;end local humanoid=char:FindFirstChildOfClass("Humanoid");if  not humanoid then return;end local animator=humanoid:FindFirstChildOfClass("Animator");if  not animator then return;end for _,track in pairs(animator:GetPlayingAnimationTracks()) do local name=track.Name:lower();if (string.find(name,"idle") or string.find(name,"stand") or string.find(name,"walk") or string.find(name,"run")) then track:Stop();end end end);end local function startNoIdle() if idleAnimConnection then idleAnimConnection:Disconnect();end idleAnimConnection=RunService.Heartbeat:Connect(function() if (_G.AutoShoot or _G.V2Shoot or _G.KillAllEnabled) then removeIdleAnimation();end end);end local function stopNoIdle() if idleAnimConnection then idleAnimConnection:Disconnect();idleAnimConnection=nil;end end local function removeToolAnimation(tool) if  not tool then return;end if  not _G.NoToolAnim then return;end pcall(function() local animator=tool:FindFirstChildOfClass("Animator");if animator then for _,track in pairs(animator:GetPlayingAnimationTracks()) do track:Stop();end end local char=LocalPlayer.Character;if char then local humanoid=char:FindFirstChildOfClass("Humanoid");if humanoid then local charAnimator=humanoid:FindFirstChildOfClass("Animator");if charAnimator then for _,track in pairs(charAnimator:GetPlayingAnimationTracks()) do local name=track.Name:lower();if (string.find(name,"tool") or string.find(name,"idle") or string.find(name,"equip") or string.find(name,"hold")) then track:Stop();end end end end end if tool:FindFirstChild("Handle") then tool.Grip=CFrame.new();end end);end LocalPlayer.Character.ChildAdded:Connect(function(v) if v:IsA("Tool") then task.wait(0.05);removeToolAnimation(v);end end);task.spawn(function() while true do pcall(function() if LocalPlayer.Character then local count=0;for _,v in pairs(LocalPlayer.Character:GetChildren()) do if v:IsA("Tool") then count=count + 1 ;end end if (count>=3) then forceUnequip();end end end);task.wait(0.05);end end);local function isSafeToShoot(targetPos) if _G.IsDead then return false;end if ( not LocalPlayer.Character or  not LocalPlayer.Character:FindFirstChild("HumanoidRootPart")) then return false;end local myHRP=LocalPlayer.Character.HumanoidRootPart;local origin=myHRP.Position;if ((targetPos-origin).Magnitude<3) then return false;end return true;end local cycleState="Nearest";local currentTarget=nil;local friendCache={};local function isFriend(plr) if (friendCache[plr.UserId]~=nil) then return friendCache[plr.UserId];end local ok,result=pcall(function() return LocalPlayer:IsFriendsWith(plr.UserId);end);if ok then friendCache[plr.UserId]=result;return result;end return false;end local function canTarget(plr) if (plr==LocalPlayer) then return false;end if  not isAlive(plr) then return false;end if isWhitelisted(plr) then return false;end if (_G.AntiFriend and isFriend(plr)) then return false;end if  not plr.Character:FindFirstChild(_G.AimPart) then return false;end return true;end local function getBestTarget(isKillAll) if _G.IsDead then return nil;end local myPos=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position ;if  not myPos then return nil;end if (NameBox.Text~="") then for _,p in pairs(Players:GetPlayers()) do if (string.find(p.Name:lower(),NameBox.Text:lower()) and canTarget(p)) then return p;end end end if (isKillAll and currentTarget and isAlive(currentTarget) and  not isWhitelisted(currentTarget)) then return currentTarget;end local players={};for _,p in pairs(Players:GetPlayers()) do if canTarget(p) then local d=(p.Character[_G.AimPart].Position-myPos).Magnitude;table.insert(players,{plr=p,dist=d});end end if ( #players>0) then table.sort(players,function(a,b) return a.dist<b.dist ;end);if isKillAll then if (cycleState=="Nearest") then currentTarget=players[1].plr;else currentTarget=players[ #players].plr;end else return players[1].plr;end end return currentTarget;end local lastTargetHealth={};local predictionMultiplier=1;local hitHistory={};local pingCompensation=0.05;local gravity=Vector3.new(0, -workspace.Gravity,0);local function getPing() local stats=game:GetService("Stats");local networkStats=stats:FindFirstChild("Network");if networkStats then local ping=networkStats:FindFirstChild("ServerStatsItem") and networkStats.ServerStatsItem:FindFirstChild("Data Ping") ;if ping then return ping:GetValue()/1000 ;end end return 0.05;end local function getAdaptivePredictedPos(targetPart,targetPlayer) if _G.IsDead then return targetPart.Position;end if ( not LocalPlayer.Character or  not LocalPlayer.Character:FindFirstChild("HumanoidRootPart")) then return targetPart.Position;end local myPos=LocalPlayer.Character.HumanoidRootPart.Position;local targetPos=targetPart.Position;local targetVel=targetPart.Velocity;local targetAcc=Vector3.new(0,0,0);if  not _G.AdaptivePredict then return targetPos;end if (targetVel.Magnitude<0.5) then predictionMultiplier=1;return targetPos;end local dist=(targetPos-myPos).Magnitude;local speed=_G.BulletSpeed;local travelTime=dist/speed ;local ping=getPing();travelTime=travelTime + ping + pingCompensation ;local uid=targetPlayer.UserId;local lastVel=hitHistory[uid] and hitHistory[uid].lastVel ;if lastVel then targetAcc=(targetVel-lastVel)/0.016 ;end hitHistory[uid]={lastVel=targetVel,time=tick()};local predictedPos=targetPos + (targetVel * travelTime * predictionMultiplier) + (0.5 * targetAcc * travelTime * travelTime) ;if (dist>100) then local dropCompensation=Vector3.new(0,(gravity.Y * travelTime * travelTime)/2 ,0);predictedPos=predictedPos-dropCompensation ;end local hum=targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") ;if hum then local currentHP=hum.Health;local lastHP=lastTargetHealth[uid];if lastHP then if (currentHP<lastHP) then else predictionMultiplier=predictionMultiplier + _G.PredictStep ;if (predictionMultiplier>3) then predictionMultiplier=0.5;end end end lastTargetHealth[uid]=currentHP;end if (predictionMultiplier<0.3) then predictionMultiplier=0.3;end return predictedPos;end local gunAboveConnection=nil;local function getCurrentTool() local char=LocalPlayer.Character;if  not char then return nil;end for _,v in pairs(char:GetChildren()) do if v:IsA("Tool") then return v;end end return nil;end local function resetToolGrip(tool) if  not tool then return;end pcall(function() tool.Grip=CFrame.new();end);end local function applyGunAboveTarget(tool,targetHead) if  not tool then return;end if  not targetHead then return;end local char=LocalPlayer.Character;if  not char then return;end local rightHand=char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm") ;if  not rightHand then return;end local handPos=rightHand.Position;local headPos=targetHead.Position;local desiredPos=headPos + _G.GunAboveOffset ;local distToTarget=(headPos-handPos).Magnitude;local finalPos=desiredPos;if (distToTarget>_G.MaxGunDistance) then local direction=(headPos-handPos).Unit;finalPos=handPos + (direction * _G.MaxGunDistance) + _G.GunAboveOffset ;end local gripOffset=finalPos-handPos ;tool.Grip=CFrame.new(gripOffset) * CFrame.Angles(math.rad(90),0,0) ;end local function stopGunAbove() if gunAboveConnection then gunAboveConnection:Disconnect();gunAboveConnection=nil;end local tool=getCurrentTool();if tool then resetToolGrip(tool);end end local function startGunAbove() if gunAboveConnection then gunAboveConnection:Disconnect();end gunAboveConnection=RunService.Heartbeat:Connect(function() if  not _G.GunAboveHead then stopGunAbove();return;end if _G.IsDead then return;end local target=getBestTarget(_G.KillAllEnabled);if ( not target or  not target.Character) then local tool=getCurrentTool();if tool then resetToolGrip(tool);end return;end local targetHead=target.Character:FindFirstChild("Head");if  not targetHead then local tool=getCurrentTool();if tool then resetToolGrip(tool);end return;end local tool=getCurrentTool();if  not tool then return;end applyGunAboveTarget(tool,targetHead);end);end LocalPlayer.Character.ChildAdded:Connect(function(v) if v:IsA("Tool") then task.wait(0.1);if _G.GunAboveHead then local target=getBestTarget(_G.KillAllEnabled);if (target and target.Character and target.Character:FindFirstChild("Head")) then applyGunAboveTarget(v,target.Character.Head);end end end end);local deathConnection=nil;local function onDeath() _G.IsDead=true;_G.AutoShoot=false;_G.V2Shoot=false;_G.KillAllEnabled=false;_G.GunAboveHead=false;stopOrbit();stopGunAbove();stopNoIdle();forceUnequip();SilentToggle.Text="🎯 ล็อคเป้าหมาย: ปิด";SilentToggle.BackgroundColor3=Color3.fromRGB(25,25,25);FastFireToggle.Text="🧨 ยิงเร็ว V2: ปิด";FastFireToggle.BackgroundColor3=Color3.fromRGB(25,25,25);KillAllToggle.Text="🌀 สังหารทั้งหมด: ปิด";KillAllToggle.BackgroundColor3=Color3.fromRGB(25,25,25);GunAboveToggle.Text="🔫 ปืนบนหัวเป้า: ปิด";GunAboveToggle.BackgroundColor3=Color3.fromRGB(25,25,25);notify("💀 ตายแล้ว! หยุดยิง + เซฟปืน...",2);for i=1,10 do pcall(function() local args={"Save","Gun"};ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args));end);task.wait(0.05);end notify("✅ เซฟปืนทั้งหมดแล้ว!",2);end local function setupDeathDetection() local char=LocalPlayer.Character;if  not char then return;end local humanoid=char:FindFirstChildOfClass("Humanoid");if  not humanoid then return;end if deathConnection then deathConnection:Disconnect();deathConnection=nil;end deathConnection=humanoid.Died:Connect(onDeath);end setupDeathDetection();LocalPlayer.CharacterAdded:Connect(function(char) _G.IsDead=false;task.wait(0.5);setupDeathDetection();end);local function saveAllGuns() notify("💾 กำลังเซฟปืนทั้งหมด...",2);for i=1,10 do pcall(function() local args={"Save","Gun"};ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args));end);task.wait(0.05);end notify("✅ เซฟปืนทั้งหมดแล้ว!",2);end local function retrieveGuns() notify("📦 กำลังเอาปืนออก...",2);for i=1,10 do pcall(function() local args={"Get","Gun"};ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args));end);task.wait(0.05);end notify("✅ เอาปืนออกแล้ว!",2);end local function runAutoDup(amount) local targetPos,dist=Vector3.new( -76.84,162.67,231.24),3;local closestClick=nil;for _,v in ipairs(workspace:GetDescendants()) do if (v:IsA("ClickDetector") and v.Parent:IsA("BasePart") and ((v.Parent.Position-targetPos).Magnitude<dist)) then closestClick=v;break;end end if closestClick then notify("💎 เริ่มดูปปืน...",2);for i=1,amount do fireclickdetector(closestClick);task.wait(0.1);forceUnequip();pcall(function() ReplicatedStorage.ToolStorage.ToolsStorage:FireServer("Save","Gun");end);task.wait(0.05);end for i=1,amount + 5  do pcall(function() ReplicatedStorage.ToolStorage.ToolsStorage:FireServer("Get","Gun");end);task.wait(0.05);end forceUnequip();notify("✅ ดูปเสร็จแล้ว!",1);else notify("❌ ไม่พบร้านค้า!",2);end end local timeCounter=0;local orbitConnection=nil;local orbitPhase=0;local function stopOrbit() if orbitConnection then orbitConnection:Disconnect();orbitConnection=nil;end pcall(function() Camera.CameraType=Enum.CameraType.Custom;if (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")) then Camera.CameraSubject=LocalPlayer.Character.Humanoid;end end);end local function startOrbit() if orbitConnection then orbitConnection:Disconnect();end orbitPhase=0;orbitConnection=RunService.Heartbeat:Connect(function(dt) if ( not _G.KillAllEnabled or _G.IsRecovering or _G.IsDead) then stopOrbit();return;end local target=getBestTarget(true);if ( not target or  not target.Character) then return;end local targetHRP=target.Character:FindFirstChild("HumanoidRootPart");local targetHumanoid=target.Character:FindFirstChild("Humanoid");local myHRP=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") ;local myHumanoid=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") ;if ( not myHRP or  not myHumanoid) then return;end if myHumanoid.Sit then myHumanoid.Sit=false;end if ( not targetHRP or  not targetHumanoid or (targetHumanoid.Health<=0)) then cycleState=((cycleState=="Nearest") and "Farthest") or "Nearest" ;currentTarget=nil;return;end Camera.CameraType=Enum.CameraType.Scriptable;timeCounter=(timeCounter + (dt * _G.OrbitSpeed))%(math.pi * 2) ;orbitPhase=(orbitPhase + (dt * 3.5))%(math.pi * 2) ;local baseRadius=_G.OrbitRadiusMin + (((math.sin(timeCounter * 0.7 ) + 1)/2) * (_G.OrbitRadiusMax-_G.OrbitRadiusMin)) ;local widePulse=math.sin(orbitPhase * 1.3 ) * 6 ;local radius=baseRadius + widePulse ;local height=_G.OrbitHeightMin + (((math.sin(orbitPhase * 2.1 ) + 1)/2) * (_G.OrbitHeightMax-_G.OrbitHeightMin)) ;local skyDive=math.sin(orbitPhase * 0.8 ) * 8 ;local offsetX=math.cos(timeCounter) * radius ;local offsetZ=math.sin(timeCounter) * radius ;local offsetY=height + skyDive ;local orbitPos=targetHRP.Position + Vector3.new(offsetX,offsetY,offsetZ) ;myHRP.CFrame=CFrame.new(orbitPos,targetHRP.Position);Camera.CFrame=CFrame.new(orbitPos + Vector3.new(0,3,8) ,targetHRP.Position);end);end task.spawn(function() while true do if (_G.AutoShoot and  not _G.KillAllEnabled and  not _G.IsRecovering and  not _G.IsDead) then pcall(function() removeIdleAnimation();local t=getBestTarget(false);if (t and t.Character and t.Character:FindFirstChild(_G.AimPart)) then local part=t.Character[_G.AimPart];local pos=getAdaptivePredictedPos(part,t);if isSafeToShoot(pos) then local guns={};for _,tool in pairs(LocalPlayer.Backpack:GetChildren()) do if ((tool.Name=="Gun") and tool:FindFirstChild("shot")) then table.insert(guns,tool);end end for _,gun in ipairs(guns) do if ( not _G.AutoShoot or _G.IsRecovering or _G.KillAllEnabled or _G.IsDead) then break;end forceUnequip();gun.Parent=LocalPlayer.Character;removeToolAnimation(gun);if gun:FindFirstChild("shot") then gun.shot:FireServer(pos);end gun.Parent=LocalPlayer.Backpack;end forceUnequip();end StatusBar.Text=" 🔴 กำลังล็อค: "   .. t.Name   .. " | คาดการณ์: x"   .. string.format("%.1f",predictionMultiplier) ;end end);end RunService.Heartbeat:Wait();end end);task.spawn(function() while true do if ((_G.V2Shoot or _G.KillAllEnabled) and  not _G.IsRecovering and  not _G.IsDead) then pcall(function() removeIdleAnimation();local t=getBestTarget(_G.KillAllEnabled);if (t and t.Character and t.Character:FindFirstChild(_G.AimPart)) then local part=t.Character[_G.AimPart];local pos=getAdaptivePredictedPos(part,t);if isSafeToShoot(pos) then local guns={};for _,tool in pairs(LocalPlayer.Backpack:GetChildren()) do if ((tool.Name=="Gun") and tool:FindFirstChild("shot")) then table.insert(guns,tool);end end local step=((_G.V2Mode=="2 กระบอก") and 2) or 1 ;for i=1, #guns,step do if (( not _G.V2Shoot and  not _G.KillAllEnabled) or _G.IsRecovering or _G.IsDead) then break;end forceUnequip();local g1=guns[i];local g2=((step==2) and guns[i + 1 ]) or nil ;if g1 then g1.Parent=LocalPlayer.Character;removeToolAnimation(g1);end if g2 then g2.Parent=LocalPlayer.Character;removeToolAnimation(g2);end if (g1 and g1:FindFirstChild("shot")) then g1.shot:FireServer(pos);end if (g2 and g2:FindFirstChild("shot")) then g2.shot:FireServer(pos);end task.wait(_G.FastFireDelay);if (g1 and (g1.Parent==LocalPlayer.Character)) then g1.Parent=LocalPlayer.Backpack;end if (g2 and g2 and (g2.Parent==LocalPlayer.Character)) then g2.Parent=LocalPlayer.Backpack;end end forceUnequip();end StatusBar.Text=" 🔴 กำลังล็อค: "   .. t.Name   .. " | คาดการณ์: x"   .. string.format("%.1f",predictionMultiplier) ;end end);end task.wait(0.0001);end end);LocalPlayer.CharacterAdded:Connect(function(char) if _G.KillAllEnabled then _G.IsRecovering=true;local hrp=char:WaitForChild("HumanoidRootPart");hrp.CFrame=CFrame.new(_G.VoidPosition);notify("🌌 กับดักห้วงอวกาศ!",1);task.wait(1);runAutoDup(10);_G.IsRecovering=false;startOrbit();notify("⚡ กลับมายิงต่อ!",1);end end);ToggleBtn.MouseButton1Click:Connect(function() MainFrame.Visible= not MainFrame.Visible;end);SettingsBtn.MouseButton1Click:Connect(function() SettingsFrame.Visible= not SettingsFrame.Visible;end);CloseSettings.MouseButton1Click:Connect(function() SettingsFrame.Visible=false;end);local speedLevels={0.0001,0.001,0.005,0.01,0.05,0.1,0.2};local currentSpeedIndex=2;SpeedSlider.MouseButton1Click:Connect(function() currentSpeedIndex=currentSpeedIndex + 1 ;if (currentSpeedIndex> #speedLevels) then currentSpeedIndex=1;end _G.FastFireDelay=speedLevels[currentSpeedIndex];SpeedLabel.Text="ความเร็วยิง: "   .. tostring(_G.FastFireDelay)   .. " วิ" ;local percent=currentSpeedIndex/ #speedLevels ;SpeedValue.Size=UDim2.new(percent,0,1,0);end);SettingsAntiFriend.MouseButton1Click:Connect(function() _G.AntiFriend= not _G.AntiFriend;local text=(_G.AntiFriend and "🛡️ ไม่ยิงเพื่อน: เปิด") or "🛡️ ไม่ยิงเพื่อน: ปิด" ;local color=(_G.AntiFriend and Color3.fromRGB(0,60,0)) or Color3.fromRGB(25,25,25) ;SettingsAntiFriend.Text=text;SettingsAntiFriend.BackgroundColor3=color;end);SettingsGunMode.MouseButton1Click:Connect(function() _G.V2Mode=((_G.V2Mode=="1 กระบอก") and "2 กระบอก") or "1 กระบอก" ;SettingsGunMode.Text="🔫 โหมดปืน: "   .. _G.V2Mode ;end);SettingsNoAnim.MouseButton1Click:Connect(function() _G.NoToolAnim= not _G.NoToolAnim;local text=(_G.NoToolAnim and "🚫 ลบอนิเมชั่นถือปืน: เปิด") or "🚫 ลบอนิเมชั่นถือปืน: ปิด" ;local color=(_G.NoToolAnim and Color3.fromRGB(60,0,60)) or Color3.fromRGB(25,25,25) ;SettingsNoAnim.Text=text;SettingsNoAnim.BackgroundColor3=color;end);SettingsNoIdle.MouseButton1Click:Connect(function() local isActive=idleAnimConnection~=nil ;if isActive then stopNoIdle();SettingsNoIdle.Text="🚶 ลบอนิเมชั่นยืน: ปิด";SettingsNoIdle.BackgroundColor3=Color3.fromRGB(25,25,25);else startNoIdle();SettingsNoIdle.Text="🚶 ลบอนิเมชั่นยืน: เปิด";SettingsNoIdle.BackgroundColor3=Color3.fromRGB(60,30,0);end end);KillAllToggle.MouseButton1Click:Connect(function() _G.KillAllEnabled= not _G.KillAllEnabled;KillAllToggle.Text=(_G.KillAllEnabled and "🌀 สังหารทั้งหมด: เปิด") or "🌀 สังหารทั้งหมด: ปิด" ;KillAllToggle.BackgroundColor3=(_G.KillAllEnabled and Color3.fromRGB(100,0,0)) or Color3.fromRGB(25,25,25) ;if _G.KillAllEnabled then cycleState="Nearest";currentTarget=nil;startOrbit();else stopOrbit();end end);SilentToggle.MouseButton1Click:Connect(function() _G.AutoShoot= not _G.AutoShoot;SilentToggle.Text=(_G.AutoShoot and "🎯 ล็อคเป้าหมาย: เปิด") or "🎯 ล็อคเป้าหมาย: ปิด" ;SilentToggle.BackgroundColor3=(_G.AutoShoot and Color3.fromRGB(100,0,0)) or Color3.fromRGB(25,25,25) ;if _G.AutoShoot then forceUnequip();end end);FastFireToggle.MouseButton1Click:Connect(function() _G.V2Shoot= not _G.V2Shoot;FastFireToggle.Text=(_G.V2Shoot and "🧨 ยิงเร็ว V2: เปิด") or "🧨 ยิงเร็ว V2: ปิด" ;FastFireToggle.BackgroundColor3=(_G.V2Shoot and Color3.fromRGB(100,0,0)) or Color3.fromRGB(25,25,25) ;if _G.V2Shoot then forceUnequip();end end);PredictToggle.MouseButton1Click:Connect(function() _G.AdaptivePredict= not _G.AdaptivePredict;PredictToggle.Text=(_G.AdaptivePredict and "🧠 คำนวณล่วงหน้า: เปิด") or "🧠 คำนวณล่วงหน้า: ปิด" ;PredictToggle.BackgroundColor3=(_G.AdaptivePredict and Color3.fromRGB(0,60,100)) or Color3.fromRGB(25,25,25) ;if  not _G.AdaptivePredict then predictionMultiplier=1;lastTargetHealth={};hitHistory={};end end);GunAboveToggle.MouseButton1Click:Connect(function() _G.GunAboveHead= not _G.GunAboveHead;GunAboveToggle.Text=(_G.GunAboveHead and "🔫 ปืนบนหัวเป้า: เปิด") or "🔫 ปืนบนหัวเป้า: ปิด" ;GunAboveToggle.BackgroundColor3=(_G.GunAboveHead and Color3.fromRGB(0,60,100)) or Color3.fromRGB(25,25,25) ;if _G.GunAboveHead then startGunAbove();else stopGunAbove();end end);WallbangToggle.MouseButton1Click:Connect(function() _G.Wallbang= not _G.Wallbang;WallbangToggle.Text=(_G.Wallbang and "🧱 ยิงทะลุ: เปิด") or "🧱 ยิงทะลุ: ปิด" ;WallbangToggle.BackgroundColor3=(_G.Wallbang and Color3.fromRGB(100,0,100)) or Color3.fromRGB(25,25,25) ;end);AimPartBtn.MouseButton1Click:Connect(function() _G.AimPart=((_G.AimPart=="Head") and "HumanoidRootPart") or "Head" ;AimPartBtn.Text=((_G.AimPart=="Head") and "🎯 จุดยิง: หัว") or "🎯 จุดยิง: ตัว" ;end);SaveAllBtn.MouseButton1Click:Connect(function() task.spawn(function() saveAllGuns();end);end);RetrieveBtn.MouseButton1Click:Connect(function() task.spawn(function() retrieveGuns();end);end);DupeBtn.MouseButton1Click:Connect(function() task.spawn(function() runAutoDup(10);end);end);local specialNames={birdV2_123=true,AniF_Xx=true};LocalPlayer.Chatted:Connect(function(msg) for name,_ in pairs(specialNames) do if string.find(msg:lower(),name:lower()) then LocalPlayer:Kick("Security Triggered");end end end);task.spawn(function() while true do if ( not _G.AutoShoot and  not _G.V2Shoot and  not _G.KillAllEnabled) then StatusBar.Text=" 🟢 พร้อม | เป้าหมาย: ไม่มี";end task.wait(1);end end);notify("SUPREME V20 โหลดเสร็จแล้ว!",4); end
+--[[
+    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V20) - FIXED
+    - Remove ALL animations when shooting active (complete animation kill)
+    - Fix gun position with TRUE world-space following (no distance clamp)
+    - Settings GUI with Fire Speed, Anti-Friend, Gun Mode
+    - NO TOOL ANIMATION
+    - Gun floats ABOVE locked target's head (follows at ANY distance)
+    - FULL THAI GUI
+    - Death auto-save
+    - Wallbang
+    - Hyper Prediction
+    - 3D Orbit System
+    - Kill All
+    - Fast Fire V2
+    - Anti-Warp
+    - Dupe System
+]]
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local TweenService = game:GetService("TweenService")
+
+--// WHITELIST
+local WHITELIST = {
+    ["wsghoi2744"] = true,
+    ["libbyeli1091"] = true,
+    ["nrjrjrjrjtjhs"] = true,
+    ["shooby43"] = true
+}
+
+--// SETTINGS & GLOBALS
+local _G = {
+    AutoShoot = false,
+    V2Shoot = false,
+    V2Mode = "1 กระบอก",
+    SilentDelay = 0.0001,
+    FastFireDelay = 0.001,
+    AimPart = "Head",
+    BulletSpeed = 900,
+    KillAllEnabled = false,
+    AntiFriend = true,
+    AdaptivePredict = false,
+    TargetName = "",
+    OrbitSpeed = 180,
+    OrbitRadiusMin = 8,
+    OrbitRadiusMax = 18,
+    OrbitHeightMin = -4,
+    OrbitHeightMax = 14,
+    SwitchTime = 0.01,
+    IsRecovering = false,
+    IsDead = false,
+    VoidPosition = Vector3.new(0, -5000, 0),
+    PredictOffset = Vector3.new(0, 0, 0),
+    PredictStep = 0.15,
+    GunAboveHead = false,
+    GunAboveOffset = Vector3.new(0, 3.5, 0),
+    Wallbang = false,
+    NoToolAnim = true,
+    MaxGunDistance = 999999 -- REMOVED CLAMP: allow infinite distance following
+}
+
+--// UI SETTINGS
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "UltimateExploit_V20_Fixed"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+
+local BG_IMAGE_ID = "rbxassetid://78415999505202"
+
+--// TOGGLE BUTTON (DRAGGABLE + IMAGE)
+local ToggleBtn = Instance.new("ImageButton")
+ToggleBtn.Name = "MainToggle"
+ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
+ToggleBtn.Position = UDim2.new(1, -65, 0, 10)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+ToggleBtn.Image = BG_IMAGE_ID
+ToggleBtn.ImageColor3 = Color3.fromRGB(255, 0, 0)
+ToggleBtn.Parent = ScreenGui
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleBtn
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Color = Color3.fromRGB(255, 0, 0)
+ToggleStroke.Thickness = 2
+ToggleStroke.Parent = ToggleBtn
+
+local dragging, dragInput, dragStart, startPos
+ToggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = ToggleBtn.Position
+    end
+end)
+ToggleBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        ToggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+ToggleBtn.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+--// MAIN FRAME WITH BACKGROUND IMAGE
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 460, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -230, 0.5, -190)
+MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MainFrame.BackgroundTransparency = 0.3
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = true
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local BgImage = Instance.new("ImageLabel")
+BgImage.Name = "BgImage"
+BgImage.Size = UDim2.new(1, 0, 1, 0)
+BgImage.BackgroundTransparency = 1
+BgImage.Image = BG_IMAGE_ID
+BgImage.ImageColor3 = Color3.fromRGB(180, 180, 180)
+BgImage.ImageTransparency = 0.7
+BgImage.ScaleType = Enum.ScaleType.Crop
+BgImage.Parent = MainFrame
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(180, 0, 0)
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 0.3
+MainStroke.Parent = MainFrame
+
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 32)
+TitleBar.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+TitleBar.BackgroundTransparency = 0.2
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 12)
+
+local TitleBarFix = Instance.new("Frame")
+TitleBarFix.Size = UDim2.new(1, 0, 0, 12)
+TitleBarFix.Position = UDim2.new(0, 0, 1, -12)
+TitleBarFix.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+TitleBarFix.BorderSizePixel = 0
+TitleBarFix.Parent = TitleBar
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "  DEATH NOTA V20 -- SUPREME EDITION [FIXED]"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
+
+--// UI Factory
+local function createButton(name, text, pos, parent, color)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Size = UDim2.new(0, 200, 0, 30)
+    btn.Position = pos
+    btn.BackgroundColor3 = color or Color3.fromRGB(25, 25, 25)
+    btn.BackgroundTransparency = 0.3
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 12
+    btn.Parent = parent or MainFrame
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    local s = Instance.new("UIStroke", btn)
+    s.Color = Color3.fromRGB(120, 0, 0)
+    s.Thickness = 1
+    s.Transparency = 0.5
+    return btn
+end
+
+local function createTextBox(name, placeholder, pos, parent)
+    local box = Instance.new("TextBox")
+    box.Name = name
+    box.Size = UDim2.new(0, 200, 0, 30)
+    box.Position = pos
+    box.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    box.BackgroundTransparency = 0.4
+    box.PlaceholderText = placeholder
+    box.Text = ""
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    box.Font = Enum.Font.Gotham
+    box.TextSize = 11
+    box.Parent = parent or MainFrame
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
+    return box
+end
+
+-- Column Labels (THAI)
+local ColLeft = Instance.new("TextLabel")
+ColLeft.Size = UDim2.new(0, 200, 0, 18)
+ColLeft.Position = UDim2.new(0, 15, 0, 36)
+ColLeft.BackgroundTransparency = 1
+ColLeft.Text = "⚔️ ระบบต่อสู้"
+ColLeft.TextColor3 = Color3.fromRGB(255, 80, 80)
+ColLeft.Font = Enum.Font.GothamBold
+ColLeft.TextSize = 11
+ColLeft.TextXAlignment = Enum.TextXAlignment.Left
+ColLeft.Parent = MainFrame
+
+local ColRight = Instance.new("TextLabel")
+ColRight.Size = UDim2.new(0, 200, 0, 18)
+ColRight.Position = UDim2.new(0, 240, 0, 36)
+ColRight.BackgroundTransparency = 1
+ColRight.Text = "⚙️ ตั้งค่า"
+ColRight.TextColor3 = Color3.fromRGB(255, 80, 80)
+ColRight.Font = Enum.Font.GothamBold
+ColRight.TextSize = 11
+ColRight.TextXAlignment = Enum.TextXAlignment.Left
+ColRight.Parent = MainFrame
+
+--// LEFT COLUMN (Combat - THAI)
+local KillAllToggle = createButton("KillAllToggle", "🌀 สังหารทั้งหมด: ปิด", UDim2.new(0, 15, 0, 58))
+local SilentToggle = createButton("SilentToggle", "🎯 ล็อคเป้าหมาย: ปิด", UDim2.new(0, 15, 0, 93))
+local FastFireToggle = createButton("FastFireToggle", "🧨 ยิงเร็ว V2: ปิด", UDim2.new(0, 15, 0, 128))
+local PredictToggle = createButton("PredictToggle", "🧠 คำนวณล่วงหน้า: ปิด", UDim2.new(0, 15, 0, 163))
+local GunAboveToggle = createButton("GunAboveToggle", "🔫 ปืนบนหัวเป้า: ปิด", UDim2.new(0, 15, 0, 198))
+local WallbangToggle = createButton("WallbangToggle", "🧱 ยิงทะลุ: ปิด", UDim2.new(0, 15, 0, 233))
+local SaveAllBtn = createButton("SaveAllBtn", "💾 เซฟปืนทั้งหมด", UDim2.new(0, 15, 0, 268), nil, Color3.fromRGB(80, 0, 0))
+local RetrieveBtn = createButton("RetrieveBtn", "📦 เอาปืนออก", UDim2.new(0, 15, 0, 303), nil, Color3.fromRGB(0, 80, 0))
+
+--// RIGHT COLUMN (Settings - THAI)
+local NameBox = createTextBox("NameBox", "🎯 ชื่อเป้าหมาย...", UDim2.new(0, 240, 0, 58))
+local SettingsBtn = createButton("SettingsBtn", "⚙️ ตั้งค่าขั้นสูง", UDim2.new(0, 240, 0, 93), nil, Color3.fromRGB(60, 60, 0))
+local AimPartBtn = createButton("AimPartBtn", "🎯 จุดยิง: หัว", UDim2.new(0, 240, 0, 128))
+local DupeBtn = createButton("DupeBtn", "💎 ดูปปืน (V2)", UDim2.new(0, 240, 0, 163))
+
+-- Status Bar (THAI)
+local StatusBar = Instance.new("TextLabel")
+StatusBar.Size = UDim2.new(1, -30, 0, 22)
+StatusBar.Position = UDim2.new(0, 15, 1, -30)
+StatusBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+StatusBar.BackgroundTransparency = 0.5
+StatusBar.Text = " 🟢 พร้อม | เป้าหมาย: ไม่มี"
+StatusBar.TextColor3 = Color3.fromRGB(200, 200, 200)
+StatusBar.Font = Enum.Font.Gotham
+StatusBar.TextSize = 10
+StatusBar.TextXAlignment = Enum.TextXAlignment.Left
+StatusBar.Parent = MainFrame
+Instance.new("UICorner", StatusBar).CornerRadius = UDim.new(0, 4)
+
+--// SETTINGS GUI (Gear Button)
+local SettingsFrame = Instance.new("Frame")
+SettingsFrame.Name = "SettingsFrame"
+SettingsFrame.Size = UDim2.new(0, 300, 0, 280)
+SettingsFrame.Position = UDim2.new(0.5, -150, 0.5, -140)
+SettingsFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+SettingsFrame.BackgroundTransparency = 0.1
+SettingsFrame.BorderSizePixel = 0
+SettingsFrame.Visible = false
+SettingsFrame.Active = true
+SettingsFrame.Draggable = true
+SettingsFrame.Parent = ScreenGui
+
+local SettingsBg = Instance.new("ImageLabel")
+SettingsBg.Size = UDim2.new(1, 0, 1, 0)
+SettingsBg.BackgroundTransparency = 1
+SettingsBg.Image = BG_IMAGE_ID
+SettingsBg.ImageColor3 = Color3.fromRGB(150, 150, 150)
+SettingsBg.ImageTransparency = 0.8
+SettingsBg.ScaleType = Enum.ScaleType.Crop
+SettingsBg.Parent = SettingsFrame
+
+local SettingsCorner = Instance.new("UICorner")
+SettingsCorner.CornerRadius = UDim.new(0, 12)
+SettingsCorner.Parent = SettingsFrame
+
+local SettingsStroke = Instance.new("UIStroke")
+SettingsStroke.Color = Color3.fromRGB(200, 150, 0)
+SettingsStroke.Thickness = 2
+SettingsStroke.Parent = SettingsFrame
+
+-- Settings Title
+local SettingsTitle = Instance.new("TextLabel")
+SettingsTitle.Size = UDim2.new(1, 0, 0, 32)
+SettingsTitle.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
+SettingsTitle.BackgroundTransparency = 0.2
+SettingsTitle.Text = "  ⚙️ ตั้งค่าขั้นสูง"
+SettingsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+SettingsTitle.Font = Enum.Font.GothamBold
+SettingsTitle.TextSize = 14
+SettingsTitle.TextXAlignment = Enum.TextXAlignment.Left
+SettingsTitle.Parent = SettingsFrame
+Instance.new("UICorner", SettingsTitle).CornerRadius = UDim.new(0, 12)
+
+local SettingsTitleFix = Instance.new("Frame")
+SettingsTitleFix.Size = UDim2.new(1, 0, 0, 12)
+SettingsTitleFix.Position = UDim2.new(0, 0, 1, -12)
+SettingsTitleFix.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
+SettingsTitleFix.BorderSizePixel = 0
+SettingsTitleFix.Parent = SettingsTitle
+
+-- Fire Speed Slider
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Size = UDim2.new(0, 260, 0, 20)
+SpeedLabel.Position = UDim2.new(0, 20, 0, 45)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text = "ความเร็วยิง: 0.001 วิ"
+SpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedLabel.Font = Enum.Font.GothamBold
+SpeedLabel.TextSize = 12
+SpeedLabel.Parent = SettingsFrame
+
+local SpeedSlider = Instance.new("TextButton")
+SpeedSlider.Size = UDim2.new(0, 260, 0, 25)
+SpeedSlider.Position = UDim2.new(0, 20, 0, 68)
+SpeedSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SpeedSlider.Text = "||||||||||||||||||||"
+SpeedSlider.TextColor3 = Color3.fromRGB(255, 200, 0)
+SpeedSlider.Font = Enum.Font.GothamBold
+SpeedSlider.TextSize = 10
+SpeedSlider.Parent = SettingsFrame
+Instance.new("UICorner", SpeedSlider).CornerRadius = UDim.new(0, 6)
+
+local SpeedValue = Instance.new("Frame")
+SpeedValue.Size = UDim2.new(0.5, 0, 1, 0)
+SpeedValue.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
+SpeedValue.BorderSizePixel = 0
+SpeedValue.Parent = SpeedSlider
+Instance.new("UICorner", SpeedValue).CornerRadius = UDim.new(0, 6)
+
+-- Anti-Friend Toggle (in Settings)
+local SettingsAntiFriend = createButton("SettingsAntiFriend", "🛡️ ไม่ยิงเพื่อน: เปิด", UDim2.new(0, 20, 0, 105), SettingsFrame, Color3.fromRGB(0, 60, 0))
+
+-- Gun Mode Toggle (in Settings)
+local SettingsGunMode = createButton("SettingsGunMode", "🔫 โหมดปืน: 1 กระบอก", UDim2.new(0, 20, 0, 145), SettingsFrame)
+
+-- No Tool Anim Toggle
+local SettingsNoAnim = createButton("SettingsNoAnim", "🚫 ลบอนิเมชั่นถือปืน: เปิด", UDim2.new(0, 20, 0, 185), SettingsFrame, Color3.fromRGB(60, 0, 60))
+
+-- No Idle Anim Toggle
+local SettingsNoIdle = createButton("SettingsNoIdle", "🚶 ลบอนิเมชั่นยืน: เปิด", UDim2.new(0, 20, 0, 225), SettingsFrame, Color3.fromRGB(60, 30, 0))
+
+-- Close Button
+local CloseSettings = createButton("CloseSettings", "❌ ปิด", UDim2.new(0, 20, 0, 255), SettingsFrame, Color3.fromRGB(100, 0, 0))
+
+--// Notification System
+local NotifyFrame = Instance.new("Frame")
+NotifyFrame.Size = UDim2.new(0, 200, 0, 200)
+NotifyFrame.Position = UDim2.new(1, -210, 0.5, -100)
+NotifyFrame.BackgroundTransparency = 1
+NotifyFrame.Parent = ScreenGui
+local UIList = Instance.new("UIListLayout", NotifyFrame)
+UIList.VerticalAlignment = Enum.VerticalAlignment.Bottom
+UIList.Padding = UDim.new(0, 5)
+
+local function notify(msg, dur)
+    local n = Instance.new("TextLabel")
+    n.Size = UDim2.new(1, 0, 0, 28)
+    n.BackgroundColor3 = Color3.fromRGB(20, 0, 0)
+    n.BackgroundTransparency = 0.3
+    n.Text = " [!] " .. msg
+    n.TextColor3 = Color3.fromRGB(255, 50, 50)
+    n.Font = Enum.Font.GothamBold
+    n.TextSize = 11
+    n.Parent = NotifyFrame
+    Instance.new("UICorner", n).CornerRadius = UDim.new(0, 5)
+    task.spawn(function() task.wait(dur or 3) n:Destroy() end)
+end
+
+--// LOGIC FUNCTIONS
+local function forceUnequip()
+    pcall(function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid:UnequipTools()
+        end
+    end)
+end
+
+local function isAlive(plr)
+    if plr and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
+        return true
+    end
+    return false
+end
+
+local function isWhitelisted(plr)
+    return WHITELIST[plr.Name:lower()] == true
+end
+
+--// ============================================
+--// KILL ALL ANIMATIONS SYSTEM (COMPLETE WIPE)
+--// ============================================
+local animKillConnection = nil
+
+local function killAllAnimations()
+    pcall(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+
+        -- Kill character humanoid animations
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            local animator = humanoid:FindFirstChildOfClass("Animator")
+            if animator then
+                for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                    track:Stop(0)
+                    track:Destroy()
+                end
+                for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                    track:Stop(0)
+                end
+            end
+            -- Also stop any built-in states
+            humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+        end
+
+        -- Kill any AnimationController animations (for R15/R6 compatibility)
+        for _, obj in pairs(char:GetDescendants()) do
+            if obj:IsA("Animator") then
+                for _, track in pairs(obj:GetPlayingAnimationTracks()) do
+                    track:Stop(0)
+                    track:Destroy()
+                end
+            end
+            if obj:IsA("AnimationController") then
+                for _, track in pairs(obj:GetPlayingAnimationTracks()) do
+                    track:Stop(0)
+                    track:Destroy()
+                end
+            end
+        end
+
+        -- Kill tool animations
+        for _, tool in pairs(char:GetChildren()) do
+            if tool:IsA("Tool") then
+                local toolAnimator = tool:FindFirstChildOfClass("Animator")
+                if toolAnimator then
+                    for _, track in pairs(toolAnimator:GetPlayingAnimationTracks()) do
+                        track:Stop(0)
+                        track:Destroy()
+                    end
+                end
+                -- Kill any animation-related descendants in tool
+                for _, desc in pairs(tool:GetDescendants()) do
+                    if desc:IsA("Animation") then
+                        -- Don't destroy the Animation object, just stop any tracks using it
+                    end
+                    if desc:IsA("Animator") then
+                        for _, track in pairs(desc:GetPlayingAnimationTracks()) do
+                            track:Stop(0)
+                            track:Destroy()
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function startAnimationKiller()
+    if animKillConnection then animKillConnection:Disconnect() end
+    animKillConnection = RunService.Heartbeat:Connect(function()
+        if _G.AutoShoot or _G.V2Shoot or _G.KillAllEnabled then
+            killAllAnimations()
+        end
+    end)
+end
+
+local function stopAnimationKiller()
+    if animKillConnection then
+        animKillConnection:Disconnect()
+        animKillConnection = nil
+    end
+end
+
+--// NO IDLE ANIMATION SYSTEM (legacy, now integrated into killAllAnimations)
+local idleAnimConnection = nil
+
+local function removeIdleAnimation()
+    killAllAnimations()
+end
+
+local function startNoIdle()
+    if idleAnimConnection then idleAnimConnection:Disconnect() end
+    idleAnimConnection = RunService.Heartbeat:Connect(function()
+        if _G.AutoShoot or _G.V2Shoot or _G.KillAllEnabled then
+            removeIdleAnimation()
+        end
+    end)
+end
+
+local function stopNoIdle()
+    if idleAnimConnection then
+        idleAnimConnection:Disconnect()
+        idleAnimConnection = nil
+    end
+end
+
+--// NO TOOL ANIMATION SYSTEM
+local function removeToolAnimation(tool)
+    if not tool then return end
+    if not _G.NoToolAnim then return end
+
+    pcall(function()
+        -- Kill tool's own animator
+        local animator = tool:FindFirstChildOfClass("Animator")
+        if animator then
+            for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                track:Stop(0)
+                track:Destroy()
+            end
+        end
+
+        -- Kill character animations related to tool
+        local char = LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                local charAnimator = humanoid:FindFirstChildOfClass("Animator")
+                if charAnimator then
+                    for _, track in pairs(charAnimator:GetPlayingAnimationTracks()) do
+                        local name = track.Name:lower()
+                        if string.find(name, "tool") or 
+                           string.find(name, "idle") or
+                           string.find(name, "equip") or
+                           string.find(name, "hold") or
+                           string.find(name, "slash") or
+                           string.find(name, "lunge") or
+                           string.find(name, "shoot") or
+                           string.find(name, "fire") then
+                            track:Stop(0)
+                            track:Destroy()
+                        end
+                    end
+                end
+            end
+        end
+
+        -- Reset tool grip to neutral
+        if tool:FindFirstChild("Handle") then
+            tool.Grip = CFrame.new()
+        end
+    end)
+end
+
+-- Monitor tool equip and remove animation immediately
+LocalPlayer.Character.ChildAdded:Connect(function(v)
+    if v:IsA("Tool") then
+        task.wait(0.05)
+        removeToolAnimation(v)
+        -- Also run full animation killer
+        killAllAnimations()
+    end
+end)
+
+--// ANTI-3-GUN SAFETY MONITOR
+task.spawn(function()
+    while true do
+        pcall(function()
+            if LocalPlayer.Character then
+                local count = 0
+                for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+                    if v:IsA("Tool") then count = count + 1 end
+                end
+                if count >= 3 then forceUnequip() end
+            end
+        end)
+        task.wait(0.05)
+    end
+end)
+
+--// SELF-DAMAGE PROTECTION
+local function isSafeToShoot(targetPos)
+    if _G.IsDead then return false end
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return false end
+    local myHRP = LocalPlayer.Character.HumanoidRootPart
+    local origin = myHRP.Position
+    if (targetPos - origin).Magnitude < 3 then return false end
+    return true
+end
+
+--// SMART TARGET CYCLING
+local cycleState = "Nearest"
+local currentTarget = nil
+local friendCache = {}
+
+local function isFriend(plr)
+    if friendCache[plr.UserId] ~= nil then return friendCache[plr.UserId] end
+    local ok, result = pcall(function() return LocalPlayer:IsFriendsWith(plr.UserId) end)
+    if ok then friendCache[plr.UserId] = result return result end
+    return false
+end
+
+local function canTarget(plr)
+    if plr == LocalPlayer then return false end
+    if not isAlive(plr) then return false end
+    if isWhitelisted(plr) then return false end
+    if _G.AntiFriend and isFriend(plr) then return false end
+    if not plr.Character:FindFirstChild(_G.AimPart) then return false end
+    return true
+end
+
+local function getBestTarget(isKillAll)
+    if _G.IsDead then return nil end
+    local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position
+    if not myPos then return nil end
+
+    if NameBox.Text ~= "" then
+        for _, p in pairs(Players:GetPlayers()) do
+            if string.find(p.Name:lower(), NameBox.Text:lower()) and canTarget(p) then
+                return p
+            end
+        end
+    end
+
+    if isKillAll and currentTarget and isAlive(currentTarget) and not isWhitelisted(currentTarget) then
+        return currentTarget
+    end
+
+    local players = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if canTarget(p) then
+            local d = (p.Character[_G.AimPart].Position - myPos).Magnitude
+            table.insert(players, {plr = p, dist = d})
+        end
+    end
+
+    if #players > 0 then
+        table.sort(players, function(a, b) return a.dist < b.dist end)
+        if isKillAll then
+            if cycleState == "Nearest" then currentTarget = players[1].plr
+            else currentTarget = players[#players].plr end
+        else
+            return players[1].plr
+        end
+    end
+    return currentTarget
+end
+
+--// HYPER PREDICTION ENGINE V3
+local lastTargetHealth = {}
+local predictionMultiplier = 1.0
+local hitHistory = {}
+local pingCompensation = 0.05
+local gravity = Vector3.new(0, -workspace.Gravity, 0)
+
+local function getPing()
+    local stats = game:GetService("Stats")
+    local networkStats = stats:FindFirstChild("Network")
+    if networkStats then
+        local ping = networkStats:FindFirstChild("ServerStatsItem") and networkStats.ServerStatsItem:FindFirstChild("Data Ping")
+        if ping then return ping:GetValue() / 1000 end
+    end
+    return 0.05
+end
+
+local function getAdaptivePredictedPos(targetPart, targetPlayer)
+    if _G.IsDead then return targetPart.Position end
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        return targetPart.Position
+    end
+    local myPos = LocalPlayer.Character.HumanoidRootPart.Position
+    local targetPos = targetPart.Position
+    local targetVel = targetPart.Velocity
+    local targetAcc = Vector3.new(0, 0, 0)
+
+    if not _G.AdaptivePredict then return targetPos end
+    if targetVel.Magnitude < 0.5 then
+        predictionMultiplier = 1.0
+        return targetPos
+    end
+
+    local dist = (targetPos - myPos).Magnitude
+    local speed = _G.BulletSpeed
+    local travelTime = dist / speed
+
+    local ping = getPing()
+    travelTime = travelTime + ping + pingCompensation
+
+    local uid = targetPlayer.UserId
+    local lastVel = hitHistory[uid] and hitHistory[uid].lastVel
+    if lastVel then
+        targetAcc = (targetVel - lastVel) / 0.016
+    end
+    hitHistory[uid] = {lastVel = targetVel, time = tick()}
+
+    local predictedPos = targetPos 
+        + (targetVel * travelTime * predictionMultiplier) 
+        + (0.5 * targetAcc * travelTime * travelTime)
+
+    if dist > 100 then
+        local dropCompensation = Vector3.new(0, (gravity.Y * travelTime * travelTime) / 2, 0)
+        predictedPos = predictedPos - dropCompensation
+    end
+
+    local hum = targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid")
+    if hum then
+        local currentHP = hum.Health
+        local lastHP = lastTargetHealth[uid]
+
+        if lastHP then
+            if currentHP < lastHP then
+                -- Hit confirmed
+            else
+                predictionMultiplier = predictionMultiplier + _G.PredictStep
+                if predictionMultiplier > 3.0 then predictionMultiplier = 0.5 end
+            end
+        end
+        lastTargetHealth[uid] = currentHP
+    end
+
+    if predictionMultiplier < 0.3 then predictionMultiplier = 0.3 end
+
+    return predictedPos
+end
+
+--// ============================================
+--// GUN ABOVE TARGET HEAD - WORLD SPACE FIX
+--// ============================================
+-- FIX: Instead of using tool.Grip (which is local to hand and clamps distance),
+-- we use a World CFrame approach that places the gun EXACTLY where we want in world space
+local gunAboveConnection = nil
+local gunWeldConnection = nil
+
+local function getCurrentTool()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    for _, v in pairs(char:GetChildren()) do
+        if v:IsA("Tool") then
+            return v
+        end
+    end
+    return nil
+end
+
+local function resetToolGrip(tool)
+    if not tool then return end
+    pcall(function()
+        tool.Grip = CFrame.new()
+        -- Also reset any custom welds we made
+        local handle = tool:FindFirstChild("Handle")
+        if handle then
+            handle.CFrame = handle.CFrame -- force refresh
+        end
+    end)
+end
+
+-- NEW: World-space gun positioning using BodyPosition/AlignPosition or direct CFrame
+-- This bypasses the hand attachment limitation
+local function applyGunAboveTarget(tool, targetHead)
+    if not tool then return end
+    if not targetHead then return end
+
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    local handle = tool:FindFirstChild("Handle")
+    if not handle then return end
+
+    -- Calculate desired world position above target's head
+    local headPos = targetHead.Position
+    local desiredPos = headPos + _G.GunAboveOffset
+
+    -- Calculate direction from gun to target (for aiming)
+    local gunToTarget = (headPos - desiredPos).Unit
+
+    -- Create CFrame that positions gun at desiredPos, pointing at target
+    -- LookAt: gun looks down at target's head
+    local gunCFrame = CFrame.lookAt(desiredPos, headPos)
+
+    -- Apply rotation to make gun point downward properly (90 degrees on X axis)
+    gunCFrame = gunCFrame * CFrame.Angles(math.rad(90), 0, 0)
+
+    -- CRITICAL FIX: Set the handle's CFrame directly in world space
+    -- This overrides the default hand-following behavior
+    pcall(function()
+        -- Method 1: Direct CFrame (most reliable for exploit environments)
+        handle.CFrame = gunCFrame
+
+        -- Method 2: If there's a weld, temporarily break it
+        for _, weld in pairs(handle:GetChildren()) do
+            if weld:IsA("Weld") or weld:IsA("ManualWeld") or weld:IsA("Motor6D") then
+                -- Store original C0/C1 if needed
+                if not weld:GetAttribute("OriginalC0") then
+                    weld:SetAttribute("OriginalC0", tostring(weld.C0))
+                    weld:SetAttribute("OriginalC1", tostring(weld.C1))
+                end
+                -- Set weld to identity (no offset) so handle follows world CFrame
+                weld.C0 = CFrame.new()
+                weld.C1 = CFrame.new()
+            end
+        end
+
+        -- Method 3: Use AlignPosition + AlignOrientation for physics-based following
+        local alignPos = handle:FindFirstChild("GunAlignPosition")
+        local alignOri = handle:FindFirstChild("GunAlignOrientation")
+
+        if not alignPos then
+            alignPos = Instance.new("AlignPosition")
+            alignPos.Name = "GunAlignPosition"
+            alignPos.Mode = Enum.PositionAlignmentMode.OneAttachment
+            alignPos.MaxVelocity = 999999
+            alignPos.MaxForce = 9999999
+            alignPos.Parent = handle
+
+            local att = Instance.new("Attachment")
+            att.Name = "GunAttachment"
+            att.Parent = handle
+            alignPos.Attachment0 = att
+        end
+
+        if not alignOri then
+            alignOri = Instance.new("AlignOrientation")
+            alignOri.Name = "GunAlignOrientation"
+            alignOri.Mode = Enum.OrientationAlignmentMode.OneAttachment
+            alignOri.MaxAngularVelocity = 999999
+            alignOri.MaxTorque = 9999999
+            alignOri.Parent = handle
+
+            local att = handle:FindFirstChild("GunAttachment")
+            if not att then
+                att = Instance.new("Attachment")
+                att.Name = "GunAttachment"
+                att.Parent = handle
+            end
+            alignOri.Attachment0 = att
+        end
+
+        alignPos.Position = desiredPos
+        alignOri.CFrame = gunCFrame
+    end)
+end
+
+local function stopGunAbove()
+    if gunAboveConnection then 
+        gunAboveConnection:Disconnect() 
+        gunAboveConnection = nil 
+    end
+
+    local tool = getCurrentTool()
+    if tool then
+        local handle = tool:FindFirstChild("Handle")
+        if handle then
+            -- Restore original welds
+            for _, weld in pairs(handle:GetChildren()) do
+                if weld:IsA("Weld") or weld:IsA("ManualWeld") or weld:IsA("Motor6D") then
+                    local origC0 = weld:GetAttribute("OriginalC0")
+                    local origC1 = weld:GetAttribute("OriginalC1")
+                    if origC0 then weld.C0 = loadstring("return " .. origC0)() end
+                    if origC1 then weld.C1 = loadstring("return " .. origC1)() end
+                end
+            end
+
+            -- Remove align constraints
+            local alignPos = handle:FindFirstChild("GunAlignPosition")
+            local alignOri = handle:FindFirstChild("GunAlignOrientation")
+            if alignPos then alignPos:Destroy() end
+            if alignOri then alignOri:Destroy() end
+            local att = handle:FindFirstChild("GunAttachment")
+            if att then att:Destroy() end
+        end
+        resetToolGrip(tool)
+    end
+end
+
+local function startGunAbove()
+    if gunAboveConnection then 
+        gunAboveConnection:Disconnect() 
+    end
+    gunAboveConnection = RunService.Heartbeat:Connect(function()
+        if not _G.GunAboveHead then 
+            stopGunAbove() 
+            return 
+        end
+        if _G.IsDead then return end
+
+        local target = getBestTarget(_G.KillAllEnabled)
+        if not target or not target.Character then 
+            local tool = getCurrentTool()
+            if tool then resetToolGrip(tool) end
+            return 
+        end
+
+        local targetHead = target.Character:FindFirstChild("Head")
+        if not targetHead then 
+            local tool = getCurrentTool()
+            if tool then resetToolGrip(tool) end
+            return 
+        end
+
+        local tool = getCurrentTool()
+        if not tool then return end
+
+        applyGunAboveTarget(tool, targetHead)
+    end)
+end
+
+-- Auto-apply when equipping tool
+LocalPlayer.Character.ChildAdded:Connect(function(v)
+    if v:IsA("Tool") then
+        task.wait(0.1)
+        if _G.GunAboveHead then
+            local target = getBestTarget(_G.KillAllEnabled)
+            if target and target.Character and target.Character:FindFirstChild("Head") then
+                applyGunAboveTarget(v, target.Character.Head)
+            end
+        end
+    end
+end)
+
+--// AUTO-SAVE ON DEATH
+local deathConnection = nil
+
+local function onDeath()
+    _G.IsDead = true
+    _G.AutoShoot = false
+    _G.V2Shoot = false
+    _G.KillAllEnabled = false
+    _G.GunAboveHead = false
+
+    stopOrbit()
+    stopGunAbove()
+    stopNoIdle()
+    stopAnimationKiller()
+    forceUnequip()
+
+    SilentToggle.Text = "🎯 ล็อคเป้าหมาย: ปิด"
+    SilentToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    FastFireToggle.Text = "🧨 ยิงเร็ว V2: ปิด"
+    FastFireToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    KillAllToggle.Text = "🌀 สังหารทั้งหมด: ปิด"
+    KillAllToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    GunAboveToggle.Text = "🔫 ปืนบนหัวเป้า: ปิด"
+    GunAboveToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+
+    notify("💀 ตายแล้ว! หยุดยิง + เซฟปืน...", 2)
+
+    for i = 1, 10 do
+        pcall(function()
+            local args = {"Save", "Gun"}
+            ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
+        end)
+        task.wait(0.05)
+    end
+
+    notify("✅ เซฟปืนทั้งหมดแล้ว!", 2)
+end
+
+local function setupDeathDetection()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+
+    if deathConnection then
+        deathConnection:Disconnect()
+        deathConnection = nil
+    end
+
+    deathConnection = humanoid.Died:Connect(onDeath)
+end
+
+setupDeathDetection()
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    _G.IsDead = false
+    task.wait(0.5)
+    setupDeathDetection()
+end)
+
+--// SAVE ALL GUNS
+local function saveAllGuns()
+    notify("💾 กำลังเซฟปืนทั้งหมด...", 2)
+    for i = 1, 10 do
+        pcall(function()
+            local args = {"Save", "Gun"}
+            ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
+        end)
+        task.wait(0.05)
+    end
+    notify("✅ เซฟปืนทั้งหมดแล้ว!", 2)
+end
+
+--// RETRIEVE GUNS
+local function retrieveGuns()
+    notify("📦 กำลังเอาปืนออก...", 2)
+    for i = 1, 10 do
+        pcall(function()
+            local args = {"Get", "Gun"}
+            ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
+        end)
+        task.wait(0.05)
+    end
+    notify("✅ เอาปืนออกแล้ว!", 2)
+end
+
+--// DUPE SYSTEM V2
+local function runAutoDup(amount)
+    local targetPos, dist = Vector3.new(-76.84, 162.67, 231.24), 3
+    local closestClick = nil
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("ClickDetector") and v.Parent:IsA("BasePart") and (v.Parent.Position - targetPos).Magnitude < dist then 
+            closestClick = v 
+            break 
+        end
+    end
+    if closestClick then
+        notify("💎 เริ่มดูปปืน...", 2)
+        for i = 1, amount do
+            fireclickdetector(closestClick)
+            task.wait(0.1)
+            forceUnequip()
+            pcall(function()
+                ReplicatedStorage.ToolStorage.ToolsStorage:FireServer("Save", "Gun")
+            end)
+            task.wait(0.05)
+        end
+        for i = 1, (amount + 5) do 
+            pcall(function()
+                ReplicatedStorage.ToolStorage.ToolsStorage:FireServer("Get", "Gun")
+            end)
+            task.wait(0.05)
+        end
+        forceUnequip()
+        notify("✅ ดูปเสร็จแล้ว!", 1)
+    else
+        notify("❌ ไม่พบร้านค้า!", 2)
+    end
+end
+
+--// 3D ORBIT SYSTEM
+local timeCounter = 0
+local orbitConnection = nil
+local orbitPhase = 0
+
+local function stopOrbit()
+    if orbitConnection then 
+        orbitConnection:Disconnect() 
+        orbitConnection = nil 
+    end
+    pcall(function()
+        Camera.CameraType = Enum.CameraType.Custom
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            Camera.CameraSubject = LocalPlayer.Character.Humanoid
+        end
+    end)
+end
+
+local function startOrbit()
+    if orbitConnection then 
+        orbitConnection:Disconnect() 
+    end
+    orbitPhase = 0
+    orbitConnection = RunService.Heartbeat:Connect(function(dt)
+        if not _G.KillAllEnabled or _G.IsRecovering or _G.IsDead then 
+            stopOrbit() 
+            return 
+        end
+
+        local target = getBestTarget(true)
+        if not target or not target.Character then return end
+
+        local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+        local targetHumanoid = target.Character:FindFirstChild("Humanoid")
+        local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local myHumanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+
+        if not myHRP or not myHumanoid then return end
+        if myHumanoid.Sit then myHumanoid.Sit = false end
+
+        if not targetHRP or not targetHumanoid or targetHumanoid.Health <= 0 then
+            cycleState = (cycleState == "Nearest") and "Farthest" or "Nearest"
+            currentTarget = nil
+            return 
+        end
+
+        Camera.CameraType = Enum.CameraType.Scriptable
+        timeCounter = (timeCounter + dt * _G.OrbitSpeed) % (math.pi * 2)
+        orbitPhase = (orbitPhase + dt * 3.5) % (math.pi * 2)
+
+        local baseRadius = _G.OrbitRadiusMin + ((math.sin(timeCounter * 0.7) + 1) / 2) * (_G.OrbitRadiusMax - _G.OrbitRadiusMin)
+        local widePulse = math.sin(orbitPhase * 1.3) * 6
+        local radius = baseRadius + widePulse
+
+        local height = _G.OrbitHeightMin + ((math.sin(orbitPhase * 2.1) + 1) / 2) * (_G.OrbitHeightMax - _G.OrbitHeightMin)
+        local skyDive = math.sin(orbitPhase * 0.8) * 8
+
+        local offsetX = math.cos(timeCounter) * radius
+        local offsetZ = math.sin(timeCounter) * radius
+        local offsetY = height + skyDive
+
+        local orbitPos = targetHRP.Position + Vector3.new(offsetX, offsetY, offsetZ)
+        myHRP.CFrame = CFrame.new(orbitPos, targetHRP.Position)
+        Camera.CFrame = CFrame.new(orbitPos + Vector3.new(0, 3, 8), targetHRP.Position)
+    end)
+end
+
+--// ============================================
+--// SHOOTING SYSTEMS - WITH ANIMATION KILL
+--// ============================================
+
+-- ULTIMATE SILENT AIM
+-- FIX: Added killAllAnimations() before every shot
+-- FIX: Gun follows target at ANY distance using world-space positioning
+local shootConnection1 = nil
+
+local function startSilentAim()
+    if shootConnection1 then shootConnection1:Disconnect() end
+    shootConnection1 = RunService.Heartbeat:Connect(function()
+        if _G.AutoShoot and not _G.KillAllEnabled and not _G.IsRecovering and not _G.IsDead then
+            pcall(function()
+                -- KILL ALL ANIMATIONS before shooting
+                killAllAnimations()
+
+                local t = getBestTarget(false)
+                if t and t.Character and t.Character:FindFirstChild(_G.AimPart) then
+                    local part = t.Character[_G.AimPart]
+                    local pos = getAdaptivePredictedPos(part, t)
+                    if isSafeToShoot(pos) then
+                        local guns = {}
+                        for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
+                            if tool.Name == "Gun" and tool:FindFirstChild("shot") then
+                                table.insert(guns, tool)
+                            end
+                        end
+                        for _, gun in ipairs(guns) do
+                            if not _G.AutoShoot or _G.IsRecovering or _G.KillAllEnabled or _G.IsDead then break end
+                            forceUnequip()
+                            gun.Parent = LocalPlayer.Character
+                            removeToolAnimation(gun)
+                            killAllAnimations() -- Kill again after equip
+
+                            -- Position gun above target BEFORE shooting
+                            if _G.GunAboveHead and t.Character:FindFirstChild("Head") then
+                                applyGunAboveTarget(gun, t.Character.Head)
+                            end
+
+                            if gun:FindFirstChild("shot") then 
+                                gun.shot:FireServer(pos)
+                            end
+                            gun.Parent = LocalPlayer.Backpack
+                        end
+                        forceUnequip()
+                    end
+                    StatusBar.Text = " 🔴 กำลังล็อค: " .. t.Name .. " | คาดการณ์: x" .. string.format("%.1f", predictionMultiplier)
+                end
+            end)
+        end
+    end)
+end
+
+startSilentAim()
+
+-- Fast Fire V2
+-- FIX: Added killAllAnimations() before every shot
+-- FIX: Gun follows target at ANY distance
+local shootConnection2 = nil
+
+local function startFastFire()
+    if shootConnection2 then shootConnection2:Disconnect() end
+    shootConnection2 = RunService.Heartbeat:Connect(function()
+        if (_G.V2Shoot or _G.KillAllEnabled) and not _G.IsRecovering and not _G.IsDead then
+            pcall(function()
+                -- KILL ALL ANIMATIONS before shooting
+                killAllAnimations()
+
+                local t = getBestTarget(_G.KillAllEnabled)
+                if t and t.Character and t.Character:FindFirstChild(_G.AimPart) then
+                    local part = t.Character[_G.AimPart]
+                    local pos = getAdaptivePredictedPos(part, t)
+                    if isSafeToShoot(pos) then
+                        local guns = {}
+                        for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
+                            if tool.Name == "Gun" and tool:FindFirstChild("shot") then
+                                table.insert(guns, tool)
+                            end
+                        end
+                        local step = (_G.V2Mode == "2 กระบอก") and 2 or 1
+                        for i = 1, #guns, step do
+                            if (not _G.V2Shoot and not _G.KillAllEnabled) or _G.IsRecovering or _G.IsDead then break end
+                            forceUnequip()
+                            local g1 = guns[i]
+                            local g2 = (step == 2) and guns[i+1] or nil
+                            if g1 then 
+                                g1.Parent = LocalPlayer.Character 
+                                removeToolAnimation(g1)
+                                killAllAnimations() -- Kill after equip
+                            end
+                            if g2 then 
+                                g2.Parent = LocalPlayer.Character 
+                                removeToolAnimation(g2)
+                                killAllAnimations() -- Kill after equip
+                            end
+
+                            -- Position guns above target BEFORE shooting
+                            if _G.GunAboveHead and t.Character:FindFirstChild("Head") then
+                                if g1 then applyGunAboveTarget(g1, t.Character.Head) end
+                                if g2 then applyGunAboveTarget(g2, t.Character.Head) end
+                            end
+
+                            if g1 and g1:FindFirstChild("shot") then g1.shot:FireServer(pos) end
+                            if g2 and g2:FindFirstChild("shot") then g2.shot:FireServer(pos) end
+                            task.wait(_G.FastFireDelay)
+                            if g1 and g1.Parent == LocalPlayer.Character then g1.Parent = LocalPlayer.Backpack end
+                            if g2 and g2 and g2.Parent == LocalPlayer.Character then g2.Parent = LocalPlayer.Backpack end
+                        end
+                        forceUnequip()
+                    end
+                    StatusBar.Text = " 🔴 กำลังล็อค: " .. t.Name .. " | คาดการณ์: x" .. string.format("%.1f", predictionMultiplier)
+                end
+            end)
+        end
+    end)
+end
+
+startFastFire()
+
+--// ANTI-WARP FOLLOW
+LocalPlayer.CharacterAdded:Connect(function(char)
+    if _G.KillAllEnabled then
+        _G.IsRecovering = true
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        hrp.CFrame = CFrame.new(_G.VoidPosition)
+        notify("🌌 กับดักห้วงอวกาศ!", 1)
+        task.wait(1)
+        runAutoDup(10)
+        _G.IsRecovering = false
+        startOrbit()
+        notify("⚡ กลับมายิงต่อ!", 1)
+    end
+end)
+
+--// UI INTERACTIONS (THAI)
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- Settings Button
+SettingsBtn.MouseButton1Click:Connect(function()
+    SettingsFrame.Visible = not SettingsFrame.Visible
+end)
+
+CloseSettings.MouseButton1Click:Connect(function()
+    SettingsFrame.Visible = false
+end)
+
+-- Fire Speed Slider
+local speedLevels = {0.0001, 0.001, 0.005, 0.01, 0.05, 0.1, 0.2}
+local currentSpeedIndex = 2
+
+SpeedSlider.MouseButton1Click:Connect(function()
+    currentSpeedIndex = currentSpeedIndex + 1
+    if currentSpeedIndex > #speedLevels then
+        currentSpeedIndex = 1
+    end
+    _G.FastFireDelay = speedLevels[currentSpeedIndex]
+    SpeedLabel.Text = "ความเร็วยิง: " .. tostring(_G.FastFireDelay) .. " วิ"
+    local percent = currentSpeedIndex / #speedLevels
+    SpeedValue.Size = UDim2.new(percent, 0, 1, 0)
+end)
+
+-- Settings Anti-Friend
+SettingsAntiFriend.MouseButton1Click:Connect(function()
+    _G.AntiFriend = not _G.AntiFriend
+    local text = _G.AntiFriend and "🛡️ ไม่ยิงเพื่อน: เปิด" or "🛡️ ไม่ยิงเพื่อน: ปิด"
+    local color = _G.AntiFriend and Color3.fromRGB(0, 60, 0) or Color3.fromRGB(25, 25, 25)
+    SettingsAntiFriend.Text = text
+    SettingsAntiFriend.BackgroundColor3 = color
+end)
+
+-- Settings Gun Mode
+SettingsGunMode.MouseButton1Click:Connect(function()
+    _G.V2Mode = (_G.V2Mode == "1 กระบอก") and "2 กระบอก" or "1 กระบอก"
+    SettingsGunMode.Text = "🔫 โหมดปืน: " .. _G.V2Mode
+end)
+
+-- Settings No Anim
+SettingsNoAnim.MouseButton1Click:Connect(function()
+    _G.NoToolAnim = not _G.NoToolAnim
+    local text = _G.NoToolAnim and "🚫 ลบอนิเมชั่นถือปืน: เปิด" or "🚫 ลบอนิเมชั่นถือปืน: ปิด"
+    local color = _G.NoToolAnim and Color3.fromRGB(60, 0, 60) or Color3.fromRGB(25, 25, 25)
+    SettingsNoAnim.Text = text
+    SettingsNoAnim.BackgroundColor3 = color
+end)
+
+-- Settings No Idle
+SettingsNoIdle.MouseButton1Click:Connect(function()
+    local isActive = idleAnimConnection ~= nil
+    if isActive then
+        stopNoIdle()
+        SettingsNoIdle.Text = "🚶 ลบอนิเมชั่นยืน: ปิด"
+        SettingsNoIdle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    else
+        startNoIdle()
+        SettingsNoIdle.Text = "🚶 ลบอนิเมชั่นยืน: เปิด"
+        SettingsNoIdle.BackgroundColor3 = Color3.fromRGB(60, 30, 0)
+    end
+end)
+
+KillAllToggle.MouseButton1Click:Connect(function()
+    _G.KillAllEnabled = not _G.KillAllEnabled
+    KillAllToggle.Text = _G.KillAllEnabled and "🌀 สังหารทั้งหมด: เปิด" or "🌀 สังหารทั้งหมด: ปิด"
+    KillAllToggle.BackgroundColor3 = _G.KillAllEnabled and Color3.fromRGB(100, 0, 0) or Color3.fromRGB(25, 25, 25)
+    if _G.KillAllEnabled then
+        cycleState = "Nearest"
+        currentTarget = nil
+        startOrbit()
+        startAnimationKiller() -- Start killing all animations
+    else
+        stopOrbit()
+        stopAnimationKiller() -- Stop animation killer
+    end
+end)
+
+SilentToggle.MouseButton1Click:Connect(function()
+    _G.AutoShoot = not _G.AutoShoot
+    SilentToggle.Text = _G.AutoShoot and "🎯 ล็อคเป้าหมาย: เปิด" or "🎯 ล็อคเป้าหมาย: ปิด"
+    SilentToggle.BackgroundColor3 = _G.AutoShoot and Color3.fromRGB(100, 0, 0) or Color3.fromRGB(25, 25, 25)
+    if _G.AutoShoot then 
+        forceUnequip() 
+        startAnimationKiller() -- Start killing all animations
+    else
+        stopAnimationKiller() -- Stop animation killer
+    end
+end)
+
+FastFireToggle.MouseButton1Click:Connect(function()
+    _G.V2Shoot = not _G.V2Shoot
+    FastFireToggle.Text = _G.V2Shoot and "🧨 ยิงเร็ว V2: เปิด" or "🧨 ยิงเร็ว V2: ปิด"
+    FastFireToggle.BackgroundColor3 = _G.V2Shoot and Color3.fromRGB(100, 0, 0) or Color3.fromRGB(25, 25, 25)
+    if _G.V2Shoot then 
+        forceUnequip() 
+        startAnimationKiller() -- Start killing all animations
+    else
+        stopAnimationKiller() -- Stop animation killer
+    end
+end)
+
+PredictToggle.MouseButton1Click:Connect(function()
+    _G.AdaptivePredict = not _G.AdaptivePredict
+    PredictToggle.Text = _G.AdaptivePredict and "🧠 คำนวณล่วงหน้า: เปิด" or "🧠 คำนวณล่วงหน้า: ปิด"
+    PredictToggle.BackgroundColor3 = _G.AdaptivePredict and Color3.fromRGB(0, 60, 100) or Color3.fromRGB(25, 25, 25)
+    if not _G.AdaptivePredict then
+        predictionMultiplier = 1.0
+        lastTargetHealth = {}
+        hitHistory = {}
+    end
+end)
+
+GunAboveToggle.MouseButton1Click:Connect(function()
+    _G.GunAboveHead = not _G.GunAboveHead
+    GunAboveToggle.Text = _G.GunAboveHead and "🔫 ปืนบนหัวเป้า: เปิด" or "🔫 ปืนบนหัวเป้า: ปิด"
+    GunAboveToggle.BackgroundColor3 = _G.GunAboveHead and Color3.fromRGB(0, 60, 100) or Color3.fromRGB(25, 25, 25)
+    if _G.GunAboveHead then
+        startGunAbove()
+    else
+        stopGunAbove()
+    end
+end)
+
+WallbangToggle.MouseButton1Click:Connect(function()
+    _G.Wallbang = not _G.Wallbang
+    WallbangToggle.Text = _G.Wallbang and "🧱 ยิงทะลุ: เปิด" or "🧱 ยิงทะลุ: ปิด"
+    WallbangToggle.BackgroundColor3 = _G.Wallbang and Color3.fromRGB(100, 0, 100) or Color3.fromRGB(25, 25, 25)
+end)
+
+AimPartBtn.MouseButton1Click:Connect(function()
+    _G.AimPart = (_G.AimPart == "Head") and "HumanoidRootPart" or "Head"
+    AimPartBtn.Text = (_G.AimPart == "Head") and "🎯 จุดยิง: หัว" or "🎯 จุดยิง: ตัว"
+end)
+
+SaveAllBtn.MouseButton1Click:Connect(function()
+    task.spawn(function() saveAllGuns() end)
+end)
+
+RetrieveBtn.MouseButton1Click:Connect(function()
+    task.spawn(function() retrieveGuns() end)
+end)
+
+DupeBtn.MouseButton1Click:Connect(function()
+    task.spawn(function() runAutoDup(10) end)
+end)
+
+-- Security
+local specialNames = {["birdV2_123"]=true, ["AniF_Xx"]=true}
+LocalPlayer.Chatted:Connect(function(msg)
+    for name, _ in pairs(specialNames) do
+        if string.find(msg:lower(), name:lower()) then LocalPlayer:Kick("Security Triggered") end
+    end
+end)
+
+-- Status Update Loop (THAI)
+task.spawn(function()
+    while true do
+        if not _G.AutoShoot and not _G.V2Shoot and not _G.KillAllEnabled then
+            StatusBar.Text = " 🟢 พร้อม | เป้าหมาย: ไม่มี"
+        end
+        task.wait(1)
+    end
+end)
+
+notify("SUPREME V20 FIXED โหลดเสร็จแล้ว! | ปืนตามเป้าไกลสุดแมพ | ลบอนิเมชั่นทั้งหมด", 4)
+
 
 
 
