@@ -10044,18 +10044,18 @@
 
 
 --[[
-    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V16)
-    - WALLBANG (Shoot through walls/objects)
-    - AUTO-SAVE ON EVERY DEATH (Fixed - reconnects on respawn)
-    - SAVE ALL GUNS BUTTON (Save remote 10x)
-    - CUSTOM GUI BACKGROUND (Image ID support)
-    - TOOL GRIP ORBIT AROUND LOCKED TARGET
+    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V17)
+    - FIXED: Death stops all shooting + saves guns properly
+    - FIXED: Tool Grip Orbit around target (calculated from target CFrame)
+    - FIXED: Wallbang simplified (direct fire, no raycast block)
+    - ULTIMATE SILENT AIM (Ultra Precision)
     - HYPER PREDICTION ENGINE
     - 3D Orbit System
     - KILL ALL
     - Fast Fire V2
     - Anti-Warp Follow
     - Advanced Dupe System
+    - Custom GUI Background
 ]]
 
 local Players = game:GetService("Players")
@@ -10094,23 +10094,23 @@ local _G = {
     OrbitHeightMax = 14,
     SwitchTime = 0.01,
     IsRecovering = false,
+    IsDead = false,
     VoidPosition = Vector3.new(0, -5000, 0),
     PredictOffset = Vector3.new(0, 0, 0),
     PredictStep = 0.15,
-    GripOrbit = true,
-    GripOrbitRadius = 12,
-    GripOrbitHeight = 5,
-    GripOrbitSpeed = 3,
-    Wallbang = true
+    GripOrbit = false,
+    GripOrbitRadius = 8,
+    GripOrbitHeight = 4,
+    GripOrbitSpeed = 4,
+    Wallbang = false
 }
 
 --// UI SETTINGS
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltimateExploit_V16"
+ScreenGui.Name = "UltimateExploit_V17"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
---// BACKGROUND IMAGE ID
 local BG_IMAGE_ID = "rbxassetid://78415999505202"
 
 --// INDEPENDENT TOGGLE BUTTON (DRAGGABLE + IMAGE)
@@ -10132,7 +10132,6 @@ ToggleStroke.Color = Color3.fromRGB(255, 0, 0)
 ToggleStroke.Thickness = 2
 ToggleStroke.Parent = ToggleBtn
 
--- Make Toggle Button Draggable
 local dragging, dragInput, dragStart, startPos
 ToggleBtn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -10171,7 +10170,6 @@ MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
--- Background Image
 local BgImage = Instance.new("ImageLabel")
 BgImage.Name = "BgImage"
 BgImage.Size = UDim2.new(1, 0, 1, 0)
@@ -10211,7 +10209,7 @@ TitleBarFix.Parent = TitleBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 1, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "  DEATH NOTA V16 -- SUPREME EDITION"
+Title.Text = "  DEATH NOTA V17 -- SUPREME EDITION"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -10372,6 +10370,7 @@ end)
 
 --// SELF-DAMAGE PROTECTION
 local function isSafeToShoot(targetPos)
+    if _G.IsDead then return false end
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return false end
     local myHRP = LocalPlayer.Character.HumanoidRootPart
     local origin = myHRP.Position
@@ -10379,45 +10378,11 @@ local function isSafeToShoot(targetPos)
     return true
 end
 
---// WALLBANG RAYCAST (Ignore all objects except target)
-local function wallbangRaycast(origin, direction, targetCharacter)
-    if not _G.Wallbang then
-        -- Normal raycast
-        local rayParam = RaycastParams.new()
-        rayParam.FilterDescendantsInstances = {LocalPlayer.Character}
-        rayParam.FilterType = Enum.RaycastFilterType.Exclude
-        local result = workspace:Raycast(origin, direction, rayParam)
-        return result
-    end
-
-    -- Wallbang: raycast that ignores everything except target character
-    local rayParam = RaycastParams.new()
-    local ignoreList = {}
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character and plr.Character ~= targetCharacter then
-            table.insert(ignoreList, plr.Character)
-        end
-    end
-    -- Ignore all workspace parts except target
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and not obj:IsDescendantOf(targetCharacter) then
-            table.insert(ignoreList, obj)
-        end
-    end
-    table.insert(ignoreList, LocalPlayer.Character)
-
-    rayParam.FilterDescendantsInstances = ignoreList
-    rayParam.FilterType = Enum.RaycastFilterType.Exclude
-    local result = workspace:Raycast(origin, direction, rayParam)
-    return result
-end
-
 --// SMART TARGET CYCLING
 local cycleState = "Nearest"
 local currentTarget = nil
-
--- Friend Cache
 local friendCache = {}
+
 local function isFriend(plr)
     if friendCache[plr.UserId] ~= nil then return friendCache[plr.UserId] end
     local ok, result = pcall(function() return LocalPlayer:IsFriendsWith(plr.UserId) end)
@@ -10435,6 +10400,7 @@ local function canTarget(plr)
 end
 
 local function getBestTarget(isKillAll)
+    if _G.IsDead then return nil end
     local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position
     if not myPos then return nil end
 
@@ -10488,6 +10454,7 @@ local function getPing()
 end
 
 local function getAdaptivePredictedPos(targetPart, targetPlayer)
+    if _G.IsDead then return targetPart.Position end
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         return targetPart.Position
     end
@@ -10546,7 +10513,9 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
     return predictedPos
 end
 
---// TOOL GRIP ORBIT AROUND LOCKED TARGET
+--// TOOL GRIP ORBIT AROUND LOCKED TARGET (FIXED)
+-- The gun orbits around the TARGET, not the player
+-- We calculate the orbit position in world space around target, then convert to Grip offset
 local gripOrbitConnection = nil
 local gripOrbitAngle = 0
 
@@ -10561,55 +10530,91 @@ local function getCurrentTool()
     return nil
 end
 
-local function applyGripOrbitAroundTarget(tool, targetPos)
+local function applyGripOrbitAroundTarget(tool, targetHRP)
     if not tool then return end
-    if not targetPos then return end
+    if not targetHRP then return end
 
+    -- Calculate orbit position AROUND THE TARGET
     local radius = _G.GripOrbitRadius
     local height = _G.GripOrbitHeight
 
     local offsetX = math.cos(gripOrbitAngle) * radius
     local offsetZ = math.sin(gripOrbitAngle) * radius
-    local offsetY = math.sin(gripOrbitAngle * 2) * height
+    local offsetY = math.sin(gripOrbitAngle * 2) * height + 2
 
-    local orbitPos = targetPos + Vector3.new(offsetX, offsetY + 3, offsetZ)
+    -- World position of orbit point around target
+    local targetPos = targetHRP.Position
+    local orbitWorldPos = targetPos + Vector3.new(offsetX, offsetY, offsetZ)
 
+    -- Get player's RightHand position
     local char = LocalPlayer.Character
     if not char then return end
     local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
     if not rightHand then return end
 
     local handPos = rightHand.Position
-    local direction = orbitPos - handPos
 
-    tool.Grip = CFrame.new(direction)
+    -- Calculate vector from hand to orbit position
+    -- Grip CFrame is relative to the hand, so we use the difference
+    local gripOffset = orbitWorldPos - handPos
+
+    -- Apply Grip with lookAt toward target
+    tool.Grip = CFrame.new(gripOffset) * CFrame.Angles(0, gripOrbitAngle, 0)
+end
+
+local function resetToolGrip(tool)
+    if not tool then return end
+    pcall(function()
+        tool.Grip = CFrame.new()
+    end)
 end
 
 local function stopGripOrbit()
-    if gripOrbitConnection then gripOrbitConnection:Disconnect() gripOrbitConnection = nil end
+    if gripOrbitConnection then 
+        gripOrbitConnection:Disconnect() 
+        gripOrbitConnection = nil 
+    end
     local tool = getCurrentTool()
     if tool then
-        pcall(function() tool.Grip = CFrame.new() end)
+        resetToolGrip(tool)
     end
 end
 
 local function startGripOrbit()
-    if gripOrbitConnection then gripOrbitConnection:Disconnect() end
+    if gripOrbitConnection then 
+        gripOrbitConnection:Disconnect() 
+    end
     gripOrbitAngle = 0
     gripOrbitConnection = RunService.Heartbeat:Connect(function(dt)
-        if not _G.GripOrbit then stopGripOrbit() return end
+        if not _G.GripOrbit then 
+            stopGripOrbit() 
+            return 
+        end
+        if _G.IsDead then return end
 
         local target = getBestTarget(_G.KillAllEnabled)
-        if not target or not target.Character then return end
+        if not target or not target.Character then 
+            -- No target, reset grip
+            local tool = getCurrentTool()
+            if tool then resetToolGrip(tool) end
+            return 
+        end
 
         local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
-        if not targetHRP then return end
+        if not targetHRP then 
+            local tool = getCurrentTool()
+            if tool then resetToolGrip(tool) end
+            return 
+        end
 
         local tool = getCurrentTool()
         if not tool then return end
 
+        -- Update orbit angle
         gripOrbitAngle = (gripOrbitAngle + dt * _G.GripOrbitSpeed) % (math.pi * 2)
-        applyGripOrbitAroundTarget(tool, targetHRP.Position)
+
+        -- Apply orbit grip AROUND TARGET
+        applyGripOrbitAroundTarget(tool, targetHRP)
     end)
 end
 
@@ -10620,61 +10625,92 @@ LocalPlayer.Character.ChildAdded:Connect(function(v)
         if _G.GripOrbit then
             local target = getBestTarget(_G.KillAllEnabled)
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                applyGripOrbitAroundTarget(v, target.Character.HumanoidRootPart.Position)
+                applyGripOrbitAroundTarget(v, target.Character.HumanoidRootPart)
             end
         end
     end
 end)
 
---// AUTO-SAVE ON DEATH (FIXED - reconnects on every respawn)
-local function setupDeathSave()
+--// AUTO-SAVE ON DEATH (FIXED - works on EVERY death)
+local deathConnection = nil
+
+local function onDeath()
+    -- Set dead flag FIRST
+    _G.IsDead = true
+
+    -- Stop ALL shooting systems
+    _G.AutoShoot = false
+    _G.V2Shoot = false
+    _G.KillAllEnabled = false
+
+    -- Stop orbit
+    stopOrbit()
+    stopGripOrbit()
+
+    -- Force unequip all tools
+    forceUnequip()
+
+    -- Update UI
+    SilentToggle.Text = "ULTIMATE AIM: OFF"
+    SilentToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    FastFireToggle.Text = "Fast Fire: OFF"
+    FastFireToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    KillAllToggle.Text = "KILL ALL: OFF"
+    KillAllToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    GripOrbitToggle.Text = "Grip Orbit: OFF"
+    GripOrbitToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+
+    notify("DIED! Stopping all systems + Saving guns...", 2)
+
+    -- Fire Save remote 10x fast
+    for i = 1, 10 do
+        pcall(function()
+            local args = {"Save", "Gun"}
+            ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
+        end)
+        task.wait(0.05)
+    end
+
+    notify("All guns saved!", 2)
+end
+
+local function setupDeathDetection()
     local char = LocalPlayer.Character
     if not char then return end
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
-    humanoid.Died:Connect(function()
-        -- Stop all shooting immediately
-        _G.AutoShoot = false
-        _G.V2Shoot = false
-        _G.KillAllEnabled = false
+    -- Disconnect old connection if exists
+    if deathConnection then
+        deathConnection:Disconnect()
+        deathConnection = nil
+    end
 
-        -- Update UI
-        SilentToggle.Text = "ULTIMATE AIM: OFF"
-        SilentToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        FastFireToggle.Text = "Fast Fire: OFF"
-        FastFireToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        KillAllToggle.Text = "KILL ALL: OFF"
-        KillAllToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-
-        notify("DIED! Stopping shoot + Saving guns...", 2)
-
-        -- Fire Save remote 10x fast
-        for i = 1, 10 do
-            local args = {"Save", "Gun"}
-            ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
-            task.wait(0.05)
-        end
-
-        notify("All guns saved!", 2)
-    end)
+    -- Connect new death event
+    deathConnection = humanoid.Died:Connect(onDeath)
 end
 
 -- Setup on current character
-setupDeathSave()
+setupDeathDetection()
 
--- Re-setup on every respawn
+-- Re-setup on EVERY respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
+    -- Reset dead flag on respawn
+    _G.IsDead = false
+
+    -- Wait for humanoid to load
     task.wait(0.5)
-    setupDeathSave()
+    setupDeathDetection()
 end)
 
 --// SAVE ALL GUNS FUNCTION
 local function saveAllGuns()
     notify("Saving all guns...", 2)
     for i = 1, 10 do
-        local args = {"Save", "Gun"}
-        ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
+        pcall(function()
+            local args = {"Save", "Gun"}
+            ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
+        end)
         task.wait(0.05)
     end
     notify("All guns saved!", 2)
@@ -10684,8 +10720,10 @@ end
 local function retrieveGuns()
     notify("Retrieving saved guns...", 2)
     for i = 1, 10 do
-        local args = {"Get", "Gun"}
-        ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
+        pcall(function()
+            local args = {"Get", "Gun"}
+            ReplicatedStorage:WaitForChild("ToolStorage"):WaitForChild("ToolsStorage"):FireServer(unpack(args))
+        end)
         task.wait(0.05)
     end
     notify("Guns retrieved!", 2)
@@ -10707,11 +10745,15 @@ local function runAutoDup(amount)
             fireclickdetector(closestClick)
             task.wait(0.1)
             forceUnequip()
-            ReplicatedStorage.ToolStorage.ToolsStorage:FireServer("Save", "Gun")
+            pcall(function()
+                ReplicatedStorage.ToolStorage.ToolsStorage:FireServer("Save", "Gun")
+            end)
             task.wait(0.05)
         end
         for i = 1, (amount + 5) do 
-            ReplicatedStorage.ToolStorage.ToolsStorage:FireServer("Get", "Gun")
+            pcall(function()
+                ReplicatedStorage.ToolStorage.ToolsStorage:FireServer("Get", "Gun")
+            end)
             task.wait(0.05)
         end
         forceUnequip()
@@ -10727,18 +10769,28 @@ local orbitConnection = nil
 local orbitPhase = 0
 
 local function stopOrbit()
-    if orbitConnection then orbitConnection:Disconnect() orbitConnection = nil end
+    if orbitConnection then 
+        orbitConnection:Disconnect() 
+        orbitConnection = nil 
+    end
     pcall(function()
         Camera.CameraType = Enum.CameraType.Custom
-        Camera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            Camera.CameraSubject = LocalPlayer.Character.Humanoid
+        end
     end)
 end
 
 local function startOrbit()
-    if orbitConnection then orbitConnection:Disconnect() end
+    if orbitConnection then 
+        orbitConnection:Disconnect() 
+    end
     orbitPhase = 0
     orbitConnection = RunService.Heartbeat:Connect(function(dt)
-        if not _G.KillAllEnabled or _G.IsRecovering then stopOrbit() return end
+        if not _G.KillAllEnabled or _G.IsRecovering or _G.IsDead then 
+            stopOrbit() 
+            return 
+        end
 
         local target = getBestTarget(true)
         if not target or not target.Character then return end
@@ -10783,7 +10835,7 @@ end
 -- ULTIMATE SILENT AIM (Safe 1-Gun Equip + Wallbang)
 task.spawn(function()
     while true do
-        if _G.AutoShoot and not _G.KillAllEnabled and not _G.IsRecovering then
+        if _G.AutoShoot and not _G.KillAllEnabled and not _G.IsRecovering and not _G.IsDead then
             pcall(function()
                 local t = getBestTarget(false)
                 if t and t.Character and t.Character:FindFirstChild(_G.AimPart) then
@@ -10797,16 +10849,11 @@ task.spawn(function()
                             end
                         end
                         for _, gun in ipairs(guns) do
-                            if not _G.AutoShoot or _G.IsRecovering or _G.KillAllEnabled then break end
+                            if not _G.AutoShoot or _G.IsRecovering or _G.KillAllEnabled or _G.IsDead then break end
                             forceUnequip()
                             gun.Parent = LocalPlayer.Character
                             if gun:FindFirstChild("shot") then 
-                                if _G.Wallbang then
-                                    -- Wallbang: fire at predicted position directly
-                                    gun.shot:FireServer(pos)
-                                else
-                                    gun.shot:FireServer(pos)
-                                end
+                                gun.shot:FireServer(pos)
                             end
                             gun.Parent = LocalPlayer.Backpack
                         end
@@ -10823,7 +10870,7 @@ end)
 -- Fast Fire V2 Mode (Kill All or Manual)
 task.spawn(function()
     while true do
-        if (_G.V2Shoot or _G.KillAllEnabled) and not _G.IsRecovering then
+        if (_G.V2Shoot or _G.KillAllEnabled) and not _G.IsRecovering and not _G.IsDead then
             pcall(function()
                 local t = getBestTarget(_G.KillAllEnabled)
                 if t and t.Character and t.Character:FindFirstChild(_G.AimPart) then
@@ -10838,7 +10885,7 @@ task.spawn(function()
                         end
                         local step = (_G.V2Mode == "2 Guns") and 2 or 1
                         for i = 1, #guns, step do
-                            if (not _G.V2Shoot and not _G.KillAllEnabled) or _G.IsRecovering then break end
+                            if (not _G.V2Shoot and not _G.KillAllEnabled) or _G.IsRecovering or _G.IsDead then break end
                             forceUnequip()
                             local g1 = guns[i]
                             local g2 = (step == 2) and guns[i+1] or nil
@@ -10981,7 +11028,7 @@ task.spawn(function()
     end
 end)
 
-notify("SUPREME V16 Loaded!", 4)
+notify("SUPREME V17 Loaded!", 4)
 
 
 
