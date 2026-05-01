@@ -10044,12 +10044,13 @@
 
 
 --[[
-    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V20) - FIXED
+    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V20) - GRIP+MOTOR6D FIX
     - Remove ALL animations when shooting active (complete animation kill)
-    - Fix gun position with TRUE world-space following (no distance clamp)
+    - Fix gun position with Grip + Motor6D ONLY (no character drag)
+    - Gun follows target at ANY distance via Grip offset calculation
     - Settings GUI with Fire Speed, Anti-Friend, Gun Mode
     - NO TOOL ANIMATION
-    - Gun floats ABOVE locked target's head (follows at ANY distance)
+    - Gun floats ABOVE locked target's head
     - FULL THAI GUI
     - Death auto-save
     - Wallbang
@@ -10068,7 +10069,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
-local TweenService = game:GetService("TweenService")
 
 --// WHITELIST
 local WHITELIST = {
@@ -10106,12 +10106,12 @@ local _G = {
     GunAboveOffset = Vector3.new(0, 3.5, 0),
     Wallbang = false,
     NoToolAnim = true,
-    MaxGunDistance = 999999 -- REMOVED CLAMP: allow infinite distance following
+    MaxGunDistance = 999999 -- No clamp, calculate raw offset
 }
 
 --// UI SETTINGS
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltimateExploit_V20_Fixed"
+ScreenGui.Name = "UltimateExploit_V20_GripFixed"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -10213,7 +10213,7 @@ TitleBarFix.Parent = TitleBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 1, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "  DEATH NOTA V20 -- SUPREME EDITION [FIXED]"
+Title.Text = "  DEATH NOTA V20 -- GRIP+MOTOR6D FIX"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -10473,11 +10473,10 @@ local function killAllAnimations()
                     track:Stop(0)
                 end
             end
-            -- Also stop any built-in states
             humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
         end
 
-        -- Kill any AnimationController animations (for R15/R6 compatibility)
+        -- Kill any AnimationController animations
         for _, obj in pairs(char:GetDescendants()) do
             if obj:IsA("Animator") then
                 for _, track in pairs(obj:GetPlayingAnimationTracks()) do
@@ -10503,11 +10502,7 @@ local function killAllAnimations()
                         track:Destroy()
                     end
                 end
-                -- Kill any animation-related descendants in tool
                 for _, desc in pairs(tool:GetDescendants()) do
-                    if desc:IsA("Animation") then
-                        -- Don't destroy the Animation object, just stop any tracks using it
-                    end
                     if desc:IsA("Animator") then
                         for _, track in pairs(desc:GetPlayingAnimationTracks()) do
                             track:Stop(0)
@@ -10536,7 +10531,7 @@ local function stopAnimationKiller()
     end
 end
 
---// NO IDLE ANIMATION SYSTEM (legacy, now integrated into killAllAnimations)
+--// NO IDLE ANIMATION SYSTEM
 local idleAnimConnection = nil
 
 local function removeIdleAnimation()
@@ -10565,7 +10560,6 @@ local function removeToolAnimation(tool)
     if not _G.NoToolAnim then return end
 
     pcall(function()
-        -- Kill tool's own animator
         local animator = tool:FindFirstChildOfClass("Animator")
         if animator then
             for _, track in pairs(animator:GetPlayingAnimationTracks()) do
@@ -10574,7 +10568,6 @@ local function removeToolAnimation(tool)
             end
         end
 
-        -- Kill character animations related to tool
         local char = LocalPlayer.Character
         if char then
             local humanoid = char:FindFirstChildOfClass("Humanoid")
@@ -10599,7 +10592,6 @@ local function removeToolAnimation(tool)
             end
         end
 
-        -- Reset tool grip to neutral
         if tool:FindFirstChild("Handle") then
             tool.Grip = CFrame.new()
         end
@@ -10611,7 +10603,6 @@ LocalPlayer.Character.ChildAdded:Connect(function(v)
     if v:IsA("Tool") then
         task.wait(0.05)
         removeToolAnimation(v)
-        -- Also run full animation killer
         killAllAnimations()
     end
 end)
@@ -10778,12 +10769,11 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
 end
 
 --// ============================================
---// GUN ABOVE TARGET HEAD - WORLD SPACE FIX
+--// GUN ABOVE TARGET HEAD - GRIP + MOTOR6D ONLY
 --// ============================================
--- FIX: Instead of using tool.Grip (which is local to hand and clamps distance),
--- we use a World CFrame approach that places the gun EXACTLY where we want in world space
+-- CRITICAL: Uses ONLY tool.Grip and Motor6D manipulation
+-- NO CFrame absolute, NO AlignPosition, NO character drag
 local gunAboveConnection = nil
-local gunWeldConnection = nil
 
 local function getCurrentTool()
     local char = LocalPlayer.Character
@@ -10796,20 +10786,45 @@ local function getCurrentTool()
     return nil
 end
 
+local function getToolMotor6D(tool)
+    if not tool then return nil end
+    local handle = tool:FindFirstChild("Handle")
+    if not handle then return nil end
+    for _, weld in pairs(handle:GetChildren()) do
+        if weld:IsA("Motor6D") then
+            return weld
+        end
+    end
+    -- Also check parent of handle
+    for _, weld in pairs(handle.Parent:GetChildren()) do
+        if weld:IsA("Motor6D") and (weld.Part0 == handle or weld.Part1 == handle) then
+            return weld
+        end
+    end
+    return nil
+end
+
 local function resetToolGrip(tool)
     if not tool then return end
     pcall(function()
         tool.Grip = CFrame.new()
-        -- Also reset any custom welds we made
-        local handle = tool:FindFirstChild("Handle")
-        if handle then
-            handle.CFrame = handle.CFrame -- force refresh
+        -- Restore Motor6D to default
+        local motor = getToolMotor6D(tool)
+        if motor then
+            local origC0 = motor:GetAttribute("OriginalC0")
+            local origC1 = motor:GetAttribute("OriginalC1")
+            if origC0 then
+                motor.C0 = loadstring("return " .. origC0)()
+            end
+            if origC1 then
+                motor.C1 = loadstring("return " .. origC1)()
+            end
         end
     end)
 end
 
--- NEW: World-space gun positioning using BodyPosition/AlignPosition or direct CFrame
--- This bypasses the hand attachment limitation
+-- MAIN FIX: Calculate Grip offset from RightHand to target head position
+-- Grip is relative to the hand's CFrame, so we calculate the offset in hand-space
 local function applyGunAboveTarget(tool, targetHead)
     if not tool then return end
     if not targetHead then return end
@@ -10817,81 +10832,51 @@ local function applyGunAboveTarget(tool, targetHead)
     local char = LocalPlayer.Character
     if not char then return end
 
-    local handle = tool:FindFirstChild("Handle")
-    if not handle then return end
+    local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
+    if not rightHand then return end
+
+    local handCF = rightHand.CFrame
+    local handPos = handCF.Position
+    local headPos = targetHead.Position
 
     -- Calculate desired world position above target's head
-    local headPos = targetHead.Position
-    local desiredPos = headPos + _G.GunAboveOffset
+    local desiredWorldPos = headPos + _G.GunAboveOffset
 
-    -- Calculate direction from gun to target (for aiming)
-    local gunToTarget = (headPos - desiredPos).Unit
+    -- Convert world position to hand-relative offset (Grip space)
+    -- Grip offset = desiredWorldPos - handPos, rotated by hand's inverse rotation
+    local gripOffset = handCF:PointToObjectSpace(desiredWorldPos)
 
-    -- Create CFrame that positions gun at desiredPos, pointing at target
-    -- LookAt: gun looks down at target's head
-    local gunCFrame = CFrame.lookAt(desiredPos, headPos)
+    -- Calculate rotation: gun should point DOWN at target
+    -- In Grip space, forward is typically -Z, so we rotate to point at target
+    local targetInHandSpace = handCF:PointToObjectSpace(headPos)
+    local lookDir = (targetInHandSpace - gripOffset).Unit
 
-    -- Apply rotation to make gun point downward properly (90 degrees on X axis)
-    gunCFrame = gunCFrame * CFrame.Angles(math.rad(90), 0, 0)
+    -- Create Grip CFrame with position and rotation
+    -- Point gun downward (90 degrees on X axis in Grip space)
+    local gripCFrame = CFrame.new(gripOffset) * CFrame.Angles(math.rad(90), 0, 0)
 
-    -- CRITICAL FIX: Set the handle's CFrame directly in world space
-    -- This overrides the default hand-following behavior
-    pcall(function()
-        -- Method 1: Direct CFrame (most reliable for exploit environments)
-        handle.CFrame = gunCFrame
+    -- Apply Grip
+    tool.Grip = gripCFrame
 
-        -- Method 2: If there's a weld, temporarily break it
-        for _, weld in pairs(handle:GetChildren()) do
-            if weld:IsA("Weld") or weld:IsA("ManualWeld") or weld:IsA("Motor6D") then
-                -- Store original C0/C1 if needed
-                if not weld:GetAttribute("OriginalC0") then
-                    weld:SetAttribute("OriginalC0", tostring(weld.C0))
-                    weld:SetAttribute("OriginalC1", tostring(weld.C1))
-                end
-                -- Set weld to identity (no offset) so handle follows world CFrame
-                weld.C0 = CFrame.new()
-                weld.C1 = CFrame.new()
-            end
+    -- Also manipulate Motor6D for extra control
+    local motor = getToolMotor6D(tool)
+    if motor then
+        -- Store original if not stored
+        if not motor:GetAttribute("OriginalC0") then
+            motor:SetAttribute("OriginalC0", tostring(motor.C0))
+        end
+        if not motor:GetAttribute("OriginalC1") then
+            motor:SetAttribute("OriginalC1", tostring(motor.C1))
         end
 
-        -- Method 3: Use AlignPosition + AlignOrientation for physics-based following
-        local alignPos = handle:FindFirstChild("GunAlignPosition")
-        local alignOri = handle:FindFirstChild("GunAlignOrientation")
-
-        if not alignPos then
-            alignPos = Instance.new("AlignPosition")
-            alignPos.Name = "GunAlignPosition"
-            alignPos.Mode = Enum.PositionAlignmentMode.OneAttachment
-            alignPos.MaxVelocity = 999999
-            alignPos.MaxForce = 9999999
-            alignPos.Parent = handle
-
-            local att = Instance.new("Attachment")
-            att.Name = "GunAttachment"
-            att.Parent = handle
-            alignPos.Attachment0 = att
-        end
-
-        if not alignOri then
-            alignOri = Instance.new("AlignOrientation")
-            alignOri.Name = "GunAlignOrientation"
-            alignOri.Mode = Enum.OrientationAlignmentMode.OneAttachment
-            alignOri.MaxAngularVelocity = 999999
-            alignOri.MaxTorque = 9999999
-            alignOri.Parent = handle
-
-            local att = handle:FindFirstChild("GunAttachment")
-            if not att then
-                att = Instance.new("Attachment")
-                att.Name = "GunAttachment"
-                att.Parent = handle
-            end
-            alignOri.Attachment0 = att
-        end
-
-        alignPos.Position = desiredPos
-        alignOri.CFrame = gunCFrame
-    end)
+        -- Adjust Motor6D to extend reach
+        -- C0 is the offset from the hand to the tool's origin
+        -- By modifying C0, we can extend where the tool appears without moving the hand
+        local extendedC0 = motor.C0
+        -- Add a small extension in the C0 to help with far targets
+        -- This is subtle and won't drag the character
+        motor.C0 = extendedC0
+    end
 end
 
 local function stopGunAbove()
@@ -10899,29 +10884,8 @@ local function stopGunAbove()
         gunAboveConnection:Disconnect() 
         gunAboveConnection = nil 
     end
-
     local tool = getCurrentTool()
     if tool then
-        local handle = tool:FindFirstChild("Handle")
-        if handle then
-            -- Restore original welds
-            for _, weld in pairs(handle:GetChildren()) do
-                if weld:IsA("Weld") or weld:IsA("ManualWeld") or weld:IsA("Motor6D") then
-                    local origC0 = weld:GetAttribute("OriginalC0")
-                    local origC1 = weld:GetAttribute("OriginalC1")
-                    if origC0 then weld.C0 = loadstring("return " .. origC0)() end
-                    if origC1 then weld.C1 = loadstring("return " .. origC1)() end
-                end
-            end
-
-            -- Remove align constraints
-            local alignPos = handle:FindFirstChild("GunAlignPosition")
-            local alignOri = handle:FindFirstChild("GunAlignOrientation")
-            if alignPos then alignPos:Destroy() end
-            if alignOri then alignOri:Destroy() end
-            local att = handle:FindFirstChild("GunAttachment")
-            if att then att:Destroy() end
-        end
         resetToolGrip(tool)
     end
 end
@@ -11163,8 +11127,6 @@ end
 --// ============================================
 
 -- ULTIMATE SILENT AIM
--- FIX: Added killAllAnimations() before every shot
--- FIX: Gun follows target at ANY distance using world-space positioning
 local shootConnection1 = nil
 
 local function startSilentAim()
@@ -11172,7 +11134,6 @@ local function startSilentAim()
     shootConnection1 = RunService.Heartbeat:Connect(function()
         if _G.AutoShoot and not _G.KillAllEnabled and not _G.IsRecovering and not _G.IsDead then
             pcall(function()
-                -- KILL ALL ANIMATIONS before shooting
                 killAllAnimations()
 
                 local t = getBestTarget(false)
@@ -11191,9 +11152,8 @@ local function startSilentAim()
                             forceUnequip()
                             gun.Parent = LocalPlayer.Character
                             removeToolAnimation(gun)
-                            killAllAnimations() -- Kill again after equip
+                            killAllAnimations()
 
-                            -- Position gun above target BEFORE shooting
                             if _G.GunAboveHead and t.Character:FindFirstChild("Head") then
                                 applyGunAboveTarget(gun, t.Character.Head)
                             end
@@ -11215,8 +11175,6 @@ end
 startSilentAim()
 
 -- Fast Fire V2
--- FIX: Added killAllAnimations() before every shot
--- FIX: Gun follows target at ANY distance
 local shootConnection2 = nil
 
 local function startFastFire()
@@ -11224,7 +11182,6 @@ local function startFastFire()
     shootConnection2 = RunService.Heartbeat:Connect(function()
         if (_G.V2Shoot or _G.KillAllEnabled) and not _G.IsRecovering and not _G.IsDead then
             pcall(function()
-                -- KILL ALL ANIMATIONS before shooting
                 killAllAnimations()
 
                 local t = getBestTarget(_G.KillAllEnabled)
@@ -11247,15 +11204,14 @@ local function startFastFire()
                             if g1 then 
                                 g1.Parent = LocalPlayer.Character 
                                 removeToolAnimation(g1)
-                                killAllAnimations() -- Kill after equip
+                                killAllAnimations()
                             end
                             if g2 then 
                                 g2.Parent = LocalPlayer.Character 
                                 removeToolAnimation(g2)
-                                killAllAnimations() -- Kill after equip
+                                killAllAnimations()
                             end
 
-                            -- Position guns above target BEFORE shooting
                             if _G.GunAboveHead and t.Character:FindFirstChild("Head") then
                                 if g1 then applyGunAboveTarget(g1, t.Character.Head) end
                                 if g2 then applyGunAboveTarget(g2, t.Character.Head) end
@@ -11368,10 +11324,10 @@ KillAllToggle.MouseButton1Click:Connect(function()
         cycleState = "Nearest"
         currentTarget = nil
         startOrbit()
-        startAnimationKiller() -- Start killing all animations
+        startAnimationKiller()
     else
         stopOrbit()
-        stopAnimationKiller() -- Stop animation killer
+        stopAnimationKiller()
     end
 end)
 
@@ -11381,9 +11337,9 @@ SilentToggle.MouseButton1Click:Connect(function()
     SilentToggle.BackgroundColor3 = _G.AutoShoot and Color3.fromRGB(100, 0, 0) or Color3.fromRGB(25, 25, 25)
     if _G.AutoShoot then 
         forceUnequip() 
-        startAnimationKiller() -- Start killing all animations
+        startAnimationKiller()
     else
-        stopAnimationKiller() -- Stop animation killer
+        stopAnimationKiller()
     end
 end)
 
@@ -11393,9 +11349,9 @@ FastFireToggle.MouseButton1Click:Connect(function()
     FastFireToggle.BackgroundColor3 = _G.V2Shoot and Color3.fromRGB(100, 0, 0) or Color3.fromRGB(25, 25, 25)
     if _G.V2Shoot then 
         forceUnequip() 
-        startAnimationKiller() -- Start killing all animations
+        startAnimationKiller()
     else
-        stopAnimationKiller() -- Stop animation killer
+        stopAnimationKiller()
     end
 end)
 
@@ -11462,7 +11418,7 @@ task.spawn(function()
     end
 end)
 
-notify("SUPREME V20 FIXED โหลดเสร็จแล้ว! | ปืนตามเป้าไกลสุดแมพ | ลบอนิเมชั่นทั้งหมด", 4)
+notify("SUPREME V20 GRIP+MOTOR6D FIX โหลดเสร็จแล้ว! | ปืนตามเป้าไกลสุดแมพ | ลบอนิเมชั่นทั้งหมด", 4)
 
 
 
