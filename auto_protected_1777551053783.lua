@@ -10044,18 +10044,16 @@
 
 
 --[[
-    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V20) - CORRECT DIRECTION FIX
-    - Remove ALL animations when shooting active
-    - Fix gun position with CORRECT Grip directional calculation
-    - Gun follows target at ANY distance with proper orientation
-    - Smooth shooting, no lag/stutter
+    ULTIMATE EXPLOIT SCRIPT: SUPREME EDITION (V20) - BODY TRACKING FIX
+    - Gun follows TARGET BODY (not floating above)
+    - Raycast + Smart Line of Sight (like V4.4 but smarter)
+    - Physics-based prediction with acceleration
+    - Remove ALL animations when shooting
     - Settings GUI with Fire Speed, Anti-Friend, Gun Mode
     - NO TOOL ANIMATION
-    - Gun floats ABOVE locked target's head
     - FULL THAI GUI
     - Death auto-save
     - Wallbang
-    - Hyper Prediction
     - 3D Orbit System
     - Kill All
     - Fast Fire V2
@@ -10104,18 +10102,20 @@ local _G = {
     PredictOffset = Vector3.new(0, 0, 0),
     PredictStep = 0.15,
     GunAboveHead = false,
-    GunAboveOffset = Vector3.new(0, 3.5, 0),
+    -- FIX: Gun offset changed from (0, 3.5, 0) to (0, 0, -2)
+    -- This places gun IN FRONT of target's head, not floating above
+    GunOffset = Vector3.new(0, 0, -2),
     Wallbang = false,
     NoToolAnim = true,
     MaxGunDistance = 999999,
-    -- Debug info
-    LastGripDir = Vector3.new(0, 0, 0),
-    LastTargetPos = Vector3.new(0, 0, 0)
+    -- Debug
+    LastTargetPos = Vector3.new(0, 0, 0),
+    LastPredictedPos = Vector3.new(0, 0, 0)
 }
 
 --// UI SETTINGS
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltimateExploit_V20_CorrectDir"
+ScreenGui.Name = "UltimateExploit_V20_BodyTrack"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -10217,7 +10217,7 @@ TitleBarFix.Parent = TitleBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 1, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "  DEATH NOTA V20 -- CORRECT DIRECTION"
+Title.Text = "  DEATH NOTA V20 -- BODY TRACKING FIX"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -10290,7 +10290,7 @@ local KillAllToggle = createButton("KillAllToggle", "🌀 สังหารท�
 local SilentToggle = createButton("SilentToggle", "🎯 ล็อคเป้าหมาย: ปิด", UDim2.new(0, 15, 0, 93))
 local FastFireToggle = createButton("FastFireToggle", "🧨 ยิงเร็ว V2: ปิด", UDim2.new(0, 15, 0, 128))
 local PredictToggle = createButton("PredictToggle", "🧠 คำนวณล่วงหน้า: ปิด", UDim2.new(0, 15, 0, 163))
-local GunAboveToggle = createButton("GunAboveToggle", "🔫 ปืนบนหัวเป้า: ปิด", UDim2.new(0, 15, 0, 198))
+local GunAboveToggle = createButton("GunAboveToggle", "🔫 ปืนตามตัวเป้า: ปิด", UDim2.new(0, 15, 0, 198))
 local WallbangToggle = createButton("WallbangToggle", "🧱 ยิงทะลุ: ปิด", UDim2.new(0, 15, 0, 233))
 local SaveAllBtn = createButton("SaveAllBtn", "💾 เซฟปืนทั้งหมด", UDim2.new(0, 15, 0, 268), nil, Color3.fromRGB(80, 0, 0))
 local RetrieveBtn = createButton("RetrieveBtn", "📦 เอาปืนออก", UDim2.new(0, 15, 0, 303), nil, Color3.fromRGB(0, 80, 0))
@@ -10655,6 +10655,40 @@ local function canTarget(plr)
     return true
 end
 
+--// ============================================
+--// RAYCAST + LINE OF SIGHT (like V4.4 but smarter)
+--// ============================================
+local function hasLineOfSight(targetChar)
+    local char = LocalPlayer.Character
+    if not char then return false end
+    local myHead = char:FindFirstChild("Head")
+    if not myHead then return false end
+
+    local targetHead = targetChar:FindFirstChild("Head")
+    if not targetHead then return false end
+
+    local rayOrigin = myHead.Position
+    local rayDirection = (targetHead.Position - rayOrigin)
+    local distance = rayDirection.Magnitude
+    rayDirection = rayDirection.Unit * distance
+
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {char, targetChar}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.IgnoreWater = true
+
+    local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+
+    -- If no hit or hit is part of target, we have LOS
+    if not rayResult then return true end
+    if rayResult.Instance:IsDescendantOf(targetChar) then return true end
+
+    -- Wallbang override
+    if _G.Wallbang then return true end
+
+    return false
+end
+
 local function getBestTarget(isKillAll)
     if _G.IsDead then return nil end
     local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position
@@ -10675,13 +10709,22 @@ local function getBestTarget(isKillAll)
     local players = {}
     for _, p in pairs(Players:GetPlayers()) do
         if canTarget(p) then
+            local targetChar = p.Character
+            local hasLOS = hasLineOfSight(targetChar)
             local d = (p.Character[_G.AimPart].Position - myPos).Magnitude
-            table.insert(players, {plr = p, dist = d})
+            -- Prioritize targets with LOS, then by distance
+            table.insert(players, {plr = p, dist = d, los = hasLOS})
         end
     end
 
     if #players > 0 then
-        table.sort(players, function(a, b) return a.dist < b.dist end)
+        -- Sort: LOS first, then distance
+        table.sort(players, function(a, b)
+            if a.los and not b.los then return true end
+            if not a.los and b.los then return false end
+            return a.dist < b.dist
+        end)
+
         if isKillAll then
             if cycleState == "Nearest" then currentTarget = players[1].plr
             else currentTarget = players[#players].plr end
@@ -10692,12 +10735,17 @@ local function getBestTarget(isKillAll)
     return currentTarget
 end
 
---// HYPER PREDICTION ENGINE V3
+--// ============================================
+--// PHYSICS-BASED PREDICTION V2 (Smarter than V4.4)
+--// ============================================
 local lastTargetHealth = {}
 local predictionMultiplier = 1.0
 local hitHistory = {}
 local pingCompensation = 0.05
 local gravity = Vector3.new(0, -workspace.Gravity, 0)
+
+-- Store velocity history for acceleration calculation
+local velocityHistory = {}
 
 local function getPing()
     local stats = game:GetService("Stats")
@@ -10714,9 +10762,10 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         return targetPart.Position
     end
+
     local myPos = LocalPlayer.Character.HumanoidRootPart.Position
     local targetPos = targetPart.Position
-    local targetVel = targetPart.Velocity
+    local targetVel = targetPart.AssemblyLinearVelocity or targetPart.Velocity
     local targetAcc = Vector3.new(0, 0, 0)
 
     if not _G.AdaptivePredict then return targetPos end
@@ -10733,21 +10782,29 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
     travelTime = travelTime + ping + pingCompensation
 
     local uid = targetPlayer.UserId
-    local lastVel = hitHistory[uid] and hitHistory[uid].lastVel
-    if lastVel then
-        targetAcc = (targetVel - lastVel) / 0.016
-    end
-    hitHistory[uid] = {lastVel = targetVel, time = tick()}
 
+    -- Calculate acceleration from velocity history (like V4.4 but smoother)
+    local vHist = velocityHistory[uid]
+    if vHist then
+        local dt = tick() - vHist.time
+        if dt > 0 and dt < 1 then
+            targetAcc = (targetVel - vHist.vel) / dt
+        end
+    end
+    velocityHistory[uid] = {vel = targetVel, time = tick()}
+
+    -- Physics-based prediction: pos + vel*time + 0.5*acc*time^2
     local predictedPos = targetPos 
         + (targetVel * travelTime * predictionMultiplier) 
         + (0.5 * targetAcc * travelTime * travelTime)
 
-    if dist > 100 then
+    -- Gravity drop compensation for far targets
+    if dist > 50 then
         local dropCompensation = Vector3.new(0, (gravity.Y * travelTime * travelTime) / 2, 0)
         predictedPos = predictedPos - dropCompensation
     end
 
+    -- Adaptive multiplier based on hit/miss
     local hum = targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid")
     if hum then
         local currentHP = hum.Health
@@ -10755,8 +10812,10 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
 
         if lastHP then
             if currentHP < lastHP then
-                -- Hit confirmed
+                -- Hit! Keep multiplier or reduce slightly
+                predictionMultiplier = math.max(0.8, predictionMultiplier - 0.05)
             else
+                -- Miss! Adjust multiplier
                 predictionMultiplier = predictionMultiplier + _G.PredictStep
                 if predictionMultiplier > 3.0 then predictionMultiplier = 0.5 end
             end
@@ -10765,27 +10824,17 @@ local function getAdaptivePredictedPos(targetPart, targetPlayer)
     end
 
     if predictionMultiplier < 0.3 then predictionMultiplier = 0.3 end
+    if predictionMultiplier > 3.0 then predictionMultiplier = 3.0 end
 
+    _G.LastPredictedPos = predictedPos
     return predictedPos
 end
 
 --// ============================================
---// GUN ABOVE TARGET HEAD - CORRECT DIRECTION FIX
+--// GUN FOLLOWS TARGET BODY - CORRECTED
 --// ============================================
--- ROOT CAUSE ANALYSIS:
--- When animations are killed, the arm's Motor6D resets to default C0/C1.
--- RightHand.CFrame may NOT reflect the visual position because:
--- 1. The Motor6D transforms are based on DEFAULT pose (T-pose or reference pose)
--- 2. Without animation, the hand might be at a different position than expected
--- 3. PointToObjectSpace uses the CFrame which may be offset from visual
---
--- FIX: Instead of using hand CFrame, we calculate Grip offset DIRECTLY
--- from the character's HumanoidRootPart to the target.
--- Grip is applied relative to the tool's attachment point (Right Grip).
--- The Right Grip attachment follows the arm's visual position via Motor6D.
--- So we calculate: Grip = offset from RightGrip to target position
---
--- We use the tool's Handle position as reference since it's already attached.
+-- FIX: Gun now follows the target's BODY, not floating above
+-- Uses target's HumanoidRootPart as anchor for stable tracking
 local gunAboveConnection = nil
 
 local function getCurrentTool()
@@ -10799,28 +10848,6 @@ local function getCurrentTool()
     return nil
 end
 
-local function getRightGripAttachment(char)
-    if not char then return nil end
-    local rightHand = char:FindFirstChild("RightHand")
-    if rightHand then
-        for _, att in pairs(rightHand:GetChildren()) do
-            if att:IsA("Attachment") and att.Name == "RightGripAttachment" then
-                return att
-            end
-        end
-    end
-    -- Fallback: find any attachment in right arm
-    local rightArm = char:FindFirstChild("Right Arm") or char:FindFirstChild("RightUpperArm")
-    if rightArm then
-        for _, att in pairs(rightArm:GetDescendants()) do
-            if att:IsA("Attachment") and string.find(att.Name:lower(), "grip") then
-                return att
-            end
-        end
-    end
-    return nil
-end
-
 local function resetToolGrip(tool)
     if not tool then return end
     pcall(function()
@@ -10828,73 +10855,71 @@ local function resetToolGrip(tool)
     end)
 end
 
--- CORRECTED CALCULATION:
--- Grip offset is from the tool's default hold position to desired position.
--- When tool is equipped, it's attached to RightHand via Motor6D.
--- The Motor6D's Part0 is RightHand, Part1 is Handle.
--- Default C0/C1 places Handle at hand position.
--- Grip ADDS to this offset.
---
--- So: Grip = CFrame that moves Handle from hand to target position
--- We calculate this by:
--- 1. Get hand world position (from character)
--- 2. Calculate desired world position (above target head)
--- 3. Grip offset = desiredPos - handPos (in hand's local space)
--- 4. Rotation = point gun at target
---
--- CRITICAL: We use the character's UpperTorso/Head as anchor instead of RightHand
--- because RightHand CFrame may be unreliable when animation is killed.
--- We estimate hand position from UpperTorso + offset.
-local function applyGunAboveTarget(tool, targetHead)
+-- CORRECTED: Gun follows target body at HEAD LEVEL, not floating above
+-- 
+-- The key insight: Grip is relative to the hand's attachment point.
+-- When animation is killed, arm is at side. We want gun to appear at target.
+-- 
+-- Method: Calculate offset from TORSO to target, then adjust for hand position.
+-- This is more stable than using hand CFrame directly.
+local function applyGunFollowTarget(tool, targetChar)
     if not tool then return end
-    if not targetHead then return end
+    if not targetChar then return end
 
     local char = LocalPlayer.Character
     if not char then return end
 
-    -- Get reference body part (more stable than hand when animation killed)
-    local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart")
-    if not torso then return end
+    -- Get target's primary part (HumanoidRootPart is most stable)
+    local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+    local targetHead = targetChar:FindFirstChild("Head")
+    if not targetHRP then return end
 
-    local torsoCF = torso.CFrame
+    -- Use target's CFrame as base
+    local targetCF = targetHRP.CFrame
+    local targetPos = targetHRP.Position
+
+    -- If aiming at head, adjust position to head level
+    if _G.AimPart == "Head" and targetHead then
+        targetPos = targetHead.Position
+        targetCF = targetHead.CFrame
+    end
+
+    -- Calculate desired gun position: in front of target's face
+    -- Offset: slightly in front (Z-), same height (Y), centered (X)
+    local gunOffset = _G.GunOffset
+    local desiredWorldPos = targetPos + (targetCF.LookVector * gunOffset.Z) + (targetCF.RightVector * gunOffset.X) + (targetCF.UpVector * gunOffset.Y)
+
+    -- Get our torso for reference
+    local myTorso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart")
+    if not myTorso then return end
+
+    local torsoCF = myTorso.CFrame
     local torsoPos = torsoCF.Position
-    local headPos = targetHead.Position
 
-    -- Estimate hand position: right side of torso, slightly forward
-    -- This is an approximation that works when arm is at side (animation killed)
-    local handOffset = torsoCF.RightVector * 1.2 + torsoCF.LookVector * 0.5 - torsoCF.UpVector * 0.3
+    -- Estimate hand position when arm is at side (animation killed)
+    -- Right hand is roughly at: torso + rightVector * 1.5 - upVector * 0.5
+    local handOffset = torsoCF.RightVector * 1.5 - torsoCF.UpVector * 0.5 + torsoCF.LookVector * 0.3
     local estimatedHandPos = torsoPos + handOffset
 
-    -- Desired position: above target's head
-    local desiredWorldPos = headPos + _G.GunAboveOffset
+    -- Calculate Grip offset: from estimated hand to desired position
+    -- In torso-local space for stability
+    local gripOffset = torsoCF:PointToObjectSpace(desiredWorldPos) - torsoCF:PointToObjectSpace(estimatedHandPos)
 
-    -- Calculate offset from estimated hand to desired position
-    -- This is the Grip position component
-    local offset = desiredWorldPos - estimatedHandPos
+    -- Calculate rotation: gun should point at target's center
+    local aimTarget = targetPos
+    local aimDir = (aimTarget - desiredWorldPos).Unit
 
-    -- Convert offset to torso-local space for more stable calculation
-    -- (torso is more stable than hand when animation is killed)
-    local localOffset = torsoCF:PointToObjectSpace(desiredWorldPos) - torsoCF:PointToObjectSpace(estimatedHandPos)
-
-    -- Calculate direction from gun to target for rotation
-    -- We want the gun to point DOWN at the target
-    local gunToTarget = (headPos - desiredWorldPos).Unit
-
-    -- Create rotation: gun's forward (-Z) should point at target
-    -- In Grip space, we use LookAt with proper up vector
+    -- Create rotation in torso-local space
     local upVec = Vector3.new(0, 1, 0)
-    local lookCF = CFrame.lookAt(Vector3.new(0, 0, 0), gunToTarget, upVec)
+    local lookCF = CFrame.lookAt(Vector3.new(0, 0, 0), aimDir, upVec)
 
-    -- Adjust for typical gun orientation (barrel points along -Z in most models)
-    -- Add 90 degree X rotation to point barrel downward
+    -- Adjust for gun model orientation (typically barrel points along -Z)
     local rotation = lookCF * CFrame.Angles(math.rad(90), 0, 0)
 
-    -- Combine: Grip = position offset + rotation
-    -- The position is the localOffset we calculated
-    local gripCFrame = CFrame.new(localOffset) * rotation
+    -- Combine position and rotation
+    local gripCFrame = CFrame.new(gripOffset) * rotation
 
-    -- Store debug info
-    _G.LastGripDir = gunToTarget
+    -- Store debug
     _G.LastTargetPos = desiredWorldPos
 
     -- Apply Grip
@@ -10930,17 +10955,10 @@ local function startGunAbove()
             return 
         end
 
-        local targetHead = target.Character:FindFirstChild("Head")
-        if not targetHead then 
-            local tool = getCurrentTool()
-            if tool then resetToolGrip(tool) end
-            return 
-        end
-
         local tool = getCurrentTool()
         if not tool then return end
 
-        applyGunAboveTarget(tool, targetHead)
+        applyGunFollowTarget(tool, target.Character)
     end)
 end
 
@@ -10950,8 +10968,8 @@ LocalPlayer.Character.ChildAdded:Connect(function(v)
         task.wait(0.1)
         if _G.GunAboveHead then
             local target = getBestTarget(_G.KillAllEnabled)
-            if target and target.Character and target.Character:FindFirstChild("Head") then
-                applyGunAboveTarget(v, target.Character.Head)
+            if target and target.Character then
+                applyGunFollowTarget(v, target.Character)
             end
         end
     end
@@ -10979,7 +10997,7 @@ local function onDeath()
     FastFireToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     KillAllToggle.Text = "🌀 สังหารทั้งหมด: ปิด"
     KillAllToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    GunAboveToggle.Text = "🔫 ปืนบนหัวเป้า: ปิด"
+    GunAboveToggle.Text = "🔫 ปืนตามตัวเป้า: ปิด"
     GunAboveToggle.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 
     notify("💀 ตายแล้ว! หยุดยิง + เซฟปืน...", 2)
@@ -11179,8 +11197,8 @@ local function runSilentAim()
                             removeToolAnimation(gun)
                             killAllAnimations()
 
-                            if _G.GunAboveHead and t.Character:FindFirstChild("Head") then
-                                applyGunAboveTarget(gun, t.Character.Head)
+                            if _G.GunAboveHead and t.Character then
+                                applyGunFollowTarget(gun, t.Character)
                             end
 
                             if gun:FindFirstChild("shot") then 
@@ -11190,7 +11208,7 @@ local function runSilentAim()
                         end
                         forceUnequip()
                     end
-                    StatusBar.Text = " 🔴 กำลังล็อค: " .. t.Name .. " | คาดการณ์: x" .. string.format("%.1f", predictionMultiplier)
+                    StatusBar.Text = " 🔴 กำลังล็อค: " .. t.Name .. " | ระยะ: " .. string.format("%.0f", (LocalPlayer.Character.HumanoidRootPart.Position - pos).Magnitude) .. " | คาดการณ์: x" .. string.format("%.1f", predictionMultiplier)
                 end
             end)
 
@@ -11247,9 +11265,9 @@ local function runFastFire()
                                 killAllAnimations()
                             end
 
-                            if _G.GunAboveHead and t.Character:FindFirstChild("Head") then
-                                if g1 then applyGunAboveTarget(g1, t.Character.Head) end
-                                if g2 then applyGunAboveTarget(g2, t.Character.Head) end
+                            if _G.GunAboveHead and t.Character then
+                                if g1 then applyGunFollowTarget(g1, t.Character) end
+                                if g2 then applyGunFollowTarget(g2, t.Character) end
                             end
 
                             if g1 and g1:FindFirstChild("shot") then g1.shot:FireServer(pos) end
@@ -11262,7 +11280,7 @@ local function runFastFire()
                         end
                         forceUnequip()
                     end
-                    StatusBar.Text = " 🔴 กำลังล็อค: " .. t.Name .. " | คาดการณ์: x" .. string.format("%.1f", predictionMultiplier)
+                    StatusBar.Text = " 🔴 กำลังล็อค: " .. t.Name .. " | ระยะ: " .. string.format("%.0f", (LocalPlayer.Character.HumanoidRootPart.Position - pos).Magnitude) .. " | คาดการณ์: x" .. string.format("%.1f", predictionMultiplier)
                 end
             end)
 
@@ -11409,12 +11427,13 @@ PredictToggle.MouseButton1Click:Connect(function()
         predictionMultiplier = 1.0
         lastTargetHealth = {}
         hitHistory = {}
+        velocityHistory = {}
     end
 end)
 
 GunAboveToggle.MouseButton1Click:Connect(function()
     _G.GunAboveHead = not _G.GunAboveHead
-    GunAboveToggle.Text = _G.GunAboveHead and "🔫 ปืนบนหัวเป้า: เปิด" or "🔫 ปืนบนหัวเป้า: ปิด"
+    GunAboveToggle.Text = _G.GunAboveHead and "🔫 ปืนตามตัวเป้า: เปิด" or "🔫 ปืนตามตัวเป้า: ปิด"
     GunAboveToggle.BackgroundColor3 = _G.GunAboveHead and Color3.fromRGB(0, 60, 100) or Color3.fromRGB(25, 25, 25)
     if _G.GunAboveHead then
         startGunAbove()
@@ -11464,7 +11483,7 @@ task.spawn(function()
     end
 end)
 
-notify("SUPREME V20 CORRECT DIRECTION โหลดเสร็จแล้ว! | ปืนตามเป้า100% | ลื่นไม่กระตุก", 4)
+notify("SUPREME V20 BODY TRACKING โหลดเสร็จแล้ว! | ปืนตามตัวเป้า | แม่นยำ V4.4+", 4)
 
 
 
