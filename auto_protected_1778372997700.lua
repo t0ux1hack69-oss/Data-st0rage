@@ -10043,10 +10043,10 @@
 
 
 
---// Aimbot Pro v4.0 | Roblox Exploit Script
---// REAL AIMBOT: Hard-lock camera to target position
---// No smooth delay, instant snap + continuous tracking
---// External GUI Toggle Button | Lock until disabled
+--// Aimbot Pro v5.0 | Roblox Exploit Script
+--// Hard-lock camera + character rotation to NEAREST target
+--// External draggable GUI toggle button
+--// No mode selector - always nearest
 
 --// Services
 local Players = game:GetService("Players")
@@ -10056,12 +10056,10 @@ local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local Camera = Workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 
 --// Configuration
 local Config = {
     Enabled = false,
-    Mode = "Nearest",
     WallCheck = true,
     TeamCheck = true,
     MaxDistance = 1000,
@@ -10069,7 +10067,6 @@ local Config = {
     Keybind = Enum.KeyCode.E,
     UIKeybind = Enum.KeyCode.Insert,
     RainbowSpeed = 0.5,
-    LockStrength = 1.0, -- 1.0 = full lock, lower = partial
 }
 
 --// State
@@ -10131,9 +10128,13 @@ local function IsBehindWall(targetPart)
     return result ~= nil
 end
 
-local function GetDistance(position)
+local function GetDistanceFromCharacter(position)
     if not position then return math.huge end
-    return (position - Camera.CFrame.Position).Magnitude
+    local myCharacter = LocalPlayer.Character
+    if not myCharacter then return math.huge end
+    local myHRP = myCharacter:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return math.huge end
+    return (position - myHRP.Position).Magnitude
 end
 
 local function GetScreenPosition(worldPosition)
@@ -10148,11 +10149,10 @@ local function IsOnScreen(screenPos, depth)
         and depth > 0
 end
 
---// Target Selection
+--// Target Selection - NEAREST from CHARACTER position (not screen center)
 local function FindNearestTarget()
     local bestTarget = nil
     local bestDistance = math.huge
-    local cameraPos = Camera.CFrame.Position
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player == LocalPlayer then continue end
@@ -10168,7 +10168,8 @@ local function FindNearestTarget()
         local screenPos, onScreen, depth = GetScreenPosition(worldPos)
         if not onScreen or not IsOnScreen(screenPos, depth) then continue end
 
-        local distance = (worldPos - cameraPos).Magnitude
+        --// Distance from OUR CHARACTER, not camera/screen
+        local distance = GetDistanceFromCharacter(worldPos)
         if distance > Config.MaxDistance then continue end
         if IsBehindWall(aimPart) then continue end
 
@@ -10186,124 +10187,10 @@ local function FindNearestTarget()
         end
     end
 
-    if Config.Mode == "NPC" then
-        for _, model in ipairs(Workspace:GetDescendants()) do
-            if model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
-                local humanoid = model:FindFirstChildOfClass("Humanoid")
-                if not humanoid or humanoid.Health <= 0 then continue end
-
-                local aimPart = model:FindFirstChild(Config.AimPart) or model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
-                if not aimPart then continue end
-
-                local worldPos = aimPart.Position
-                local screenPos, onScreen, depth = GetScreenPosition(worldPos)
-                if not onScreen or not IsOnScreen(screenPos, depth) then continue end
-
-                local distance = (worldPos - cameraPos).Magnitude
-                if distance > Config.MaxDistance then continue end
-                if IsBehindWall(aimPart) then continue end
-
-                if distance < bestDistance then
-                    bestDistance = distance
-                    bestTarget = {
-                        Player = nil,
-                        Character = model,
-                        Part = aimPart,
-                        WorldPosition = worldPos,
-                        ScreenPosition = screenPos,
-                        Distance = distance,
-                        IsNPC = true
-                    }
-                end
-            end
-        end
-    end
-
     return bestTarget
 end
 
-local function FindFurthestTarget()
-    local bestTarget = nil
-    local bestDistance = 0
-    local cameraPos = Camera.CFrame.Position
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player == LocalPlayer then continue end
-        local character = GetCharacter(player)
-        if not character then continue end
-        if not IsAlive(character) then continue end
-        if IsTeammate(player) then continue end
-
-        local aimPart = GetAimPart(character)
-        if not aimPart then continue end
-
-        local worldPos = aimPart.Position
-        local screenPos, onScreen, depth = GetScreenPosition(worldPos)
-        if not onScreen or not IsOnScreen(screenPos, depth) then continue end
-
-        local distance = (worldPos - cameraPos).Magnitude
-        if distance > Config.MaxDistance then continue end
-        if IsBehindWall(aimPart) then continue end
-
-        if distance > bestDistance then
-            bestDistance = distance
-            bestTarget = {
-                Player = player,
-                Character = character,
-                Part = aimPart,
-                WorldPosition = worldPos,
-                ScreenPosition = screenPos,
-                Distance = distance,
-                IsNPC = false
-            }
-        end
-    end
-
-    if Config.Mode == "NPC" then
-        for _, model in ipairs(Workspace:GetDescendants()) do
-            if model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
-                local humanoid = model:FindFirstChildOfClass("Humanoid")
-                if not humanoid or humanoid.Health <= 0 then continue end
-
-                local aimPart = model:FindFirstChild(Config.AimPart) or model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
-                if not aimPart then continue end
-
-                local worldPos = aimPart.Position
-                local screenPos, onScreen, depth = GetScreenPosition(worldPos)
-                if not onScreen or not IsOnScreen(screenPos, depth) then continue end
-
-                local distance = (worldPos - cameraPos).Magnitude
-                if distance > Config.MaxDistance then continue end
-                if IsBehindWall(aimPart) then continue end
-
-                if distance > bestDistance then
-                    bestDistance = distance
-                    bestTarget = {
-                        Player = nil,
-                        Character = model,
-                        Part = aimPart,
-                        WorldPosition = worldPos,
-                        ScreenPosition = screenPos,
-                        Distance = distance,
-                        IsNPC = true
-                    }
-                end
-            end
-        end
-    end
-
-    return bestTarget
-end
-
-local function SelectTarget()
-    if Config.Mode == "Furthest" then
-        return FindFurthestTarget()
-    else
-        return FindNearestTarget()
-    end
-end
-
---// REAL AIMBOT - Hard lock camera to target
+--// REAL AIMBOT - Lock camera + rotate character
 local function UpdateAimbot()
     if not Config.Enabled then
         CurrentTarget = nil
@@ -10312,19 +10199,20 @@ local function UpdateAimbot()
 
     --// Get or validate target
     if not CurrentTarget then
-        CurrentTarget = SelectTarget()
+        CurrentTarget = FindNearestTarget()
     else
         local stillValid = false
 
-        if CurrentTarget.IsNPC then
-            local humanoid = CurrentTarget.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                local aimPart = GetAimPart(CurrentTarget.Character)
+        local player = CurrentTarget.Player
+        if player and player.Parent then
+            local character = GetCharacter(player)
+            if character and IsAlive(character) and not IsTeammate(player) then
+                local aimPart = GetAimPart(character)
                 if aimPart then
                     local worldPos = aimPart.Position
                     local screenPos, onScreen, depth = GetScreenPosition(worldPos)
                     if onScreen and IsOnScreen(screenPos, depth) then
-                        local dist = (worldPos - Camera.CFrame.Position).Magnitude
+                        local dist = GetDistanceFromCharacter(worldPos)
                         if dist <= Config.MaxDistance then
                             if not IsBehindWall(aimPart) then
                                 CurrentTarget.Part = aimPart
@@ -10337,48 +10225,37 @@ local function UpdateAimbot()
                     end
                 end
             end
-        else
-            local player = CurrentTarget.Player
-            if player and player.Parent then
-                local character = GetCharacter(player)
-                if character and IsAlive(character) and not IsTeammate(player) then
-                    local aimPart = GetAimPart(character)
-                    if aimPart then
-                        local worldPos = aimPart.Position
-                        local screenPos, onScreen, depth = GetScreenPosition(worldPos)
-                        if onScreen and IsOnScreen(screenPos, depth) then
-                            local dist = (worldPos - Camera.CFrame.Position).Magnitude
-                            if dist <= Config.MaxDistance then
-                                if not IsBehindWall(aimPart) then
-                                    CurrentTarget.Part = aimPart
-                                    CurrentTarget.WorldPosition = worldPos
-                                    CurrentTarget.ScreenPosition = screenPos
-                                    CurrentTarget.Distance = dist
-                                    stillValid = true
-                                end
-                            end
-                        end
-                    end
-                end
-            end
         end
 
         if not stillValid then
-            CurrentTarget = SelectTarget()
+            CurrentTarget = FindNearestTarget()
         end
     end
 
-    --// HARD LOCK CAMERA TO TARGET
+    --// LOCK CAMERA + ROTATE CHARACTER
     if CurrentTarget and CurrentTarget.Part then
         local targetPos = CurrentTarget.Part.Position
         local cameraPos = Camera.CFrame.Position
 
-        --// Direct camera lock using CFrame.lookAt
+        --// 1. Lock camera to target
         Camera.CFrame = CFrame.lookAt(cameraPos, targetPos)
+
+        --// 2. Rotate character to face target
+        local myCharacter = LocalPlayer.Character
+        if myCharacter then
+            local myHRP = myCharacter:FindFirstChild("HumanoidRootPart")
+            if myHRP then
+                local myPos = myHRP.Position
+                local lookDirection = (targetPos - myPos).Unit
+                --// Keep Y position same, only rotate horizontally
+                local newCFrame = CFrame.new(myPos, myPos + Vector3.new(lookDirection.X, 0, lookDirection.Z))
+                myHRP.CFrame = newCFrame
+            end
+        end
     end
 end
 
---// External Toggle Button (outside main GUI)
+--// Draggable External Toggle Button
 local function CreateExternalToggleButton(mainFrame)
     local ToggleGui = Instance.new("ScreenGui")
     ToggleGui.Name = "AimbotToggleButton"
@@ -10425,6 +10302,38 @@ local function CreateExternalToggleButton(mainFrame)
         ToggleButton.Visible = not GUIVisible
     end)
 
+    --// DRAG FUNCTIONALITY for external button
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+
+    ToggleButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = ToggleButton.Position
+        end
+    end)
+
+    ToggleButton.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            ToggleButton.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    local function stopDragging(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end
+
+    ToggleButton.InputEnded:Connect(stopDragging)
+    UserInputService.InputEnded:Connect(stopDragging)
+
     return ToggleButton
 end
 
@@ -10439,8 +10348,8 @@ local function CreateUI()
     --// Main Frame
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.new(0, 300, 0, 380)
-    MainFrame.Position = UDim2.new(0, 70, 0.5, -190)
+    MainFrame.Size = UDim2.new(0, 300, 0, 320)
+    MainFrame.Position = UDim2.new(0, 70, 0.5, -160)
     MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     MainFrame.BorderSizePixel = 0
     MainFrame.ClipsDescendants = true
@@ -10474,7 +10383,7 @@ local function CreateUI()
     TitleText.Size = UDim2.new(1, -50, 1, 0)
     TitleText.Position = UDim2.new(0, 15, 0, 0)
     TitleText.BackgroundTransparency = 1
-    TitleText.Text = "🔒 Aimbot Pro v4.0"
+    TitleText.Text = "🔒 Aimbot Pro v5.0"
     TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
     TitleText.TextSize = 16
     TitleText.Font = Enum.Font.GothamBold
@@ -10569,77 +10478,6 @@ local function CreateUI()
         return ToggleButton, function() return state end
     end
 
-    --// Helper: Create mode selector
-    local function CreateModeSelector(layoutOrder)
-        local SelectorFrame = Instance.new("Frame")
-        SelectorFrame.Size = UDim2.new(1, 0, 0, 85)
-        SelectorFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        SelectorFrame.BorderSizePixel = 0
-        SelectorFrame.LayoutOrder = layoutOrder or #ContentFrame:GetChildren()
-
-        local SelectorCorner = Instance.new("UICorner")
-        SelectorCorner.CornerRadius = UDim.new(0, 10)
-        SelectorCorner.Parent = SelectorFrame
-
-        local Label = Instance.new("TextLabel")
-        Label.Size = UDim2.new(1, 0, 0, 25)
-        Label.Position = UDim2.new(0, 0, 0, 5)
-        Label.BackgroundTransparency = 1
-        Label.Text = "🎯 Aim Mode"
-        Label.TextColor3 = Color3.fromRGB(220, 220, 220)
-        Label.TextSize = 14
-        Label.Font = Enum.Font.GothamSemibold
-        Label.Parent = SelectorFrame
-
-        local ButtonContainer = Instance.new("Frame")
-        ButtonContainer.Size = UDim2.new(1, -20, 0, 40)
-        ButtonContainer.Position = UDim2.new(0, 10, 0, 38)
-        ButtonContainer.BackgroundTransparency = 1
-        ButtonContainer.Parent = SelectorFrame
-
-        local ButtonLayout = Instance.new("UIListLayout")
-        ButtonLayout.FillDirection = Enum.FillDirection.Horizontal
-        ButtonLayout.Padding = UDim.new(0, 8)
-        ButtonLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-        ButtonLayout.Parent = ButtonContainer
-
-        local modes = {"Nearest", "Furthest", "NPC"}
-        local modeButtons = {}
-
-        for i, mode in ipairs(modes) do
-            local ModeButton = Instance.new("TextButton")
-            ModeButton.Size = UDim2.new(0, 80, 1, 0)
-            ModeButton.Text = mode
-            ModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            ModeButton.TextSize = 11
-            ModeButton.Font = Enum.Font.GothamBold
-            ModeButton.Parent = ButtonContainer
-
-            local ModeCorner = Instance.new("UICorner")
-            ModeCorner.CornerRadius = UDim.new(0, 8)
-            ModeCorner.Parent = ModeButton
-
-            modeButtons[mode] = ModeButton
-
-            ModeButton.MouseButton1Click:Connect(function()
-                Config.Mode = mode
-                for _, btn in pairs(modeButtons) do
-                    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-                end
-                ModeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 150)
-            end)
-        end
-
-        modeButtons[Config.Mode].BackgroundColor3 = Color3.fromRGB(255, 0, 150)
-        for mode, btn in pairs(modeButtons) do
-            if mode ~= Config.Mode then
-                btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-            end
-        end
-
-        SelectorFrame.Parent = ContentFrame
-    end
-
     --// Helper: Create info label
     local function CreateInfoLabel(text, layoutOrder)
         local InfoLabel = Instance.new("TextLabel")
@@ -10659,18 +10497,16 @@ local function CreateUI()
         Config.Enabled = state
     end, 1)
 
-    CreateModeSelector(2)
-
     CreateToggleButton("🧱 Wall Check", Config.WallCheck, function(state)
         Config.WallCheck = state
-    end, 3)
+    end, 2)
 
     CreateToggleButton("👥 Team Check", Config.TeamCheck, function(state)
         Config.TeamCheck = state
-    end, 4)
+    end, 3)
 
-    CreateInfoLabel("🔥 Hard-lock camera to target", 5)
-    CreateInfoLabel("Hotkey: E = Aimbot | Insert = GUI", 6)
+    CreateInfoLabel("🔥 Lock camera + character to nearest", 4)
+    CreateInfoLabel("Hotkey: E = Aimbot | Insert = GUI", 5)
 
     --// Close button - hide GUI and show external toggle
     local externalToggle = CreateExternalToggleButton(MainFrame)
@@ -10681,7 +10517,7 @@ local function CreateUI()
         externalToggle.Visible = true
     end)
 
-    --// Drag functionality
+    --// Drag functionality for main GUI
     local dragging = false
     local dragStart = nil
     local startPos = nil
@@ -10814,9 +10650,10 @@ local function Initialize()
         CurrentTarget = nil
     end))
 
-    print("🔒 Aimbot Pro v4.0 | Loaded Successfully!")
+    print("🔒 Aimbot Pro v5.0 | Loaded Successfully!")
     print("🎯 Hotkeys: E = Toggle Aimbot | Insert = Toggle GUI")
-    print("🔥 HARD LOCK: Camera snaps directly to target")
+    print("🔥 Camera + Character lock to NEAREST target")
+    print("🔄 Character rotates to face target automatically")
 end
 
 --// Initialize
