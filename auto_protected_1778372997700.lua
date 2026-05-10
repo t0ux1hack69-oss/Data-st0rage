@@ -10043,9 +10043,9 @@
 
 
 
---// Aimbot Pro v2.0 | Roblox Exploit Script
---// Features: Lock until toggle off, No FOV Circle, Draggable GUI, GUI Toggle button
---// Mode: Lock NEAREST target continuously until disabled
+--// Aimbot Pro v3.0 | Roblox Exploit Script
+--// Real Aimbot: Locks camera to target | External GUI Toggle Button
+--// Lock until disabled | No FOV Circle
 
 --// Services
 local Players = game:GetService("Players")
@@ -10059,11 +10059,11 @@ local LocalPlayer = Players.LocalPlayer
 --// Configuration
 local Config = {
     Enabled = false,
-    Mode = "Nearest", -- "Nearest", "Furthest", "NPC"
+    Mode = "Nearest",
     WallCheck = true,
     TeamCheck = true,
     MaxDistance = 1000,
-    Smoothness = 0.08,
+    Smoothness = 0.15,
     AimPart = "Head",
     Keybind = Enum.KeyCode.E,
     UIKeybind = Enum.KeyCode.Insert,
@@ -10103,10 +10103,8 @@ local function IsTeammate(player)
     if not Config.TeamCheck then return false end
     if not player or not LocalPlayer then return false end
     if player == LocalPlayer then return true end
-
     local localTeam = LocalPlayer.Team
     local targetTeam = player.Team
-
     if not localTeam or not targetTeam then return false end
     return localTeam == targetTeam
 end
@@ -10114,22 +10112,15 @@ end
 local function IsBehindWall(targetPart)
     if not Config.WallCheck then return false end
     if not targetPart then return true end
-
     local origin = Camera.CFrame.Position
     local targetPos = targetPart.Position
-    local direction = (targetPos - origin)
-
+    local direction = targetPos - origin
     local raycastParams = RaycastParams.new()
     raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetPart.Parent}
     raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
     raycastParams.IgnoreWater = true
-
     local result = Workspace:Raycast(origin, direction, raycastParams)
-
-    if result then
-        return true
-    end
-    return false
+    return result ~= nil
 end
 
 local function GetDistance(position)
@@ -10149,34 +10140,25 @@ local function IsOnScreen(screenPos, depth)
         and depth > 0
 end
 
---// Target Selection Logic - Find nearest valid target
+--// Target Selection
 local function FindNearestTarget()
     local bestTarget = nil
     local bestDistance = math.huge
 
-    --// Players
     for _, player in ipairs(Players:GetPlayers()) do
         if player == LocalPlayer then continue end
-
         local character = GetCharacter(player)
         if not character then continue end
-
         if not IsAlive(character) then continue end
         if IsTeammate(player) then continue end
-
         local aimPart = GetAimPart(character)
         if not aimPart then continue end
-
         local worldPos = aimPart.Position
         local screenPos, onScreen, depth = GetScreenPosition(worldPos)
-
         if not onScreen or not IsOnScreen(screenPos, depth) then continue end
-
         local distance = GetDistance(worldPos)
         if distance > Config.MaxDistance then continue end
-
         if IsBehindWall(aimPart) then continue end
-
         if distance < bestDistance then
             bestDistance = distance
             bestTarget = {
@@ -10191,26 +10173,19 @@ local function FindNearestTarget()
         end
     end
 
-    --// NPCs (if mode is NPC)
     if Config.Mode == "NPC" then
         for _, model in ipairs(Workspace:GetDescendants()) do
             if model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
                 local humanoid = model:FindFirstChildOfClass("Humanoid")
                 if not humanoid or humanoid.Health <= 0 then continue end
-
                 local aimPart = model:FindFirstChild(Config.AimPart) or model:FindFirstChild("HumanoidRootPart")
                 if not aimPart then continue end
-
                 local worldPos = aimPart.Position
                 local screenPos, onScreen, depth = GetScreenPosition(worldPos)
-
                 if not onScreen or not IsOnScreen(screenPos, depth) then continue end
-
                 local distance = GetDistance(worldPos)
                 if distance > Config.MaxDistance then continue end
-
                 if IsBehindWall(aimPart) then continue end
-
                 if distance < bestDistance then
                     bestDistance = distance
                     bestTarget = {
@@ -10234,29 +10209,20 @@ local function FindFurthestTarget()
     local bestTarget = nil
     local bestDistance = 0
 
-    --// Players
     for _, player in ipairs(Players:GetPlayers()) do
         if player == LocalPlayer then continue end
-
         local character = GetCharacter(player)
         if not character then continue end
-
         if not IsAlive(character) then continue end
         if IsTeammate(player) then continue end
-
         local aimPart = GetAimPart(character)
         if not aimPart then continue end
-
         local worldPos = aimPart.Position
         local screenPos, onScreen, depth = GetScreenPosition(worldPos)
-
         if not onScreen or not IsOnScreen(screenPos, depth) then continue end
-
         local distance = GetDistance(worldPos)
         if distance > Config.MaxDistance then continue end
-
         if IsBehindWall(aimPart) then continue end
-
         if distance > bestDistance then
             bestDistance = distance
             bestTarget = {
@@ -10271,26 +10237,19 @@ local function FindFurthestTarget()
         end
     end
 
-    --// NPCs (if mode is NPC)
     if Config.Mode == "NPC" then
         for _, model in ipairs(Workspace:GetDescendants()) do
             if model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
                 local humanoid = model:FindFirstChildOfClass("Humanoid")
                 if not humanoid or humanoid.Health <= 0 then continue end
-
                 local aimPart = model:FindFirstChild(Config.AimPart) or model:FindFirstChild("HumanoidRootPart")
                 if not aimPart then continue end
-
                 local worldPos = aimPart.Position
                 local screenPos, onScreen, depth = GetScreenPosition(worldPos)
-
                 if not onScreen or not IsOnScreen(screenPos, depth) then continue end
-
                 local distance = GetDistance(worldPos)
                 if distance > Config.MaxDistance then continue end
-
                 if IsBehindWall(aimPart) then continue end
-
                 if distance > bestDistance then
                     bestDistance = distance
                     bestTarget = {
@@ -10318,18 +10277,17 @@ local function SelectTarget()
     end
 end
 
---// Aimbot Logic - Lock until disabled
+--// REAL AIMBOT - Lock camera to target
 local function UpdateAimbot()
     if not Config.Enabled then
         CurrentTarget = nil
         return
     end
 
-    --// If no current target, find one
+    --// Get or validate target
     if not CurrentTarget then
         CurrentTarget = SelectTarget()
     else
-        --// Validate current target is still valid
         local stillValid = false
 
         if CurrentTarget.IsNPC then
@@ -10379,21 +10337,94 @@ local function UpdateAimbot()
             end
         end
 
-        --// If target lost, find new one (continuous lock behavior)
         if not stillValid then
             CurrentTarget = SelectTarget()
         end
     end
 
-    --// Apply aim
+    --// LOCK CAMERA TO TARGET - Real Aimbot
     if CurrentTarget and CurrentTarget.Part then
         local targetPos = CurrentTarget.Part.Position
-        local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPos)
-        Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Config.Smoothness)
+        local cameraPos = Camera.CFrame.Position
+        local lookVector = (targetPos - cameraPos).Unit
+
+        --// Smooth aim
+        local currentLook = Camera.CFrame.LookVector
+        local smoothLook = currentLook:Lerp(lookVector, Config.Smoothness)
+
+        --// Set camera CFrame to look at target
+        Camera.CFrame = CFrame.new(cameraPos, cameraPos + smoothLook)
     end
 end
 
---// UI Creation
+--// External Toggle Button (outside main GUI)
+local function CreateExternalToggleButton(mainFrame)
+    local ToggleGui = Instance.new("ScreenGui")
+    ToggleGui.Name = "AimbotToggleButton"
+    ToggleGui.ResetOnSpawn = false
+    ToggleGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ToggleGui.Parent = game:GetService("CoreGui")
+
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Name = "ToggleGUIButton"
+    ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+    ToggleButton.Position = UDim2.new(0, 10, 0.5, -25)
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
+    ToggleButton.Text = "🔒"
+    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleButton.TextSize = 24
+    ToggleButton.Font = Enum.Font.GothamBold
+    ToggleButton.Parent = ToggleGui
+    ToggleButton.Visible = false -- Hidden when GUI is visible
+
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(1, 0) -- Circle button
+    ToggleCorner.Parent = ToggleButton
+
+    local ToggleStroke = Instance.new("UIStroke")
+    ToggleStroke.Color = Color3.fromRGB(255, 255, 255)
+    ToggleStroke.Thickness = 2
+    ToggleStroke.Parent = ToggleButton
+
+    --// Hover effect
+    ToggleButton.MouseEnter:Connect(function()
+        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {Size = UDim2.new(0, 55, 0, 55)}):Play()
+    end)
+
+    ToggleButton.MouseLeave:Connect(function()
+        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {Size = UDim2.new(0, 50, 0, 50)}):Play()
+    end)
+
+    --// Click to toggle GUI
+    ToggleButton.MouseButton1Click:Connect(function()
+        GUIVisible = not GUIVisible
+        mainFrame.Visible = GUIVisible
+        ToggleButton.Visible = not GUIVisible
+
+        --// Update Show GUI button in main UI
+        if GUIVisible then
+            local content = mainFrame:FindFirstChild("ContentFrame")
+            if content then
+                for _, child in ipairs(content:GetChildren()) do
+                    if child:IsA("Frame") then
+                        local label = child:FindFirstChildOfClass("TextLabel")
+                        if label and label.Text:find("Show GUI") then
+                            local btn = child:FindFirstChildOfClass("TextButton")
+                            if btn then
+                                btn.Text = "ON ✅"
+                                btn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    return ToggleButton
+end
+
+--// Main UI Creation
 local function CreateUI()
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "AimbotProUI"
@@ -10404,8 +10435,8 @@ local function CreateUI()
     --// Main Frame
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.new(0, 300, 0, 420)
-    MainFrame.Position = UDim2.new(0, 20, 0.5, -210)
+    MainFrame.Size = UDim2.new(0, 300, 0, 380)
+    MainFrame.Position = UDim2.new(0, 70, 0.5, -190)
     MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     MainFrame.BorderSizePixel = 0
     MainFrame.ClipsDescendants = true
@@ -10439,7 +10470,7 @@ local function CreateUI()
     TitleText.Size = UDim2.new(1, -50, 1, 0)
     TitleText.Position = UDim2.new(0, 15, 0, 0)
     TitleText.BackgroundTransparency = 1
-    TitleText.Text = "🔒 Aimbot Pro v2.0"
+    TitleText.Text = "🔒 Aimbot Pro v3.0"
     TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
     TitleText.TextSize = 16
     TitleText.Font = Enum.Font.GothamBold
@@ -10474,7 +10505,7 @@ local function CreateUI()
     UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     UIListLayout.Parent = ContentFrame
 
-    --// Helper function to create toggle button
+    --// Helper: Create toggle button
     local function CreateToggleButton(name, defaultState, callback, layoutOrder)
         local ButtonFrame = Instance.new("Frame")
         ButtonFrame.Size = UDim2.new(1, 0, 0, 50)
@@ -10534,7 +10565,7 @@ local function CreateUI()
         return ToggleButton, function() return state end
     end
 
-    --// Helper function to create mode selector
+    --// Helper: Create mode selector
     local function CreateModeSelector(layoutOrder)
         local SelectorFrame = Instance.new("Frame")
         SelectorFrame.Size = UDim2.new(1, 0, 0, 85)
@@ -10595,7 +10626,6 @@ local function CreateUI()
             end)
         end
 
-        --// Set initial selection
         modeButtons[Config.Mode].BackgroundColor3 = Color3.fromRGB(255, 0, 150)
         for mode, btn in pairs(modeButtons) do
             if mode ~= Config.Mode then
@@ -10606,7 +10636,7 @@ local function CreateUI()
         SelectorFrame.Parent = ContentFrame
     end
 
-    --// Helper function to create info label
+    --// Helper: Create info label
     local function CreateInfoLabel(text, layoutOrder)
         local InfoLabel = Instance.new("TextLabel")
         InfoLabel.Size = UDim2.new(1, 0, 0, 20)
@@ -10625,35 +10655,29 @@ local function CreateUI()
         Config.Enabled = state
     end, 1)
 
-    CreateToggleButton("👁️ Show GUI", true, function(state)
-        GUIVisible = state
-        MainFrame.Visible = state
-    end, 2)
-
-    CreateModeSelector(3)
+    CreateModeSelector(2)
 
     CreateToggleButton("🧱 Wall Check", Config.WallCheck, function(state)
         Config.WallCheck = state
-    end, 4)
+    end, 3)
 
     CreateToggleButton("👥 Team Check", Config.TeamCheck, function(state)
         Config.TeamCheck = state
-    end, 5)
+    end, 4)
 
-    CreateInfoLabel("🔥 Lock target until disabled", 6)
-    CreateInfoLabel("Hotkey: E = Aimbot | Insert = GUI", 7)
+    CreateInfoLabel("🔥 Lock camera to target", 5)
+    CreateInfoLabel("Hotkey: E = Aimbot | Insert = GUI", 6)
 
-    --// Close button functionality - destroy entire script
+    --// Close button - hide GUI and show external toggle
+    local externalToggle = CreateExternalToggleButton(MainFrame)
+
     CloseButton.MouseButton1Click:Connect(function()
-        Config.Enabled = false
-        CurrentTarget = nil
-        ScreenGui:Destroy()
-        for _, conn in pairs(Connections) do
-            conn:Disconnect()
-        end
+        GUIVisible = false
+        MainFrame.Visible = false
+        externalToggle.Visible = true
     end)
 
-    --// Drag functionality - Full implementation
+    --// Drag functionality
     local dragging = false
     local dragStart = nil
     local startPos = nil
@@ -10685,13 +10709,13 @@ local function CreateUI()
     TitleBar.InputEnded:Connect(stopDragging)
     UserInputService.InputEnded:Connect(stopDragging)
 
-    --// Rainbow border effect
+    --// Rainbow border
     table.insert(Connections, RunService.RenderStepped:Connect(function(deltaTime)
         RainbowHue = (RainbowHue + deltaTime * Config.RainbowSpeed) % 1
         MainStroke.Color = Color3.fromHSV(RainbowHue, 1, 1)
     end))
 
-    return ScreenGui, MainFrame
+    return ScreenGui, MainFrame, externalToggle
 end
 
 --// Target Indicator
@@ -10727,18 +10751,18 @@ local function CreateTargetIndicator()
 end
 
 --// Keybind Handler
-local function SetupKeybinds()
+local function SetupKeybinds(externalToggle, mainFrame)
     table.insert(Connections, UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
 
         if input.KeyCode == Config.Keybind then
             Config.Enabled = not Config.Enabled
-            --// Update UI toggle button
+            --// Update Aimbot button in UI
             for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
                 if gui.Name == "AimbotProUI" then
-                    local mainFrame = gui:FindFirstChild("MainFrame")
-                    if mainFrame then
-                        local content = mainFrame:FindFirstChild("ContentFrame")
+                    local mf = gui:FindFirstChild("MainFrame")
+                    if mf then
+                        local content = mf:FindFirstChild("ContentFrame")
                         if content then
                             for _, child in ipairs(content:GetChildren()) do
                                 if child:IsA("Frame") then
@@ -10760,29 +10784,9 @@ local function SetupKeybinds()
 
         if input.KeyCode == Config.UIKeybind then
             GUIVisible = not GUIVisible
-            for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
-                if gui.Name == "AimbotProUI" then
-                    local mainFrame = gui:FindFirstChild("MainFrame")
-                    if mainFrame then
-                        mainFrame.Visible = GUIVisible
-                        --// Update Show GUI button
-                        local content = mainFrame:FindFirstChild("ContentFrame")
-                        if content then
-                            for _, child in ipairs(content:GetChildren()) do
-                                if child:IsA("Frame") then
-                                    local label = child:FindFirstChildOfClass("TextLabel")
-                                    if label and label.Text:find("Show GUI") then
-                                        local btn = child:FindFirstChildOfClass("TextButton")
-                                        if btn then
-                                            btn.Text = GUIVisible and "ON ✅" or "OFF ❌"
-                                            btn.BackgroundColor3 = GUIVisible and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(200, 50, 50)
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
+            mainFrame.Visible = GUIVisible
+            if externalToggle then
+                externalToggle.Visible = not GUIVisible
             end
         end
     end))
@@ -10790,29 +10794,25 @@ end
 
 --// Main Loop
 local function Initialize()
-    --// Wait for character
     if not LocalPlayer.Character then
         LocalPlayer.CharacterAdded:Wait()
     end
 
-    --// Create UI
-    CreateUI()
+    local screenGui, mainFrame, externalToggle = CreateUI()
     CreateTargetIndicator()
-    SetupKeybinds()
+    SetupKeybinds(externalToggle, mainFrame)
 
-    --// Main update loop
     table.insert(Connections, RunService.RenderStepped:Connect(function()
         UpdateAimbot()
     end))
 
-    --// Cleanup on death
     table.insert(Connections, LocalPlayer.CharacterAdded:Connect(function()
         CurrentTarget = nil
     end))
 
-    print("🔒 Aimbot Pro v2.0 | Loaded Successfully!")
-    print("🎯 Hotkeys: E = Toggle Aimbot | Insert = Toggle GUI Visibility")
-    print("🔥 Mode: Lock target continuously until disabled")
+    print("🔒 Aimbot Pro v3.0 | Loaded Successfully!")
+    print("🎯 Hotkeys: E = Toggle Aimbot | Insert = Toggle GUI")
+    print("🔥 Real camera lock - Locks until disabled")
 end
 
 --// Initialize
