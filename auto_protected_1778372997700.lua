@@ -10047,7 +10047,7 @@
     Roblox Exploit LocalScript
     Features: Aimbot, ESP, Modern GUI (Black-Red Neon)
     Author: Manus AI
-    Version: 1.0
+    Version: 1.1 (แก้ไข GUI)
     Language: Thai
 ]]
 
@@ -10134,7 +10134,7 @@ local function IsVisible(targetPart, localPart)
     params.FilterType = Enum.RaycastFilterType.Exclude
 
     local ray = Workspace:Raycast(localPart.Position, (targetPart.Position - localPart.Position).Unit * (targetPart.Position - localPart.Position).Magnitude, params)
-    return ray == nil or ray.Instance == targetPart
+    return ray == nil or (ray.Instance and ray.Instance:IsDescendantOf(targetPart.Parent))
 end
 
 local function GetClosestPlayer()
@@ -10230,7 +10230,7 @@ ScrollingFrame.Size = UDim2.new(1, 0, 1, -30)
 ScrollingFrame.Position = UDim2.new(0, 0, 0, 30)
 ScrollingFrame.BackgroundColor3 = Config.GUI.BackgroundColor
 ScrollingFrame.BorderSizePixel = 0
-ScrollingFrame.CanvasSize = UDim2.new(0, 0, 2, 0) -- Adjust as content grows
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- Will be calculated dynamically
 ScrollingFrame.ScrollBarThickness = 6
 ScrollingFrame.ScrollBarImageColor3 = Config.GUI.ThemeColor
 ScrollingFrame.Parent = MainFrame
@@ -10242,17 +10242,17 @@ UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIListLayout.Padding = UDim.new(0, 10)
 UIListLayout.Parent = ScrollingFrame
 
---// Toggle Button for GUI
+--// Floating Toggle Button for GUI
 local ToggleGUIButton = Instance.new("TextButton")
 ToggleGUIButton.Name = "ToggleGUIButton"
-ToggleGUIButton.Size = UDim2.new(0, 30, 0, 30)
-ToggleGUIButton.Position = UDim2.new(1, -40, 0, 10)
+ToggleGUIButton.Size = UDim2.new(0, 40, 0, 40)
+ToggleGUIButton.Position = UDim2.new(1, -50, 0, 10)
 ToggleGUIButton.BackgroundColor3 = Config.GUI.ThemeColor
 ToggleGUIButton.BorderSizePixel = 0
 ToggleGUIButton.Text = "⚙️"
 ToggleGUIButton.Font = Enum.Font.GothamBold
 ToggleGUIButton.TextColor3 = Config.GUI.TextColor
-ToggleGUIButton.TextSize = 20
+ToggleGUIButton.TextSize = 24
 ToggleGUIButton.Parent = ScreenGui
 
 local ToggleGUICorner = Instance.new("UICorner")
@@ -10291,7 +10291,7 @@ local function CreateToggleButton(parent, name, text, initialValue, callback)
 
     local ToggleButton = Instance.new("TextButton")
     ToggleButton.Name = name .. "Button"
-    ToggleButton.Size = UDim2.new(0.7, -10, 0.7, 0)
+    ToggleButton.Size = UDim2.new(0.9, 0, 0.7, 0)
     ToggleButton.Position = UDim2.new(0.5, 0, 0.5, 0)
     ToggleButton.AnchorPoint = Vector2.new(0.5, 0.5)
     ToggleButton.BackgroundColor3 = Config.GUI.BackgroundColor
@@ -10573,7 +10573,7 @@ end
 --// Aimbot GUI
 local AimbotSection = Instance.new("Frame")
 AimbotSection.Name = "AimbotSection"
-AimbotSection.Size = UDim2.new(0.95, 0, 0, 300) -- Adjust height as needed
+AimbotSection.Size = UDim2.new(0.95, 0, 0, 0) -- Auto-size height
 AimbotSection.BackgroundColor3 = Config.GUI.BackgroundColor
 AimbotSection.BorderSizePixel = 0
 AimbotSection.Parent = ScrollingFrame
@@ -10585,7 +10585,7 @@ AimbotCorner.Parent = AimbotSection
 local AimbotStroke = Instance.new("UIStroke")
 AimbotStroke.Color = Config.GUI.ThemeColor
 AimbotStroke.Thickness = 2
-AimbotStroke.ApplyStrokeMode = Enum.UIStrokeApplyMode.Border
+UIStroke.ApplyStrokeMode = Enum.UIStrokeApplyMode.Border
 AimbotStroke.Parent = AimbotSection
 
 local AimbotTitle = Instance.new("TextLabel")
@@ -10605,11 +10605,13 @@ AimbotLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 AimbotLayout.Padding = UDim.new(0, 5)
 AimbotLayout.Parent = AimbotSection
 
-CreateToggleButton(AimbotSection, "AimbotToggle", "เปิด/ปิด Aimbot", Config.Aimbot.Enabled, function(value)
+local aimbotToggleBtn, _ = CreateToggleButton(AimbotSection, "AimbotToggle", "เปิด/ปิด Aimbot", Config.Aimbot.Enabled, function(value)
     Config.Aimbot.Enabled = value
     if not value then
         Config.Aimbot.Locked = false
         CurrentTarget = nil
+        LockTargetButton.Text = "ล็อคเป้าหมาย (ยังไม่ล็อค)"
+        LockTargetButton.BackgroundColor3 = Config.GUI.BackgroundColor
     end
 end)
 
@@ -10712,10 +10714,13 @@ AimbotTargetInfo.TextXAlignment = Enum.TextXAlignment.Left
 AimbotTargetInfo.TextWrapped = true
 AimbotTargetInfo.Parent = AimbotSection
 
+-- Adjust AimbotSection height after adding all children
+AimbotSection.Size = UDim2.new(0.95, 0, 0, AimbotLayout.AbsoluteContentSize.Y + AimbotTitle.Size.Y.Offset + AimbotLayout.Padding.Offset * 2)
+
 --// ESP GUI
 local ESPSection = Instance.new("Frame")
 ESPSection.Name = "ESPSection"
-ESPSection.Size = UDim2.new(0.95, 0, 0, 300) -- Adjust height as needed
+ESPSection.Size = UDim2.new(0.95, 0, 0, 0) -- Auto-size height
 ESPSection.BackgroundColor3 = Config.GUI.BackgroundColor
 ESPSection.BorderSizePixel = 0
 ESPSection.Parent = ScrollingFrame
@@ -10727,7 +10732,7 @@ ESPCorner.Parent = ESPSection
 local ESPStroke = Instance.new("UIStroke")
 ESPStroke.Color = Config.GUI.ThemeColor
 ESPStroke.Thickness = 2
-ESPStroke.ApplyStrokeMode = Enum.UIStrokeApplyMode.Border
+UIStroke.ApplyStrokeMode = Enum.UIStrokeApplyMode.Border
 ESPStroke.Parent = ESPSection
 
 local ESPTitle = Instance.new("TextLabel")
@@ -10785,8 +10790,12 @@ CreateToggleButton(ESPSection, "HighlightESPToggle", "Highlight ESP", Config.ESP
     Config.ESP.HighlightESP = value
 end)
 
--- Adjust ScrollingFrame CanvasSize based on content
-ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, AimbotSection.Size.Y.Offset + ESPSection.Size.Y.Offset + UIListLayout.Padding.Offset * 3 + 20)
+-- Adjust ESPSection height after adding all children
+ESPSection.Size = UDim2.new(0.95, 0, 0, ESPLayout.AbsoluteContentSize.Y + ESPTitle.Size.Y.Offset + ESPLayout.Padding.Offset * 2)
+
+-- Adjust ScrollingFrame CanvasSize based on total content height
+local totalContentHeight = AimbotSection.Size.Y.Offset + ESPSection.Size.Y.Offset + UIListLayout.Padding.Offset * 3
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, totalContentHeight)
 
 --// Aimbot Logic
 local function UpdateAimbot(deltaTime)
@@ -10855,7 +10864,9 @@ end
 local function UpdateESP()
     if not Config.ESP.Enabled then
         for _, obj in pairs(ActiveESPObjects) do
-            obj:Destroy()
+            for _, guiObj in pairs(obj) do
+                guiObj:Destroy()
+            end
         end
         ActiveESPObjects = {}
         for _, highlight in pairs(ActiveHighlights) do
@@ -11050,31 +11061,37 @@ MainFrame.Visible = true
 Config.GUI.Enabled = true
 
 -- Update initial button states
-for _, child in ipairs(AimbotSection:GetChildren()) do
-    if child:IsA("Frame") and child.Name:match("ToggleFrame") then
-        local toggleButton = child:FindFirstChild(child.Name:gsub("Frame", "Button"))
-        if toggleButton then
-            local text = toggleButton.Text:gsub(" %(เปิด%) ", ""):gsub(" %(ปิด%) ", "")
-            local configKey = child.Name:gsub("Frame", "")
-            local value = Config.Aimbot[configKey:gsub("Aimbot", "")]
-            toggleButton.Text = text .. (value and " (เปิด)" or " (ปิด)")
-            toggleButton.BackgroundColor3 = value and Config.GUI.ThemeColor or Config.GUI.BackgroundColor
+-- This section needs to be re-run after all buttons are created to reflect initial config
+local function UpdateAllButtonStates()
+    for _, child in ipairs(AimbotSection:GetChildren()) do
+        if child:IsA("Frame") and child.Name:match("ToggleFrame") then
+            local toggleButton = child:FindFirstChild(child.Name:gsub("Frame", "Button"))
+            if toggleButton then
+                local text = toggleButton.Text:gsub(" %(เปิด%) ", ""):gsub(" %(ปิด%) ", "")
+                local configKey = child.Name:gsub("AimbotToggleFrame", "Aimbot"):gsub("Frame", "")
+                local value = Config.Aimbot[configKey:gsub("Aimbot", "")]
+                toggleButton.Text = text .. (value and " (เปิด)" or " (ปิด)")
+                toggleButton.BackgroundColor3 = value and Config.GUI.ThemeColor or Config.GUI.BackgroundColor
+            end
+        end
+    end
+
+    for _, child in ipairs(ESPSection:GetChildren()) do
+        if child:IsA("Frame") and child.Name:match("ToggleFrame") then
+            local toggleButton = child:FindFirstChild(child.Name:gsub("Frame", "Button"))
+            if toggleButton then
+                local text = toggleButton.Text:gsub(" %(เปิด%) ", ""):gsub(" %(ปิด%) ", "")
+                local configKey = child.Name:gsub("ESPToggleFrame", "ESPToggle"):gsub("Frame", "")
+                local value = Config.ESP[configKey:gsub("ESPToggle", "")]
+                toggleButton.Text = text .. (value and " (เปิด)" or " (ปิด)")
+                toggleButton.BackgroundColor3 = value and Config.GUI.ThemeColor or Config.GUI.BackgroundColor
+            end
         end
     end
 end
 
-for _, child in ipairs(ESPSection:GetChildren()) do
-    if child:IsA("Frame") and child.Name:match("ToggleFrame") then
-        local toggleButton = child:FindFirstChild(child.Name:gsub("Frame", "Button"))
-        if toggleButton then
-            local text = toggleButton.Text:gsub(" %(เปิด%) ", ""):gsub(" %(ปิด%) ", "")
-            local configKey = child.Name:gsub("Frame", "")
-            local value = Config.ESP[configKey:gsub("ESPToggle", "")]
-            toggleButton.Text = text .. (value and " (เปิด)" or " (ปิด)")
-            toggleButton.BackgroundColor3 = value and Config.GUI.ThemeColor or Config.GUI.BackgroundColor
-        end
-    end
-end
+-- Call to update button states after all GUI elements are created
+UpdateAllButtonStates()
 
 -- Initial call to ensure ESP objects are not created if ESP is off
 UpdateESP()
