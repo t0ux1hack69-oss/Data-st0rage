@@ -10043,9 +10043,10 @@
 
 
 
---// Aimbot Pro v3.0 | Roblox Exploit Script
---// Real Aimbot: Locks camera to target | External GUI Toggle Button
---// Lock until disabled | No FOV Circle
+--// Aimbot Pro v4.0 | Roblox Exploit Script
+--// REAL AIMBOT: Hard-lock camera to target position
+--// No smooth delay, instant snap + continuous tracking
+--// External GUI Toggle Button | Lock until disabled
 
 --// Services
 local Players = game:GetService("Players")
@@ -10055,6 +10056,7 @@ local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local Camera = Workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
 --// Configuration
 local Config = {
@@ -10063,11 +10065,11 @@ local Config = {
     WallCheck = true,
     TeamCheck = true,
     MaxDistance = 1000,
-    Smoothness = 0.15,
     AimPart = "Head",
     Keybind = Enum.KeyCode.E,
     UIKeybind = Enum.KeyCode.Insert,
     RainbowSpeed = 0.5,
+    LockStrength = 1.0, -- 1.0 = full lock, lower = partial
 }
 
 --// State
@@ -10090,6 +10092,12 @@ local function GetAimPart(character)
     local part = character:FindFirstChild(Config.AimPart)
     if not part then
         part = character:FindFirstChild("HumanoidRootPart")
+    end
+    if not part then
+        part = character:FindFirstChild("Torso")
+    end
+    if not part then
+        part = character:FindFirstChild("UpperTorso")
     end
     return part
 end
@@ -10144,6 +10152,7 @@ end
 local function FindNearestTarget()
     local bestTarget = nil
     local bestDistance = math.huge
+    local cameraPos = Camera.CFrame.Position
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player == LocalPlayer then continue end
@@ -10151,14 +10160,18 @@ local function FindNearestTarget()
         if not character then continue end
         if not IsAlive(character) then continue end
         if IsTeammate(player) then continue end
+
         local aimPart = GetAimPart(character)
         if not aimPart then continue end
+
         local worldPos = aimPart.Position
         local screenPos, onScreen, depth = GetScreenPosition(worldPos)
         if not onScreen or not IsOnScreen(screenPos, depth) then continue end
-        local distance = GetDistance(worldPos)
+
+        local distance = (worldPos - cameraPos).Magnitude
         if distance > Config.MaxDistance then continue end
         if IsBehindWall(aimPart) then continue end
+
         if distance < bestDistance then
             bestDistance = distance
             bestTarget = {
@@ -10178,14 +10191,18 @@ local function FindNearestTarget()
             if model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
                 local humanoid = model:FindFirstChildOfClass("Humanoid")
                 if not humanoid or humanoid.Health <= 0 then continue end
-                local aimPart = model:FindFirstChild(Config.AimPart) or model:FindFirstChild("HumanoidRootPart")
+
+                local aimPart = model:FindFirstChild(Config.AimPart) or model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
                 if not aimPart then continue end
+
                 local worldPos = aimPart.Position
                 local screenPos, onScreen, depth = GetScreenPosition(worldPos)
                 if not onScreen or not IsOnScreen(screenPos, depth) then continue end
-                local distance = GetDistance(worldPos)
+
+                local distance = (worldPos - cameraPos).Magnitude
                 if distance > Config.MaxDistance then continue end
                 if IsBehindWall(aimPart) then continue end
+
                 if distance < bestDistance then
                     bestDistance = distance
                     bestTarget = {
@@ -10208,6 +10225,7 @@ end
 local function FindFurthestTarget()
     local bestTarget = nil
     local bestDistance = 0
+    local cameraPos = Camera.CFrame.Position
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player == LocalPlayer then continue end
@@ -10215,14 +10233,18 @@ local function FindFurthestTarget()
         if not character then continue end
         if not IsAlive(character) then continue end
         if IsTeammate(player) then continue end
+
         local aimPart = GetAimPart(character)
         if not aimPart then continue end
+
         local worldPos = aimPart.Position
         local screenPos, onScreen, depth = GetScreenPosition(worldPos)
         if not onScreen or not IsOnScreen(screenPos, depth) then continue end
-        local distance = GetDistance(worldPos)
+
+        local distance = (worldPos - cameraPos).Magnitude
         if distance > Config.MaxDistance then continue end
         if IsBehindWall(aimPart) then continue end
+
         if distance > bestDistance then
             bestDistance = distance
             bestTarget = {
@@ -10242,14 +10264,18 @@ local function FindFurthestTarget()
             if model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
                 local humanoid = model:FindFirstChildOfClass("Humanoid")
                 if not humanoid or humanoid.Health <= 0 then continue end
-                local aimPart = model:FindFirstChild(Config.AimPart) or model:FindFirstChild("HumanoidRootPart")
+
+                local aimPart = model:FindFirstChild(Config.AimPart) or model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
                 if not aimPart then continue end
+
                 local worldPos = aimPart.Position
                 local screenPos, onScreen, depth = GetScreenPosition(worldPos)
                 if not onScreen or not IsOnScreen(screenPos, depth) then continue end
-                local distance = GetDistance(worldPos)
+
+                local distance = (worldPos - cameraPos).Magnitude
                 if distance > Config.MaxDistance then continue end
                 if IsBehindWall(aimPart) then continue end
+
                 if distance > bestDistance then
                     bestDistance = distance
                     bestTarget = {
@@ -10277,7 +10303,7 @@ local function SelectTarget()
     end
 end
 
---// REAL AIMBOT - Lock camera to target
+--// REAL AIMBOT - Hard lock camera to target
 local function UpdateAimbot()
     if not Config.Enabled then
         CurrentTarget = nil
@@ -10298,7 +10324,7 @@ local function UpdateAimbot()
                     local worldPos = aimPart.Position
                     local screenPos, onScreen, depth = GetScreenPosition(worldPos)
                     if onScreen and IsOnScreen(screenPos, depth) then
-                        local dist = GetDistance(worldPos)
+                        local dist = (worldPos - Camera.CFrame.Position).Magnitude
                         if dist <= Config.MaxDistance then
                             if not IsBehindWall(aimPart) then
                                 CurrentTarget.Part = aimPart
@@ -10321,7 +10347,7 @@ local function UpdateAimbot()
                         local worldPos = aimPart.Position
                         local screenPos, onScreen, depth = GetScreenPosition(worldPos)
                         if onScreen and IsOnScreen(screenPos, depth) then
-                            local dist = GetDistance(worldPos)
+                            local dist = (worldPos - Camera.CFrame.Position).Magnitude
                             if dist <= Config.MaxDistance then
                                 if not IsBehindWall(aimPart) then
                                     CurrentTarget.Part = aimPart
@@ -10342,18 +10368,13 @@ local function UpdateAimbot()
         end
     end
 
-    --// LOCK CAMERA TO TARGET - Real Aimbot
+    --// HARD LOCK CAMERA TO TARGET
     if CurrentTarget and CurrentTarget.Part then
         local targetPos = CurrentTarget.Part.Position
         local cameraPos = Camera.CFrame.Position
-        local lookVector = (targetPos - cameraPos).Unit
 
-        --// Smooth aim
-        local currentLook = Camera.CFrame.LookVector
-        local smoothLook = currentLook:Lerp(lookVector, Config.Smoothness)
-
-        --// Set camera CFrame to look at target
-        Camera.CFrame = CFrame.new(cameraPos, cameraPos + smoothLook)
+        --// Direct camera lock using CFrame.lookAt
+        Camera.CFrame = CFrame.lookAt(cameraPos, targetPos)
     end
 end
 
@@ -10375,10 +10396,12 @@ local function CreateExternalToggleButton(mainFrame)
     ToggleButton.TextSize = 24
     ToggleButton.Font = Enum.Font.GothamBold
     ToggleButton.Parent = ToggleGui
-    ToggleButton.Visible = false -- Hidden when GUI is visible
+    ToggleButton.Visible = false
+    ToggleButton.Active = true
+    ToggleButton.AutoButtonColor = true
 
     local ToggleCorner = Instance.new("UICorner")
-    ToggleCorner.CornerRadius = UDim.new(1, 0) -- Circle button
+    ToggleCorner.CornerRadius = UDim.new(1, 0)
     ToggleCorner.Parent = ToggleButton
 
     local ToggleStroke = Instance.new("UIStroke")
@@ -10388,11 +10411,11 @@ local function CreateExternalToggleButton(mainFrame)
 
     --// Hover effect
     ToggleButton.MouseEnter:Connect(function()
-        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {Size = UDim2.new(0, 55, 0, 55)}):Play()
+        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {Size = UDim2.new(0, 55, 0, 55), Position = UDim2.new(0, 7, 0.5, -27)}):Play()
     end)
 
     ToggleButton.MouseLeave:Connect(function()
-        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {Size = UDim2.new(0, 50, 0, 50)}):Play()
+        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {Size = UDim2.new(0, 50, 0, 50), Position = UDim2.new(0, 10, 0.5, -25)}):Play()
     end)
 
     --// Click to toggle GUI
@@ -10400,25 +10423,6 @@ local function CreateExternalToggleButton(mainFrame)
         GUIVisible = not GUIVisible
         mainFrame.Visible = GUIVisible
         ToggleButton.Visible = not GUIVisible
-
-        --// Update Show GUI button in main UI
-        if GUIVisible then
-            local content = mainFrame:FindFirstChild("ContentFrame")
-            if content then
-                for _, child in ipairs(content:GetChildren()) do
-                    if child:IsA("Frame") then
-                        local label = child:FindFirstChildOfClass("TextLabel")
-                        if label and label.Text:find("Show GUI") then
-                            local btn = child:FindFirstChildOfClass("TextButton")
-                            if btn then
-                                btn.Text = "ON ✅"
-                                btn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
-                            end
-                        end
-                    end
-                end
-            end
-        end
     end)
 
     return ToggleButton
@@ -10470,7 +10474,7 @@ local function CreateUI()
     TitleText.Size = UDim2.new(1, -50, 1, 0)
     TitleText.Position = UDim2.new(0, 15, 0, 0)
     TitleText.BackgroundTransparency = 1
-    TitleText.Text = "🔒 Aimbot Pro v3.0"
+    TitleText.Text = "🔒 Aimbot Pro v4.0"
     TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
     TitleText.TextSize = 16
     TitleText.Font = Enum.Font.GothamBold
@@ -10665,7 +10669,7 @@ local function CreateUI()
         Config.TeamCheck = state
     end, 4)
 
-    CreateInfoLabel("🔥 Lock camera to target", 5)
+    CreateInfoLabel("🔥 Hard-lock camera to target", 5)
     CreateInfoLabel("Hotkey: E = Aimbot | Insert = GUI", 6)
 
     --// Close button - hide GUI and show external toggle
@@ -10810,9 +10814,9 @@ local function Initialize()
         CurrentTarget = nil
     end))
 
-    print("🔒 Aimbot Pro v3.0 | Loaded Successfully!")
+    print("🔒 Aimbot Pro v4.0 | Loaded Successfully!")
     print("🎯 Hotkeys: E = Toggle Aimbot | Insert = Toggle GUI")
-    print("🔥 Real camera lock - Locks until disabled")
+    print("🔥 HARD LOCK: Camera snaps directly to target")
 end
 
 --// Initialize
