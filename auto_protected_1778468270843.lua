@@ -10046,8 +10046,8 @@
 --[[
     ╔══════════════════════════════════════════════════════════════════════════════╗
     ║     🌉 Auto Bridge / Floor Placer - Roblox Exploit Script                   ║
-    ║     😈 สร้างพื้น/สะพานอัตโนมัติ ใต้เท้า เดินกลางอากาศได้                    ║
-    ║     🎯 ต่อล่วงหน้า ป้องกันการตก วางแบบ Real-time ตามทิศทางการเดิน            ║
+    ║     😈 สร้างทางเดินอัตโนมัติ ไม่ติดเท้า ปรับระยะได้                          ║
+    ║     🎯 ต่อล่วงหน้า + แสดงตำแหน่งบล็อกล่วงหน้าเป็นรูปสี่เหลี่ยม                ║
     ║     ⚠️ ใช้บัญชีรองเท่านั้น!                                                   ║
     ╚══════════════════════════════════════════════════════════════════════════════╝
 ]]
@@ -10087,11 +10087,10 @@ local Config = {
     -- 🌉 การตั้งค่าสะพาน/พื้น
     BridgeWidth = 3,                          -- ความกว้างสะพาน (จำนวนบล็อก)
     BridgeLength = 5,                         -- ความยาวล่วงหน้า (จำนวนบล็อก)
-    BridgeHeight = 0,                         -- ความสูงจากพื้นปัจจุบัน (0 = เสมอ, -1 = ต่ำกว่า, 1 = สูงกว่า)
 
-    -- 📐 การวางบล็อก
+    -- 📐 การวางบล็อก (ปรับได้ตามใจชอบ)
+    PlaceBelowOffset = -6,                    -- 🎯 ระยะห่างจากเท้า (ติดลบ = ใต้เท้า, ยิ่งติดลบมาก = ยิ่งลึก)
     PlaceAheadDistance = 12,                  -- ระยะล่วงหน้าที่จะวาง (studs)
-    PlaceBelowOffset = -3,                    -- Offset ด้านล่าง (ติดลบ = วางใต้เท้า)
     GridSnap = true,                          -- ล็อกตำแหน่งบนกริด
 
     -- ⚡ การทำงาน
@@ -10111,12 +10110,20 @@ local Config = {
     MaxRandomDelay = 0.06,                    -- ดีเลย์สุ่มสูงสุด
     MaxPlacePerSecond = 15,                   -- จำกัดการวางต่อวินาที
 
+    -- 🎨 Visualizer
+    ShowVisualizer = true,                    -- แสดงตัวแสดงตำแหน่งบล็อก
+    VisualizerColor = Color3.fromRGB(0, 255, 128),  -- สีของตัวแสดง
+    VisualizerTransparency = 0.5,             -- ความโปร่งใส
+
     -- 🎮 Keybinds
     ToggleKey = Enum.KeyCode.F,               -- เปิด/ปิด
     IncreaseWidthKey = Enum.KeyCode.Up,       -- เพิ่มความกว้าง
     DecreaseWidthKey = Enum.KeyCode.Down,     -- ลดความกว้าง
+    IncreaseDepthKey = Enum.KeyCode.Right,    -- เพิ่มความลึก (ลงลึกขึ้น)
+    DecreaseDepthKey = Enum.KeyCode.Left,     -- ลดความลึก (ขึ้นสูงขึ้น)
     ToggleModeKey = Enum.KeyCode.M,           -- สลับโหมด
     EmergencyStopKey = Enum.KeyCode.P,        -- หยุดฉุกเฉิน
+    ToggleVisualizerKey = Enum.KeyCode.V,     -- เปิด/ปิด Visualizer
 
     -- 🎨 UI
     ShowUI = true,                            -- แสดง UI
@@ -10140,6 +10147,7 @@ local State = {
     PlacedPositions = {},                     -- ตำแหน่งที่วางไปแล้ว (ป้องกันวางซ้ำ)
     IsFalling = false,
     BridgeCoroutine = nil,
+    VisualizerParts = {},                     -- เก็บ Part ของ Visualizer
 }
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -10155,8 +10163,8 @@ ScreenGui.Parent = CoreGui
 -- แจ้งเตือนด้านบนกลาง
 local NotifFrame = Instance.new("Frame")
 NotifFrame.Name = "Notification"
-NotifFrame.Size = UDim2.new(0, 350, 0, 50)
-NotifFrame.Position = UDim2.new(0.5, -175, 0, -60)
+NotifFrame.Size = UDim2.new(0, 400, 0, 50)
+NotifFrame.Position = UDim2.new(0.5, -200, 0, -60)
 NotifFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 NotifFrame.BackgroundTransparency = 0.15
 NotifFrame.BorderSizePixel = 0
@@ -10194,13 +10202,13 @@ local function ShowNotification(message, color, duration)
 
     -- Slide in
     local tweenIn = TweenService:Create(NotifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0.5, -175, 0, 30)
+        Position = UDim2.new(0.5, -200, 0, 30)
     })
     tweenIn:Play()
 
     task.delay(duration or Config.NotificationDuration, function()
         local tweenOut = TweenService:Create(NotifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Position = UDim2.new(0.5, -175, 0, -60)
+            Position = UDim2.new(0.5, -200, 0, -60)
         })
         tweenOut:Play()
         tweenOut.Completed:Wait()
@@ -10214,8 +10222,8 @@ end
 
 local MainUI = Instance.new("Frame")
 MainUI.Name = "MainUI"
-MainUI.Size = UDim2.new(0, 300, 0, 280)
-MainUI.Position = UDim2.new(0, 20, 0.5, -140)
+MainUI.Size = UDim2.new(0, 320, 0, 340)
+MainUI.Position = UDim2.new(0, 20, 0.5, -170)
 MainUI.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
 MainUI.BackgroundTransparency = 0.1
 MainUI.BorderSizePixel = 0
@@ -10274,20 +10282,21 @@ end
 local StatusEnabled = CreateStatusLabel("StatusEnabled", "⚡ Status: OFF", 45, MainUI)
 local StatusMode = CreateStatusLabel("StatusMode", "🌉 Mode: Bridge", 67, MainUI)
 local StatusWidth = CreateStatusLabel("StatusWidth", "📏 Width: 3 blocks", 89, MainUI)
-local StatusPlaced = CreateStatusLabel("StatusPlaced", "📊 Placed: 0", 111, MainUI)
-local StatusRate = CreateStatusLabel("StatusRate", "⚡ Rate: 0/s", 133, MainUI)
-local StatusPosition = CreateStatusLabel("StatusPosition", "📍 Pos: 0, 0, 0", 155, MainUI)
-local StatusDirection = CreateStatusLabel("StatusDirection", "🧭 Dir: Forward", 177, MainUI)
+local StatusDepth = CreateStatusLabel("StatusDepth", "📐 Depth: -6 (Under feet)", 111, MainUI)
+local StatusPlaced = CreateStatusLabel("StatusPlaced", "📊 Placed: 0", 133, MainUI)
+local StatusRate = CreateStatusLabel("StatusRate", "⚡ Rate: 0/s", 155, MainUI)
+local StatusVisualizer = CreateStatusLabel("StatusVisualizer", "👁️ Visualizer: ON", 177, MainUI)
 
 -- Keybind Info
 local KeybindInfo = Instance.new("TextLabel")
 KeybindInfo.Name = "Keybinds"
-KeybindInfo.Size = UDim2.new(1, -20, 0, 70)
+KeybindInfo.Size = UDim2.new(1, -20, 0, 90)
 KeybindInfo.Position = UDim2.new(0, 10, 0, 200)
 KeybindInfo.BackgroundTransparency = 1
 KeybindInfo.Text = [[Keybinds:
-[F] Toggle  [M] Mode  [P] Emergency Stop
-[↑] Width+  [↓] Width-]]
+[F] Toggle  [M] Mode  [P] Stop  [V] Visualizer
+[↑↓] Width  [←→] Depth (Under feet level)
+Adjust depth so blocks dont touch your feet!]]
 KeybindInfo.TextColor3 = Color3.fromRGB(150, 150, 170)
 KeybindInfo.TextSize = 11
 KeybindInfo.Font = Enum.Font.Gotham
@@ -10300,7 +10309,7 @@ local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Size = UDim2.new(0.9, 0, 0, 30)
 ToggleButton.Position = UDim2.new(0.05, 0, 1, -40)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
 ToggleButton.Text = "▶ START BRIDGE"
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleButton.TextSize = 14
@@ -10314,6 +10323,84 @@ ToggleCorner.Parent = ToggleButton
 ToggleButton.MouseButton1Click:Connect(function()
     ToggleBridge()
 end)
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- 👁️ VISUALIZER SYSTEM (แสดงตำแหน่งบล็อกล่วงหน้า)
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local VisualizerFolder = Instance.new("Folder")
+VisualizerFolder.Name = "BridgeVisualizer"
+VisualizerFolder.Parent = Workspace
+
+local function ClearVisualizer()
+    for _, part in ipairs(State.VisualizerParts) do
+        if part then
+            part:Destroy()
+        end
+    end
+    State.VisualizerParts = {}
+end
+
+local function CreateVisualizerBlock(position, isCenter)
+    local part = Instance.new("Part")
+    part.Name = "VisualizerBlock"
+    part.Size = Vector3.new(Config.BlockSize - 0.1, Config.BlockSize - 0.1, Config.BlockSize - 0.1)
+    part.Position = position
+    part.Anchored = true
+    part.CanCollide = false
+    part.Transparency = Config.VisualizerTransparency
+    part.Material = Enum.Material.Neon
+
+    if isCenter then
+        part.Color = Color3.fromRGB(255, 255, 0)  -- สีเหลือง = ตำแหน่งกลาง
+        part.Transparency = 0.3
+    else
+        part.Color = Config.VisualizerColor
+    end
+
+    -- เพิ่ม BillboardGui แสดงตำแหน่ง
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 50, 0, 20)
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.AlwaysOnTop = true
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = string.format("%.0f, %.0f, %.0f", position.X, position.Y, position.Z)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 8
+    label.Font = Enum.Font.Gotham
+    label.Parent = billboard
+
+    billboard.Parent = part
+    part.Parent = VisualizerFolder
+
+    table.insert(State.VisualizerParts, part)
+    return part
+end
+
+local function UpdateVisualizer()
+    if not Config.ShowVisualizer then
+        ClearVisualizer()
+        return
+    end
+
+    local hrp = HumanoidRootPart
+    if not hrp then return end
+
+    -- ล้างของเก่า
+    ClearVisualizer()
+
+    -- คำนวณตำแหน่งที่จะวาง
+    local positions = CalculatePlacePositions()
+
+    -- สร้าง Visualizer สำหรับแต่ละตำแหน่ง
+    for index, data in ipairs(positions) do
+        local isCenter = (data.SideIndex == 0 and data.ForwardIndex == 0)
+        CreateVisualizerBlock(data.Position, isCenter)
+    end
+end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- 🔧 UTILITY FUNCTIONS
@@ -10397,7 +10484,7 @@ local function CalculatePlacePositions()
     local direction = CalculateMovementDirection()
     local rightVector = Vector3.new(-direction.Z, 0, direction.X) -- แกนขวามือ
 
-    -- ตำแหน่งฐาน (ใต้เท้า + offset)
+    -- ตำแหน่งฐาน (ใต้เท้า + offset ที่ปรับได้)
     local baseHeight = currentPos.Y + Config.PlaceBelowOffset
     local basePos = Vector3.new(currentPos.X, baseHeight, currentPos.Z)
     basePos = SnapToGrid(basePos)
@@ -10415,9 +10502,6 @@ local function CalculatePlacePositions()
         for j = 0, Config.BridgeLength - 1 do
             local forwardOffset = direction * (j * Config.BlockSize)
             local placePos = sidePos + forwardOffset
-
-            -- เพิ่มความสูงตาม Config
-            placePos = placePos + Vector3.new(0, Config.BridgeHeight * Config.BlockSize, 0)
 
             table.insert(positions, {
                 Position = placePos,
@@ -10464,10 +10548,10 @@ local function CreateDummyTargetCFrame(position)
     return CFrame.new(position)
 end
 
--- 🎯🎯🎯 FIX HERE: เปลี่ยน offset ให้เป็นติดลบ (ใต้เท้า) แทนบวก (บนหัว)
+-- 🎯 Offset CFrame - ใช้ค่าที่ปรับได้จาก Config
 local function GetBlockOffsetCFrame()
-    -- แก้จาก Y+3 (บนหัว) เป็น Y-3 (ใต้เท้า) 🦶🧱
-    return CFrame.new(0, -Config.BlockSize, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+    -- ใช้ PlaceBelowOffset เป็นค่า offset Y
+    return CFrame.new(0, Config.PlaceBelowOffset, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -10510,7 +10594,7 @@ local function PlaceBlockAt(position)
         [1] = HumanoidRootPart,  -- dummy target
         [2] = targetCFrame,      -- ตำแหน่งที่จะวาง
         [3] = heldBlock,         -- บล็อกที่ถือ
-        [4] = offsetCFrame,      -- offset (ติดลบ = ใต้เท้า)
+        [4] = offsetCFrame,      -- offset (ปรับได้)
         [5] = BlockPlaceSound,   -- เสียง
         [6] = Config.BlockID,    -- block ID
     }
@@ -10588,9 +10672,11 @@ function ToggleBridge()
             State.BridgeCoroutine = task.spawn(function()
                 while State.Enabled do
                     UpdateBridge()
+                    UpdateVisualizer()
                     task.wait(Config.CheckInterval)
                 end
                 State.BridgeCoroutine = nil
+                ClearVisualizer()
             end)
         end
     else
@@ -10599,6 +10685,7 @@ function ToggleBridge()
         ToggleButton.Text = "▶ START BRIDGE"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
         MainStroke.Color = Color3.fromRGB(255, 0, 128)
+        ClearVisualizer()
     end
 
     UpdateUI()
@@ -10611,6 +10698,7 @@ local function EmergencyStop()
     ToggleButton.Text = "▶ START BRIDGE"
     ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
     MainStroke.Color = Color3.fromRGB(255, 0, 0)
+    ClearVisualizer()
     UpdateUI()
 end
 
@@ -10640,6 +10728,31 @@ local function DecreaseWidth()
     UpdateUI()
 end
 
+-- 🎯 ปรับความลึก (ระยะห่างจากเท้า)
+local function IncreaseDepth()
+    -- ลงลึกขึ้น (ติดลบมากขึ้น = ไกลจากเท้ามากขึ้น)
+    Config.PlaceBelowOffset = Config.PlaceBelowOffset - 1
+    ShowNotification("📐 Depth: " .. Config.PlaceBelowOffset .. " (Lower)", Color3.fromRGB(255, 200, 0), 1.5)
+    UpdateUI()
+end
+
+local function DecreaseDepth()
+    -- ขึ้นสูงขึ้น (ติดลบน้อยลง = ใกล้เท้ามากขึ้น)
+    Config.PlaceBelowOffset = math.min(Config.PlaceBelowOffset + 1, -1)
+    ShowNotification("📐 Depth: " .. Config.PlaceBelowOffset .. " (Higher)", Color3.fromRGB(255, 200, 0), 1.5)
+    UpdateUI()
+end
+
+local function ToggleVisualizer()
+    Config.ShowVisualizer = not Config.ShowVisualizer
+    if not Config.ShowVisualizer then
+        ClearVisualizer()
+    end
+    ShowNotification(Config.ShowVisualizer and "👁️ Visualizer ON" or "👁️ Visualizer OFF", 
+        Config.ShowVisualizer and Color3.fromRGB(0, 255, 128) or Color3.fromRGB(255, 80, 80), 1.5)
+    UpdateUI()
+end
+
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- 🖥️ UI UPDATE
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -10654,23 +10767,36 @@ function UpdateUI()
 
     StatusMode.Text = Config.BridgeMode and "🌉 Mode: Bridge" or "🏠 Mode: Floor"
     StatusWidth.Text = "📏 Width: " .. Config.BridgeWidth .. " blocks"
+
+    local depthText = "📐 Depth: " .. Config.PlaceBelowOffset
+    if Config.PlaceBelowOffset >= -3 then
+        depthText = depthText .. " (Close to feet!)"
+        StatusDepth.TextColor3 = Color3.fromRGB(255, 100, 100)
+    elseif Config.PlaceBelowOffset >= -6 then
+        depthText = depthText .. " (Normal)"
+        StatusDepth.TextColor3 = Color3.fromRGB(255, 200, 100)
+    else
+        depthText = depthText .. " (Far from feet)"
+        StatusDepth.TextColor3 = Color3.fromRGB(100, 255, 100)
+    end
+    StatusDepth.Text = depthText
+
     StatusPlaced.Text = "📊 Placed: " .. State.PlacedCount
     StatusRate.Text = "⚡ Rate: " .. State.PlacedThisSecond .. "/s"
-    StatusPosition.Text = string.format("📍 Pos: %.0f, %.0f, %.0f", pos.X, pos.Y, pos.Z)
 
-    local dirText = "Forward"
-    if math.abs(dir.X) > math.abs(dir.Z) then
-        dirText = dir.X > 0 and "East →" or "West ←"
-    else
-        dirText = dir.Z > 0 and "South ↓" or "North ↑"
-    end
-    StatusDirection.Text = "🧭 Dir: " .. dirText
+    StatusVisualizer.Text = Config.ShowVisualizer and "👁️ Visualizer: ON" or "👁️ Visualizer: OFF"
+    StatusVisualizer.TextColor3 = Config.ShowVisualizer and Color3.fromRGB(0, 255, 128) or Color3.fromRGB(255, 80, 80)
 end
 
 -- Update UI loop
 RunService.Heartbeat:Connect(function()
     if Config.ShowUI then
         UpdateUI()
+    end
+
+    -- อัปเดต Visualizer ตลอดเวลา (แม้จะไม่ได้เปิด Bridge)
+    if Config.ShowVisualizer and not State.Enabled then
+        UpdateVisualizer()
     end
 end)
 
@@ -10691,6 +10817,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         IncreaseWidth()
     elseif input.KeyCode == Config.DecreaseWidthKey then
         DecreaseWidth()
+    elseif input.KeyCode == Config.IncreaseDepthKey then
+        IncreaseDepth()
+    elseif input.KeyCode == Config.DecreaseDepthKey then
+        DecreaseDepth()
+    elseif input.KeyCode == Config.ToggleVisualizerKey then
+        ToggleVisualizer()
     end
 end)
 
@@ -10706,6 +10838,7 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     State.Enabled = false
     State.BridgeCoroutine = nil
     State.PlacedPositions = {}
+    ClearVisualizer()
 
     ToggleButton.Text = "▶ START BRIDGE"
     ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
@@ -10729,7 +10862,7 @@ RunService.Heartbeat:Connect(function()
     if hrp.Velocity.Y < -15 then
         State.IsFalling = true
         -- วางบล็อกฉุกเฉินใต้เท้า
-        local emergencyPos = hrp.Position + Vector3.new(0, -3, 0)
+        local emergencyPos = hrp.Position + Vector3.new(0, Config.PlaceBelowOffset, 0)
         emergencyPos = SnapToGrid(emergencyPos)
         PlaceBlockAt(emergencyPos)
     else
@@ -10765,29 +10898,33 @@ end)
 
 UpdateUI()
 ShowNotification("🌉 Auto Bridge Placer Loaded!", Color3.fromRGB(0, 255, 128), 3)
-ShowNotification("[F] Toggle | [M] Mode | [P] Stop | [↑↓] Width", Color3.fromRGB(200, 200, 200), 4)
+ShowNotification("[F] Toggle | [←→] Depth | [V] Visualizer", Color3.fromRGB(200, 200, 200), 4)
 
 print([[
 ╔══════════════════════════════════════════════════════════════════╗
-║           🌉 Auto Bridge / Floor Placer v2.1                     ║
+║           🌉 Auto Bridge / Floor Placer v3.0                     ║
 ║           😈 Exploit Edition - Roblox                            ║
 ║           🦶 FIXED: Block now spawns UNDER feet!                 ║
+║           👁️ NEW: Visualizer shows block positions!              ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  Controls:                                                       ║
 ║    [F] - Toggle Auto Bridge ON/OFF                               ║
 ║    [M] - Switch Bridge / Floor Mode                              ║
 ║    [P] - Emergency Stop                                          ║
-║    [↑] - Increase Width                                          ║
-║    [↓] - Decrease Width                                          ║
+║    [↑↓] - Adjust Width                                           ║
+║    [←→] - Adjust Depth (How far under feet)                      ║
+║    [V] - Toggle Visualizer ON/OFF                                ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  Features:                                                       ║
-║    ✓ Auto place bridge UNDER your feet                           ║
-║    ✓ Smart prediction based on velocity                          ║
-║    ✓ Emergency place when falling                                ║
-║    ✓ Grid snap for perfect alignment                             ║
-║    ✓ Rate limiting to avoid detection                            ║
-║    ✓ Width adjustable (1-9 blocks)                               ║
-║    ✓ Draggable UI with live stats                                ║
+║  Visualizer:                                                     ║
+║    🟩 Green = Normal block position                              ║
+║    🟨 Yellow = Center block (your position)                      ║
+║    💡 Shows where blocks will be placed before placing!          ║
+╠══════════════════════════════════════════════════════════════════╣
+║  Tips:                                                           ║
+║    - Use [←] to decrease depth (closer to feet)                  ║
+║    - Use [→] to increase depth (farther from feet)               ║
+║    - Recommended depth: -6 to -9 for comfortable walking         ║
+║    - Visualizer helps you see where blocks will appear!          ║
 ╚══════════════════════════════════════════════════════════════════╝
 ]])
 
@@ -10799,6 +10936,7 @@ _G.AutoBridge = {
     Toggle = ToggleBridge,
     Stop = EmergencyStop,
     ToggleMode = ToggleMode,
+    ToggleVisualizer = ToggleVisualizer,
     SetWidth = function(width)
         Config.BridgeWidth = math.clamp(width, 1, 9)
         UpdateUI()
@@ -10806,8 +10944,10 @@ _G.AutoBridge = {
     SetLength = function(length)
         Config.BridgeLength = math.clamp(length, 1, 10)
     end,
-    SetHeight = function(height)
-        Config.BridgeHeight = height
+    SetDepth = function(depth)
+        -- depth ติดลบ = ใต้เท้า, ยิ่งติดลบมาก = ยิ่งลึก
+        Config.PlaceBelowOffset = math.min(depth, -1)
+        UpdateUI()
     end,
     SetDelay = function(delay)
         Config.PlaceDelay = math.max(0.01, delay)
@@ -10817,8 +10957,10 @@ _G.AutoBridge = {
             Enabled = State.Enabled,
             Placed = State.PlacedCount,
             Width = Config.BridgeWidth,
+            Depth = Config.PlaceBelowOffset,
             Mode = Config.BridgeMode and "Bridge" or "Floor",
             IsFalling = State.IsFalling,
+            Visualizer = Config.ShowVisualizer,
         }
     end,
     Reset = function()
