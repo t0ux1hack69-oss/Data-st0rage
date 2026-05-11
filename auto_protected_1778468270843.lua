@@ -10046,7 +10046,7 @@
 --[[
     ╔══════════════════════════════════════════════════════════════════════════════╗
     ║     🌉 Auto Bridge / Floor Placer - Roblox Exploit Script                   ║
-    ║     😈 สร้างพื้น/สะพานอัตโนมัติ สำหรับเดินกลางอากาศ                          ║
+    ║     😈 สร้างพื้น/สะพานอัตโนมัติ ใต้เท้า เดินกลางอากาศได้                    ║
     ║     🎯 ต่อล่วงหน้า ป้องกันการตก วางแบบ Real-time ตามทิศทางการเดิน            ║
     ║     ⚠️ ใช้บัญชีรองเท่านั้น!                                                   ║
     ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -10464,9 +10464,10 @@ local function CreateDummyTargetCFrame(position)
     return CFrame.new(position)
 end
 
--- คำนวณ Offset CFrame
+-- 🎯🎯🎯 FIX HERE: เปลี่ยน offset ให้เป็นติดลบ (ใต้เท้า) แทนบวก (บนหัว)
 local function GetBlockOffsetCFrame()
-    return CFrame.new(0, Config.BlockSize, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+    -- แก้จาก Y+3 (บนหัว) เป็น Y-3 (ใต้เท้า) 🦶🧱
+    return CFrame.new(0, -Config.BlockSize, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -10509,7 +10510,7 @@ local function PlaceBlockAt(position)
         [1] = HumanoidRootPart,  -- dummy target
         [2] = targetCFrame,      -- ตำแหน่งที่จะวาง
         [3] = heldBlock,         -- บล็อกที่ถือ
-        [4] = offsetCFrame,      -- offset
+        [4] = offsetCFrame,      -- offset (ติดลบ = ใต้เท้า)
         [5] = BlockPlaceSound,   -- เสียง
         [6] = Config.BlockID,    -- block ID
     }
@@ -10768,8 +10769,9 @@ ShowNotification("[F] Toggle | [M] Mode | [P] Stop | [↑↓] Width", Color3.fro
 
 print([[
 ╔══════════════════════════════════════════════════════════════════╗
-║           🌉 Auto Bridge / Floor Placer v2.0                     ║
+║           🌉 Auto Bridge / Floor Placer v2.1                     ║
 ║           😈 Exploit Edition - Roblox                            ║
+║           🦶 FIXED: Block now spawns UNDER feet!                 ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  Controls:                                                       ║
 ║    [F] - Toggle Auto Bridge ON/OFF                               ║
@@ -10779,7 +10781,7 @@ print([[
 ║    [↓] - Decrease Width                                          ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  Features:                                                       ║
-║    ✓ Auto place bridge ahead of walking direction                ║
+║    ✓ Auto place bridge UNDER your feet                           ║
 ║    ✓ Smart prediction based on velocity                          ║
 ║    ✓ Emergency place when falling                                ║
 ║    ✓ Grid snap for perfect alignment                             ║
