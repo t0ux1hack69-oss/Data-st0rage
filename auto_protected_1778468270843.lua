@@ -10045,9 +10045,9 @@
 
 --[[
     ╔══════════════════════════════════════════════════════════════════════════════╗
-    ║     🌉 Auto Bridge / Floor Placer - Roblox Exploit Script                   ║
-    ║     😈 สร้างทางเดินอัตโนมัติ ไม่ติดเท้า ปรับระยะได้                          ║
-    ║     🎯 ต่อล่วงหน้า + แสดงตำแหน่งบล็อกล่วงหน้าเป็นรูปสี่เหลี่ยม                ║
+    ║     🌉 Auto Bridge Placer - Roblox Exploit Script                           ║
+    ║     😈 ต่อบล็อกจากพื้นบล็อกจริง สร้างทางเดินอัตโนมัติ                        ║
+    ║     🎯 หาบล็อกพื้นใกล้เท้า → ต่อบล็อกใหม่ติดกัน → สร้างทางเดิน               ║
     ║     ⚠️ ใช้บัญชีรองเท่านั้น!                                                   ║
     ╚══════════════════════════════════════════════════════════════════════════════╝
 ]]
@@ -10082,16 +10082,20 @@ local BlockPlaceSound = ReplicatedStorage:WaitForChild("Miscs"):WaitForChild("So
 local Config = {
     -- 🧱 การตั้งค่าบล็อก
     BlockID = 2669,                           -- ID ของบล็อก
-    BlockSize = 3,                            -- ขนาดบล็อก (สมมติว่า 3x3x3 studs)
+    BlockSize = 3,                            -- ขนาดบล็อก (3x3x3 studs)
 
     -- 🌉 การตั้งค่าสะพาน/พื้น
     BridgeWidth = 3,                          -- ความกว้างสะพาน (จำนวนบล็อก)
     BridgeLength = 5,                         -- ความยาวล่วงหน้า (จำนวนบล็อก)
 
     -- 📐 การวางบล็อก (ปรับได้ตามใจชอบ)
-    PlaceBelowOffset = -6,                    -- 🎯 ระยะห่างจากเท้า (ติดลบ = ใต้เท้า, ยิ่งติดลบมาก = ยิ่งลึก)
-    PlaceAheadDistance = 12,                  -- ระยะล่วงหน้าที่จะวาง (studs)
+    PlaceBelowOffset = -3,                    -- ระยะห่างจากเท้า (ติดลบ = ใต้เท้า)
     GridSnap = true,                          -- ล็อกตำแหน่งบนกริด
+
+    -- 🔍 การหาบล็อกพื้น
+    BlocksFolder = Workspace:WaitForChild("Blocks"),  -- โฟลเดอร์หลักของบล็อก
+    SearchRadius = 30,                        -- รัศมีค้นหาบล็อกพื้น (studs)
+    MaxSearchRadius = 100,                    -- รัศมีค้นหาสูงสุด
 
     -- ⚡ การทำงาน
     Enabled = false,                          -- สถานะเปิด/ปิด
@@ -10101,7 +10105,6 @@ local Config = {
     -- 🔄 โหมดการทำงาน
     BridgeMode = true,                        -- โหมดสะพาน (true) หรือ Floor Mode (false)
     SmartPredict = true,                      -- คาดการณ์ทิศทางการเดินล่วงหน้า
-    FillGaps = true,                          -- เติมช่องว่างที่ขาดหาย
     AutoEquip = true,                         -- ออโต้ถือบล็อก
 
     -- 🛡️ Anti-Detection
@@ -10148,6 +10151,7 @@ local State = {
     IsFalling = false,
     BridgeCoroutine = nil,
     VisualizerParts = {},                     -- เก็บ Part ของ Visualizer
+    NearestBlock = nil,                       -- บล็อกพื้นที่ใกล้ที่สุด
 }
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -10222,8 +10226,8 @@ end
 
 local MainUI = Instance.new("Frame")
 MainUI.Name = "MainUI"
-MainUI.Size = UDim2.new(0, 320, 0, 340)
-MainUI.Position = UDim2.new(0, 20, 0.5, -170)
+MainUI.Size = UDim2.new(0, 320, 0, 360)
+MainUI.Position = UDim2.new(0, 20, 0.5, -180)
 MainUI.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
 MainUI.BackgroundTransparency = 0.1
 MainUI.BorderSizePixel = 0
@@ -10282,21 +10286,22 @@ end
 local StatusEnabled = CreateStatusLabel("StatusEnabled", "⚡ Status: OFF", 45, MainUI)
 local StatusMode = CreateStatusLabel("StatusMode", "🌉 Mode: Bridge", 67, MainUI)
 local StatusWidth = CreateStatusLabel("StatusWidth", "📏 Width: 3 blocks", 89, MainUI)
-local StatusDepth = CreateStatusLabel("StatusDepth", "📐 Depth: -6 (Under feet)", 111, MainUI)
-local StatusPlaced = CreateStatusLabel("StatusPlaced", "📊 Placed: 0", 133, MainUI)
-local StatusRate = CreateStatusLabel("StatusRate", "⚡ Rate: 0/s", 155, MainUI)
-local StatusVisualizer = CreateStatusLabel("StatusVisualizer", "👁️ Visualizer: ON", 177, MainUI)
+local StatusDepth = CreateStatusLabel("StatusDepth", "📐 Depth: -3 (Under feet)", 111, MainUI)
+local StatusNearest = CreateStatusLabel("StatusNearest", "🧱 Nearest: None", 133, MainUI)
+local StatusPlaced = CreateStatusLabel("StatusPlaced", "📊 Placed: 0", 155, MainUI)
+local StatusRate = CreateStatusLabel("StatusRate", "⚡ Rate: 0/s", 177, MainUI)
+local StatusVisualizer = CreateStatusLabel("StatusVisualizer", "👁️ Visualizer: ON", 199, MainUI)
 
 -- Keybind Info
 local KeybindInfo = Instance.new("TextLabel")
 KeybindInfo.Name = "Keybinds"
 KeybindInfo.Size = UDim2.new(1, -20, 0, 90)
-KeybindInfo.Position = UDim2.new(0, 10, 0, 200)
+KeybindInfo.Position = UDim2.new(0, 10, 0, 220)
 KeybindInfo.BackgroundTransparency = 1
 KeybindInfo.Text = [[Keybinds:
 [F] Toggle  [M] Mode  [P] Stop  [V] Visualizer
 [↑↓] Width  [←→] Depth (Under feet level)
-Adjust depth so blocks dont touch your feet!]]
+Blocks will attach to nearest ground block!]]
 KeybindInfo.TextColor3 = Color3.fromRGB(150, 150, 170)
 KeybindInfo.TextSize = 11
 KeybindInfo.Font = Enum.Font.Gotham
@@ -10341,7 +10346,7 @@ local function ClearVisualizer()
     State.VisualizerParts = {}
 end
 
-local function CreateVisualizerBlock(position, isCenter)
+local function CreateVisualizerBlock(position, isCenter, isNearest)
     local part = Instance.new("Part")
     part.Name = "VisualizerBlock"
     part.Size = Vector3.new(Config.BlockSize - 0.1, Config.BlockSize - 0.1, Config.BlockSize - 0.1)
@@ -10351,7 +10356,10 @@ local function CreateVisualizerBlock(position, isCenter)
     part.Transparency = Config.VisualizerTransparency
     part.Material = Enum.Material.Neon
 
-    if isCenter then
+    if isNearest then
+        part.Color = Color3.fromRGB(255, 0, 255)  -- สีม่วง = บล็อกพื้นที่ใกล้ที่สุด
+        part.Transparency = 0.2
+    elseif isCenter then
         part.Color = Color3.fromRGB(255, 255, 0)  -- สีเหลือง = ตำแหน่งกลาง
         part.Transparency = 0.3
     else
@@ -10392,13 +10400,23 @@ local function UpdateVisualizer()
     -- ล้างของเก่า
     ClearVisualizer()
 
+    -- หาบล็อกพื้นที่ใกล้ที่สุด
+    local nearestBlock = FindNearestGroundBlock()
+    if nearestBlock then
+        local pos = nearestBlock:IsA("BasePart") and nearestBlock.Position or 
+                   (nearestBlock:FindFirstChildWhichIsA("BasePart") and nearestBlock:FindFirstChildWhichIsA("BasePart").Position)
+        if pos then
+            CreateVisualizerBlock(pos, false, true)
+        end
+    end
+
     -- คำนวณตำแหน่งที่จะวาง
     local positions = CalculatePlacePositions()
 
     -- สร้าง Visualizer สำหรับแต่ละตำแหน่ง
     for index, data in ipairs(positions) do
         local isCenter = (data.SideIndex == 0 and data.ForwardIndex == 0)
-        CreateVisualizerBlock(data.Position, isCenter)
+        CreateVisualizerBlock(data.Position, isCenter, false)
     end
 end
 
@@ -10434,12 +10452,68 @@ local function GetHeldBlock()
     return nil
 end
 
+-- 🎯🎯🎯 หาบล็อกพื้นที่ใกล้เท้าที่สุด (สำคัญมาก!)
+local function FindNearestGroundBlock()
+    local hrp = HumanoidRootPart
+    if not hrp then return nil end
+
+    local playerPos = hrp.Position
+    local nearestBlock = nil
+    local nearestDistance = Config.SearchRadius
+
+    -- ค้นหาใน BlocksFolder
+    local blocksFolder = Config.BlocksFolder
+    if not blocksFolder then return nil end
+
+    -- วนลูปหาบล็อกใกล้สุด
+    local function SearchInFolder(folder, currentDepth)
+        if currentDepth > 3 then return end  -- จำกัดความลึกการค้นหา
+
+        for _, child in ipairs(folder:GetChildren()) do
+            if child:IsA("BasePart") then
+                local distance = (child.Position - playerPos).Magnitude
+                if distance < nearestDistance then
+                    nearestDistance = distance
+                    nearestBlock = child
+                end
+            elseif child:IsA("Folder") or child:IsA("Model") then
+                SearchInFolder(child, currentDepth + 1)
+            end
+        end
+    end
+
+    SearchInFolder(blocksFolder, 0)
+
+    -- ถ้าไม่เจอในรัศมีปกติ ขยายรัศมี
+    if not nearestBlock then
+        nearestDistance = Config.MaxSearchRadius
+        local function ExtendedSearch(folder, currentDepth)
+            if currentDepth > 5 then return end
+
+            for _, child in ipairs(folder:GetChildren()) do
+                if child:IsA("BasePart") then
+                    local distance = (child.Position - playerPos).Magnitude
+                    if distance < nearestDistance then
+                        nearestDistance = distance
+                        nearestBlock = child
+                    end
+                elseif child:IsA("Folder") or child:IsA("Model") then
+                    ExtendedSearch(child, currentDepth + 1)
+                end
+            end
+        end
+        ExtendedSearch(blocksFolder, 0)
+    end
+
+    State.NearestBlock = nearestBlock
+    return nearestBlock
+end
+
 -- คำนวณทิศทางการเคลื่อนที่
 local function CalculateMovementDirection()
     local hrp = HumanoidRootPart
     if not hrp then return Vector3.new(0, 0, -1) end
 
-    local currentPos = hrp.Position
     local velocity = hrp.Velocity
 
     -- ใช้ velocity ถ้ามีการเคลื่อนที่พอสมควร
@@ -10474,19 +10548,38 @@ local function SnapToGrid(position)
     )
 end
 
--- คำนวณตำแหน่งวางบล็อก
+-- 🎯🎯🎯 คำนวณตำแหน่งวางบล็อก (ต่อจากบล็อกพื้นที่ใกล้ที่สุด)
 local function CalculatePlacePositions()
     local hrp = HumanoidRootPart
     if not hrp then return {} end
 
+    -- หาบล็อกพื้นที่ใกล้ที่สุด
+    local nearestBlock = FindNearestGroundBlock()
+    if not nearestBlock then
+        return {}  -- ไม่มีบล็อกพื้น ไม่วาง
+    end
+
     local positions = {}
-    local currentPos = hrp.Position
+    local playerPos = hrp.Position
     local direction = CalculateMovementDirection()
     local rightVector = Vector3.new(-direction.Z, 0, direction.X) -- แกนขวามือ
 
-    -- ตำแหน่งฐาน (ใต้เท้า + offset ที่ปรับได้)
-    local baseHeight = currentPos.Y + Config.PlaceBelowOffset
-    local basePos = Vector3.new(currentPos.X, baseHeight, currentPos.Z)
+    -- ใช้ตำแหน่งบล็อกพื้นเป็นจุดเริ่มต้น
+    local basePos
+    if nearestBlock:IsA("BasePart") then
+        basePos = nearestBlock.Position
+    else
+        local part = nearestBlock:FindFirstChildWhichIsA("BasePart")
+        if part then
+            basePos = part.Position
+        else
+            return {}
+        end
+    end
+
+    -- ปรับความสูงให้ตรงกับบล็อกพื้น (หรือใต้เท้า)
+    local baseHeight = playerPos.Y + Config.PlaceBelowOffset
+    basePos = Vector3.new(basePos.X, baseHeight, basePos.Z)
     basePos = SnapToGrid(basePos)
 
     -- คำนวณตำแหน่งสำหรับแต่ละบล็อกในความกว้าง
@@ -10508,6 +10601,7 @@ local function CalculatePlacePositions()
                 Direction = direction,
                 SideIndex = i,
                 ForwardIndex = j,
+                TargetBlock = nearestBlock,  -- บล็อกเป้าหมายที่จะต่อ
             })
         end
     end
@@ -10543,22 +10637,11 @@ local function GetRandomizedDelay()
     return Config.PlaceDelay
 end
 
--- คำนวณ CFrame สำหรับบล็อกเป้าหมาย (dummy)
-local function CreateDummyTargetCFrame(position)
-    return CFrame.new(position)
-end
-
--- 🎯 Offset CFrame - ใช้ค่าที่ปรับได้จาก Config
-local function GetBlockOffsetCFrame()
-    -- ใช้ PlaceBelowOffset เป็นค่า offset Y
-    return CFrame.new(0, Config.PlaceBelowOffset, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)
-end
-
 -- ═══════════════════════════════════════════════════════════════════════════════
--- 🚀 CORE PLACE FUNCTION
+-- 🚀 CORE PLACE FUNCTION (ต่อบล็อกจากบล็อกพื้นจริง)
 -- ═══════════════════════════════════════════════════════════════════════════════
 
-local function PlaceBlockAt(position)
+local function PlaceBlockAt(position, targetBlock)
     -- เช็ค cooldown
     local currentTime = tick()
     if currentTime - State.LastPlaceTime < GetRandomizedDelay() then
@@ -10585,16 +10668,27 @@ local function PlaceBlockAt(position)
         return false, "Already placed"
     end
 
-    -- สร้าง dummy target (ใช้ HRP เป็น target แล้วส่ง CFrame ที่ต้องการ)
-    local targetCFrame = CreateDummyTargetCFrame(position)
-    local offsetCFrame = GetBlockOffsetCFrame()
+    -- 🎯🎯🎯 ใช้บล็อกพื้นจริงเป็น Target (ไม่ใช่ HRP!)
+    if not targetBlock then
+        targetBlock = FindNearestGroundBlock()
+    end
+
+    if not targetBlock then
+        return false, "No ground block found"
+    end
+
+    -- คำนวณ CFrame สำหรับตำแหน่งใหม่ (ต่อจากบล็อกพื้น)
+    local targetCFrame = CFrame.new(position)
+
+    -- คำนวณ Offset CFrame (ติดกับบล็อกพื้น)
+    local offsetCFrame = CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 
     -- สร้าง args
     local args = {
-        [1] = HumanoidRootPart,  -- dummy target
-        [2] = targetCFrame,      -- ตำแหน่งที่จะวาง
+        [1] = targetBlock,        -- 🎯 บล็อกพื้นจริง! (ไม่ใช่ HRP)
+        [2] = targetCFrame,      -- ตำแหน่งที่จะวางใหม่
         [3] = heldBlock,         -- บล็อกที่ถือ
-        [4] = offsetCFrame,      -- offset (ปรับได้)
+        [4] = offsetCFrame,      -- offset
         [5] = BlockPlaceSound,   -- เสียง
         [6] = Config.BlockID,    -- block ID
     }
@@ -10636,7 +10730,7 @@ local function UpdateBridge()
     for _, data in ipairs(positions) do
         if not State.Enabled then break end
 
-        local success, msg = PlaceBlockAt(data.Position)
+        local success, msg = PlaceBlockAt(data.Position, data.TargetBlock)
 
         if success then
             -- วางสำเร็จ
@@ -10645,11 +10739,14 @@ local function UpdateBridge()
         end
     end
 
-    -- ถ้ากำลังตก ให้วางบล็อกใต้เท้าทันที
+    -- ถ้ากำลังตก ให้วางบล็อกฉุกเฉิน
     if State.IsFalling then
-        local emergencyPos = hrp.Position + Vector3.new(0, Config.PlaceBelowOffset, 0)
-        emergencyPos = SnapToGrid(emergencyPos)
-        PlaceBlockAt(emergencyPos)
+        local emergencyBlock = FindNearestGroundBlock()
+        if emergencyBlock then
+            local emergencyPos = hrp.Position + Vector3.new(0, Config.PlaceBelowOffset, 0)
+            emergencyPos = SnapToGrid(emergencyPos)
+            PlaceBlockAt(emergencyPos, emergencyBlock)
+        end
     end
 end
 
@@ -10728,16 +10825,14 @@ local function DecreaseWidth()
     UpdateUI()
 end
 
--- 🎯 ปรับความลึก (ระยะห่างจากเท้า)
+-- ปรับความลึก (ระยะห่างจากเท้า)
 local function IncreaseDepth()
-    -- ลงลึกขึ้น (ติดลบมากขึ้น = ไกลจากเท้ามากขึ้น)
     Config.PlaceBelowOffset = Config.PlaceBelowOffset - 1
     ShowNotification("📐 Depth: " .. Config.PlaceBelowOffset .. " (Lower)", Color3.fromRGB(255, 200, 0), 1.5)
     UpdateUI()
 end
 
 local function DecreaseDepth()
-    -- ขึ้นสูงขึ้น (ติดลบน้อยลง = ใกล้เท้ามากขึ้น)
     Config.PlaceBelowOffset = math.min(Config.PlaceBelowOffset + 1, -1)
     ShowNotification("📐 Depth: " .. Config.PlaceBelowOffset .. " (Higher)", Color3.fromRGB(255, 200, 0), 1.5)
     UpdateUI()
@@ -10780,6 +10875,17 @@ function UpdateUI()
         StatusDepth.TextColor3 = Color3.fromRGB(100, 255, 100)
     end
     StatusDepth.Text = depthText
+
+    -- แสดงบล็อกพื้นที่ใกล้ที่สุด
+    if State.NearestBlock then
+        local blockName = State.NearestBlock.Name
+        local blockPos = State.NearestBlock:IsA("BasePart") and State.NearestBlock.Position or Vector3.new(0,0,0)
+        StatusNearest.Text = string.format("🧱 Nearest: %s (%.0f, %.0f, %.0f)", blockName, blockPos.X, blockPos.Y, blockPos.Z)
+        StatusNearest.TextColor3 = Color3.fromRGB(0, 255, 128)
+    else
+        StatusNearest.Text = "🧱 Nearest: None (No ground block!)"
+        StatusNearest.TextColor3 = Color3.fromRGB(255, 100, 100)
+    end
 
     StatusPlaced.Text = "📊 Placed: " .. State.PlacedCount
     StatusRate.Text = "⚡ Rate: " .. State.PlacedThisSecond .. "/s"
@@ -10838,6 +10944,7 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     State.Enabled = false
     State.BridgeCoroutine = nil
     State.PlacedPositions = {}
+    State.NearestBlock = nil
     ClearVisualizer()
 
     ToggleButton.Text = "▶ START BRIDGE"
@@ -10862,9 +10969,12 @@ RunService.Heartbeat:Connect(function()
     if hrp.Velocity.Y < -15 then
         State.IsFalling = true
         -- วางบล็อกฉุกเฉินใต้เท้า
-        local emergencyPos = hrp.Position + Vector3.new(0, Config.PlaceBelowOffset, 0)
-        emergencyPos = SnapToGrid(emergencyPos)
-        PlaceBlockAt(emergencyPos)
+        local emergencyBlock = FindNearestGroundBlock()
+        if emergencyBlock then
+            local emergencyPos = hrp.Position + Vector3.new(0, Config.PlaceBelowOffset, 0)
+            emergencyPos = SnapToGrid(emergencyPos)
+            PlaceBlockAt(emergencyPos, emergencyBlock)
+        end
     else
         State.IsFalling = false
     end
@@ -10902,10 +11012,14 @@ ShowNotification("[F] Toggle | [←→] Depth | [V] Visualizer", Color3.fromRGB(
 
 print([[
 ╔══════════════════════════════════════════════════════════════════╗
-║           🌉 Auto Bridge / Floor Placer v3.0                     ║
+║           🌉 Auto Bridge / Floor Placer v4.0                     ║
 ║           😈 Exploit Edition - Roblox                            ║
-║           🦶 FIXED: Block now spawns UNDER feet!                 ║
-║           👁️ NEW: Visualizer shows block positions!              ║
+║           🧱 FIXED: Now attaches to REAL ground blocks!          ║
+╠══════════════════════════════════════════════════════════════════╣
+║  How it works:                                                   ║
+║    1. Finds nearest ground block near your feet                  ║
+║    2. Places new blocks adjacent to that block                   ║
+║    3. Creates a continuous walkway!                              ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  Controls:                                                       ║
 ║    [F] - Toggle Auto Bridge ON/OFF                               ║
@@ -10915,16 +11029,15 @@ print([[
 ║    [←→] - Adjust Depth (How far under feet)                      ║
 ║    [V] - Toggle Visualizer ON/OFF                                ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  Visualizer:                                                     ║
-║    🟩 Green = Normal block position                              ║
+║  Visualizer Colors:                                              ║
+║    🟩 Green = New block position                                 ║
 ║    🟨 Yellow = Center block (your position)                      ║
-║    💡 Shows where blocks will be placed before placing!          ║
+║    🟪 Purple = Nearest ground block (attachment point)           ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  Tips:                                                           ║
-║    - Use [←] to decrease depth (closer to feet)                  ║
-║    - Use [→] to increase depth (farther from feet)               ║
-║    - Recommended depth: -6 to -9 for comfortable walking         ║
-║    - Visualizer helps you see where blocks will appear!          ║
+║    - Stand near existing blocks to start building                ║
+║    - Script finds nearest block automatically                  ║
+║    - New blocks attach to existing ground blocks!                ║
 ╚══════════════════════════════════════════════════════════════════╝
 ]])
 
@@ -10937,6 +11050,7 @@ _G.AutoBridge = {
     Stop = EmergencyStop,
     ToggleMode = ToggleMode,
     ToggleVisualizer = ToggleVisualizer,
+    FindNearestBlock = FindNearestGroundBlock,
     SetWidth = function(width)
         Config.BridgeWidth = math.clamp(width, 1, 9)
         UpdateUI()
@@ -10945,7 +11059,6 @@ _G.AutoBridge = {
         Config.BridgeLength = math.clamp(length, 1, 10)
     end,
     SetDepth = function(depth)
-        -- depth ติดลบ = ใต้เท้า, ยิ่งติดลบมาก = ยิ่งลึก
         Config.PlaceBelowOffset = math.min(depth, -1)
         UpdateUI()
     end,
@@ -10961,6 +11074,7 @@ _G.AutoBridge = {
             Mode = Config.BridgeMode and "Bridge" or "Floor",
             IsFalling = State.IsFalling,
             Visualizer = Config.ShowVisualizer,
+            NearestBlock = State.NearestBlock and State.NearestBlock.Name or "None",
         }
     end,
     Reset = function()
