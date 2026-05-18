@@ -10053,14 +10053,18 @@
 
 🔥 ENHANCED BY EXPLOIT EXPERT 🔥
 Particle FX | Toggle System | Neon Red Aesthetic | Drag System | Tab Switching
+Player Stats | Speed/Jump Hacks | Anti-Teleport | Discord Link
 ]=]
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Workspace = game:GetService("Workspace")
+local Stats = game:GetService("Stats")
 
 -- ═══════════════════════════════════════════════════════════════
 -- CONFIGURATION
@@ -10078,13 +10082,17 @@ local CONFIG = {
     PARTICLE_COUNT = 25,
     PARTICLE_LIFETIME = 1.2,
     PARTICLE_SPEED = 150,
-    PARTICLE_SIZE = UDim2.new(0, 4, 0, 4),
 
     -- Animation Settings
     OPEN_DURATION = 0.4,
     CLOSE_DURATION = 0.3,
     EASING_STYLE = Enum.EasingStyle.Back,
     EASING_DIRECTION = Enum.EasingDirection.Out,
+
+    -- Hacks
+    SPEED_BOOST = 100,
+    JUMP_BOOST = 100,
+    DISCORD_LINK = "https://discord.gg/D83uT6PFgg",
 }
 
 -- ═══════════════════════════════════════════════════════════════
@@ -10097,6 +10105,10 @@ local function CreateTween(instance, properties, duration, easingStyle, easingDi
         easingDirection or CONFIG.EASING_DIRECTION
     )
     return TweenService:Create(instance, tweenInfo, properties)
+end
+
+local function FormatNumber(num)
+    return tostring(math.floor(num + 0.5))
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -10164,7 +10176,6 @@ RunService.RenderStepped:Connect(function(dt)
             table.remove(ActiveParticles, i)
         else
             local ease = 1 - (1 - progress) * (1 - progress)
-
             local newX = p.StartPos.X.Offset + (p.Velocity.X * ease)
             local newY = p.StartPos.Y.Offset + (p.Velocity.Y * ease)
 
@@ -10198,7 +10209,7 @@ LMG2L["Frame_2"].Position = UDim2.new(0.34359, 0, 0.20322, 0)
 LMG2L["Frame_2"].ClipsDescendants = true
 LMG2L["Frame_2"].Parent = LMG2L["ScreenGui_1"]
 
--- Drop shadow for depth
+-- Drop shadow
 local shadow = Instance.new("ImageLabel")
 shadow.Name = "Shadow"
 shadow.BackgroundTransparency = 1
@@ -10232,7 +10243,6 @@ LMG2L["TitleBar_4"].TextStrokeTransparency = 0.8
 LMG2L["TitleBar_4"].TextXAlignment = Enum.TextXAlignment.Center
 LMG2L["TitleBar_4"].Parent = LMG2L["Frame_2"]
 
--- Title glow effect
 local titleGlow = Instance.new("UIGradient")
 titleGlow.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 50)),
@@ -10241,7 +10251,6 @@ titleGlow.Color = ColorSequence.new({
 })
 titleGlow.Parent = LMG2L["TitleBar_4"]
 
--- Animate title glow
 spawn(function()
     while LMG2L["TitleBar_4"] and LMG2L["TitleBar_4"].Parent do
         for i = 0, 1, 0.02 do
@@ -10269,7 +10278,6 @@ LMG2L["CloseButton_6"].FontFace = Font.new("rbxasset://fonts/families/SourceSans
 LMG2L["CloseButton_6"].Position = UDim2.new(0.9, 0, 0.2, 0)
 LMG2L["CloseButton_6"].Parent = LMG2L["TitleBar_4"]
 
--- Close button neon border
 local closeStroke = Instance.new("UIStroke")
 closeStroke.Color = CONFIG.NEON_RED
 closeStroke.Thickness = 1.5
@@ -10289,13 +10297,13 @@ LMG2L["TabBar_8"].Size = UDim2.new(0.98901, 0, 0.15748, 0)
 LMG2L["TabBar_8"].Position = UDim2.new(0.00549, 0, 0.15748, 0)
 LMG2L["TabBar_8"].Parent = LMG2L["Frame_2"]
 
--- Tab 1
+-- Tab 1 - หน้าหลัก
 LMG2L["Tab1_9"] = Instance.new("TextButton")
-LMG2L["Tab1_9"].Name = "Tab1"
+LMG2L["Tab1_9"].Name = "TabMain"
 LMG2L["Tab1_9"].BorderSizePixel = 0
-LMG2L["Tab1_9"].BackgroundColor3 = CONFIG.ACCENT_COLOR
+LMG2L["Tab1_9"].BackgroundColor3 = CONFIG.NEON_RED
 LMG2L["Tab1_9"].Size = UDim2.new(0.2, 0, 0.7, 0)
-LMG2L["Tab1_9"].Text = "ช่องที่1"
+LMG2L["Tab1_9"].Text = "หน้าหลัก"
 LMG2L["Tab1_9"].TextColor3 = Color3.fromRGB(255, 255, 255)
 LMG2L["Tab1_9"].FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
 LMG2L["Tab1_9"].Position = UDim2.new(0.03333, 0, 0.15, 0)
@@ -10311,13 +10319,13 @@ LMG2L["UICorner_a"] = Instance.new("UICorner")
 LMG2L["UICorner_a"].CornerRadius = UDim.new(0, 4)
 LMG2L["UICorner_a"].Parent = LMG2L["Tab1_9"]
 
--- Tab 2
+-- Tab 2 - ผู้เล่น
 LMG2L["Tab2_b"] = Instance.new("TextButton")
-LMG2L["Tab2_b"].Name = "Tab2"
+LMG2L["Tab2_b"].Name = "TabPlayer"
 LMG2L["Tab2_b"].BorderSizePixel = 0
 LMG2L["Tab2_b"].BackgroundColor3 = CONFIG.ACCENT_COLOR
 LMG2L["Tab2_b"].Size = UDim2.new(0.2, 0, 0.7, 0)
-LMG2L["Tab2_b"].Text = "ช่องที่2"
+LMG2L["Tab2_b"].Text = "ผู้เล่น"
 LMG2L["Tab2_b"].TextColor3 = Color3.fromRGB(255, 255, 255)
 LMG2L["Tab2_b"].FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
 LMG2L["Tab2_b"].Position = UDim2.new(0.3, 0, 0.15, 0)
@@ -10333,32 +10341,456 @@ LMG2L["UICorner_c"] = Instance.new("UICorner")
 LMG2L["UICorner_c"].CornerRadius = UDim.new(0, 4)
 LMG2L["UICorner_c"].Parent = LMG2L["Tab2_b"]
 
--- Content Area
-local contentArea = Instance.new("Frame")
-contentArea.Name = "ContentArea"
-contentArea.BorderSizePixel = 0
-contentArea.BackgroundColor3 = Color3.fromRGB(40, 5, 5)
-contentArea.BackgroundTransparency = 0.3
-contentArea.Size = UDim2.new(0.98901, 0, 0.66, 0)
-contentArea.Position = UDim2.new(0.00549, 0, 0.33, 0)
-contentArea.Parent = LMG2L["Frame_2"]
+-- ═══════════════════════════════════════════════════════════════
+-- CONTENT: หน้าหลัก (Main Page)
+-- ═══════════════════════════════════════════════════════════════
+local MainContent = Instance.new("Frame")
+MainContent.Name = "MainContent"
+MainContent.BorderSizePixel = 0
+MainContent.BackgroundColor3 = Color3.fromRGB(40, 5, 5)
+MainContent.BackgroundTransparency = 0.3
+MainContent.Size = UDim2.new(0.98901, 0, 0.66, 0)
+MainContent.Position = UDim2.new(0.00549, 0, 0.33, 0)
+MainContent.Visible = true
+MainContent.Parent = LMG2L["Frame_2"]
 
-local contentCorner = Instance.new("UICorner")
-contentCorner.CornerRadius = UDim.new(0, 6)
-contentCorner.Parent = contentArea
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 6)
+mainCorner.Parent = MainContent
 
-local contentStroke = Instance.new("UIStroke")
-contentStroke.Color = CONFIG.NEON_RED
-contentStroke.Thickness = 1
-contentStroke.Transparency = 0.7
-contentStroke.Parent = contentArea
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = CONFIG.NEON_RED
+mainStroke.Thickness = 1
+mainStroke.Transparency = 0.7
+mainStroke.Parent = MainContent
 
--- Aspect Ratio
+-- Avatar Image
+local AvatarFrame = Instance.new("Frame")
+AvatarFrame.Name = "AvatarFrame"
+AvatarFrame.BorderSizePixel = 0
+AvatarFrame.BackgroundColor3 = Color3.fromRGB(20, 0, 0)
+AvatarFrame.Size = UDim2.new(0, 70, 0, 70)
+AvatarFrame.Position = UDim2.new(0.03, 0, 0.05, 0)
+AvatarFrame.Parent = MainContent
+
+local avatarCorner = Instance.new("UICorner")
+avatarCorner.CornerRadius = UDim.new(1, 0)
+avatarCorner.Parent = AvatarFrame
+
+local avatarStroke = Instance.new("UIStroke")
+avatarStroke.Color = CONFIG.NEON_RED
+avatarStroke.Thickness = 2
+avatarStroke.Parent = AvatarFrame
+
+local AvatarImage = Instance.new("ImageLabel")
+AvatarImage.Name = "AvatarImage"
+AvatarImage.BackgroundTransparency = 1
+AvatarImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=150&h=150"
+AvatarImage.Size = UDim2.new(1, -4, 1, -4)
+AvatarImage.Position = UDim2.new(0, 2, 0, 2)
+AvatarImage.Parent = AvatarFrame
+
+local avatarImgCorner = Instance.new("UICorner")
+avatarImgCorner.CornerRadius = UDim.new(1, 0)
+avatarImgCorner.Parent = AvatarImage
+
+-- Player Name Labels
+local DisplayNameLabel = Instance.new("TextLabel")
+DisplayNameLabel.Name = "DisplayName"
+DisplayNameLabel.BackgroundTransparency = 1
+DisplayNameLabel.TextSize = 18
+DisplayNameLabel.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
+DisplayNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+DisplayNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+DisplayNameLabel.Size = UDim2.new(0.6, 0, 0.08, 0)
+DisplayNameLabel.Position = UDim2.new(0.28, 0, 0.05, 0)
+DisplayNameLabel.Text = "ชื่อเล่น: " .. LocalPlayer.DisplayName
+DisplayNameLabel.Parent = MainContent
+
+local RealNameLabel = Instance.new("TextLabel")
+RealNameLabel.Name = "RealName"
+RealNameLabel.BackgroundTransparency = 1
+RealNameLabel.TextSize = 14
+RealNameLabel.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular)
+RealNameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+RealNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+RealNameLabel.Size = UDim2.new(0.6, 0, 0.06, 0)
+RealNameLabel.Position = UDim2.new(0.28, 0, 0.14, 0)
+RealNameLabel.Text = "ชื่อจริง: @" .. LocalPlayer.Name
+RealNameLabel.Parent = MainContent
+
+-- Map Name
+local MapNameLabel = Instance.new("TextLabel")
+MapNameLabel.Name = "MapName"
+MapNameLabel.BackgroundTransparency = 1
+MapNameLabel.TextSize = 14
+MapNameLabel.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
+MapNameLabel.TextColor3 = CONFIG.NEON_RED
+MapNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+MapNameLabel.Size = UDim2.new(0.9, 0, 0.06, 0)
+MapNameLabel.Position = UDim2.new(0.03, 0, 0.22, 0)
+MapNameLabel.Text = "🗺️ แมพ: " .. game.PlaceId
+MapNameLabel.Parent = MainContent
+
+-- Stats Frame
+local StatsFrame = Instance.new("Frame")
+StatsFrame.Name = "StatsFrame"
+StatsFrame.BorderSizePixel = 0
+StatsFrame.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
+StatsFrame.BackgroundTransparency = 0.5
+StatsFrame.Size = UDim2.new(0.94, 0, 0.2, 0)
+StatsFrame.Position = UDim2.new(0.03, 0, 0.32, 0)
+StatsFrame.Parent = MainContent
+
+local statsCorner = Instance.new("UICorner")
+statsCorner.CornerRadius = UDim.new(0, 6)
+statsCorner.Parent = StatsFrame
+
+local statsStroke = Instance.new("UIStroke")
+statsStroke.Color = CONFIG.NEON_RED
+statsStroke.Thickness = 1
+statsStroke.Transparency = 0.5
+statsStroke.Parent = StatsFrame
+
+-- FPS Label
+local FPSLabel = Instance.new("TextLabel")
+FPSLabel.Name = "FPS"
+FPSLabel.BackgroundTransparency = 1
+FPSLabel.TextSize = 16
+FPSLabel.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
+FPSLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+FPSLabel.TextXAlignment = Enum.TextXAlignment.Center
+FPSLabel.Size = UDim2.new(0.3, 0, 0.8, 0)
+FPSLabel.Position = UDim2.new(0.02, 0, 0.1, 0)
+FPSLabel.Text = "FPS: --"
+FPSLabel.Parent = StatsFrame
+
+-- Players Count Label
+local PlayersLabel = Instance.new("TextLabel")
+PlayersLabel.Name = "PlayersCount"
+PlayersLabel.BackgroundTransparency = 1
+PlayersLabel.TextSize = 16
+PlayersLabel.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
+PlayersLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+PlayersLabel.TextXAlignment = Enum.TextXAlignment.Center
+PlayersLabel.Size = UDim2.new(0.3, 0, 0.8, 0)
+PlayersLabel.Position = UDim2.new(0.35, 0, 0.1, 0)
+PlayersLabel.Text = "👥 " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers
+PlayersLabel.Parent = StatsFrame
+
+-- Ping Label
+local PingLabel = Instance.new("TextLabel")
+PingLabel.Name = "Ping"
+PingLabel.BackgroundTransparency = 1
+PingLabel.TextSize = 16
+PingLabel.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
+PingLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+PingLabel.TextXAlignment = Enum.TextXAlignment.Center
+PingLabel.Size = UDim2.new(0.3, 0, 0.8, 0)
+PingLabel.Position = UDim2.new(0.68, 0, 0.1, 0)
+PingLabel.Text = "PING: --"
+PingLabel.Parent = StatsFrame
+
+-- Discord Link Button
+local DiscordButton = Instance.new("TextButton")
+DiscordButton.Name = "DiscordButton"
+DiscordButton.BorderSizePixel = 0
+DiscordButton.TextSize = 16
+DiscordButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+DiscordButton.Size = UDim2.new(0.94, 0, 0.12, 0)
+DiscordButton.Position = UDim2.new(0.03, 0, 0.58, 0)
+DiscordButton.Text = "💬 เข้าร่วมกลุ่ม Discord"
+DiscordButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+DiscordButton.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
+DiscordButton.Parent = MainContent
+
+local discordCorner = Instance.new("UICorner")
+discordCorner.CornerRadius = UDim.new(0, 6)
+discordCorner.Parent = DiscordButton
+
+local discordStroke = Instance.new("UIStroke")
+discordStroke.Color = Color3.fromRGB(150, 160, 255)
+discordStroke.Thickness = 1.5
+discordStroke.Parent = DiscordButton
+
+-- Discord link click
+DiscordButton.MouseButton1Click:Connect(function()
+    SpawnParticleBurst(UDim2.new(0.5, 0, 0.65, 0), 15, LMG2L["ScreenGui_1"])
+    if setclipboard then
+        setclipboard(CONFIG.DISCORD_LINK)
+        DiscordButton.Text = "✅ คัดลอกลิ้งแล้ว!"
+        task.delay(2, function()
+            DiscordButton.Text = "💬 เข้าร่วมกลุ่ม Discord"
+        end)
+    else
+        DiscordButton.Text = "❌ ไม่รองรับ setclipboard"
+        task.delay(2, function()
+            DiscordButton.Text = "💬 เข้าร่วมกลุ่ม Discord"
+        end)
+    end
+end)
+
+-- Info text
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Name = "Info"
+InfoLabel.BackgroundTransparency = 1
+InfoLabel.TextSize = 12
+InfoLabel.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular)
+InfoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+InfoLabel.TextXAlignment = Enum.TextXAlignment.Center
+InfoLabel.Size = UDim2.new(0.94, 0, 0.06, 0)
+InfoLabel.Position = UDim2.new(0.03, 0, 0.74, 0)
+InfoLabel.Text = "🔧 Exploit GUI v2.0 | TOUx1"
+InfoLabel.Parent = MainContent
+
+-- ═══════════════════════════════════════════════════════════════
+-- CONTENT: ผู้เล่น (Player Page)
+-- ═══════════════════════════════════════════════════════════════
+local PlayerContent = Instance.new("Frame")
+PlayerContent.Name = "PlayerContent"
+PlayerContent.BorderSizePixel = 0
+PlayerContent.BackgroundColor3 = Color3.fromRGB(40, 5, 5)
+PlayerContent.BackgroundTransparency = 0.3
+PlayerContent.Size = UDim2.new(0.98901, 0, 0.66, 0)
+PlayerContent.Position = UDim2.new(0.00549, 0, 0.33, 0)
+PlayerContent.Visible = false
+PlayerContent.Parent = LMG2L["Frame_2"]
+
+local playerCorner = Instance.new("UICorner")
+playerCorner.CornerRadius = UDim.new(0, 6)
+playerCorner.Parent = PlayerContent
+
+local playerStroke = Instance.new("UIStroke")
+playerStroke.Color = CONFIG.NEON_RED
+playerStroke.Thickness = 1
+playerStroke.Transparency = 0.7
+playerStroke.Parent = PlayerContent
+
+-- Speed Button
+local SpeedButton = Instance.new("TextButton")
+SpeedButton.Name = "SpeedButton"
+SpeedButton.BorderSizePixel = 0
+SpeedButton.TextSize = 16
+SpeedButton.BackgroundColor3 = CONFIG.ACCENT_COLOR
+SpeedButton.Size = UDim2.new(0.94, 0, 0.15, 0)
+SpeedButton.Position = UDim2.new(0.03, 0, 0.05, 0)
+SpeedButton.Text = "⚡ ความเร็ว +" .. CONFIG.SPEED_BOOST
+SpeedButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedButton.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
+SpeedButton.Parent = PlayerContent
+
+local speedCorner = Instance.new("UICorner")
+speedCorner.CornerRadius = UDim.new(0, 6)
+speedCorner.Parent = SpeedButton
+
+local speedStroke = Instance.new("UIStroke")
+speedStroke.Color = CONFIG.NEON_RED
+speedStroke.Thickness = 1.5
+speedStroke.Parent = SpeedButton
+
+-- Jump Button
+local JumpButton = Instance.new("TextButton")
+JumpButton.Name = "JumpButton"
+JumpButton.BorderSizePixel = 0
+JumpButton.TextSize = 16
+JumpButton.BackgroundColor3 = CONFIG.ACCENT_COLOR
+JumpButton.Size = UDim2.new(0.94, 0, 0.15, 0)
+JumpButton.Position = UDim2.new(0.03, 0, 0.25, 0)
+JumpButton.Text = "🦘 กระโดด +" .. CONFIG.JUMP_BOOST
+JumpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+JumpButton.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
+JumpButton.Parent = PlayerContent
+
+local jumpCorner = Instance.new("UICorner")
+jumpCorner.CornerRadius = UDim.new(0, 6)
+jumpCorner.Parent = JumpButton
+
+local jumpStroke = Instance.new("UIStroke")
+jumpStroke.Color = CONFIG.NEON_RED
+jumpStroke.Thickness = 1.5
+jumpStroke.Parent = JumpButton
+
+-- Anti-Teleport Button
+local AntiTPButton = Instance.new("TextButton")
+AntiTPButton.Name = "AntiTPButton"
+AntiTPButton.BorderSizePixel = 0
+AntiTPButton.TextSize = 16
+AntiTPButton.BackgroundColor3 = CONFIG.ACCENT_COLOR
+AntiTPButton.Size = UDim2.new(0.94, 0, 0.15, 0)
+AntiTPButton.Position = UDim2.new(0.03, 0, 0.45, 0)
+AntiTPButton.Text = "🛡️ เปิดต่อต้านวาป"
+AntiTPButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AntiTPButton.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
+AntiTPButton.Parent = PlayerContent
+
+local antitpCorner = Instance.new("UICorner")
+antitpCorner.CornerRadius = UDim.new(0, 6)
+antitpCorner.Parent = AntiTPButton
+
+local antitpStroke = Instance.new("UIStroke")
+antitpStroke.Color = CONFIG.NEON_RED
+antitpStroke.Thickness = 1.5
+antitpStroke.Parent = AntiTPButton
+
+-- Disable Anti-Teleport Button
+local DisableAntiTPButton = Instance.new("TextButton")
+DisableAntiTPButton.Name = "DisableAntiTPButton"
+DisableAntiTPButton.BorderSizePixel = 0
+DisableAntiTPButton.TextSize = 16
+DisableAntiTPButton.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
+DisableAntiTPButton.Size = UDim2.new(0.94, 0, 0.15, 0)
+DisableAntiTPButton.Position = UDim2.new(0.03, 0, 0.65, 0)
+DisableAntiTPButton.Text = "❌ ปิดต่อต้านวาป"
+DisableAntiTPButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+DisableAntiTPButton.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
+DisableAntiTPButton.Parent = PlayerContent
+
+local disableCorner = Instance.new("UICorner")
+disableCorner.CornerRadius = UDim.new(0, 6)
+disableCorner.Parent = DisableAntiTPButton
+
+local disableStroke = Instance.new("UIStroke")
+disableStroke.Color = Color3.fromRGB(255, 50, 50)
+disableStroke.Thickness = 1.5
+disableStroke.Parent = DisableAntiTPButton
+
+-- Status Label
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Name = "Status"
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextSize = 14
+StatusLabel.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular)
+StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Center
+StatusLabel.Size = UDim2.new(0.94, 0, 0.08, 0)
+StatusLabel.Position = UDim2.new(0.03, 0, 0.85, 0)
+StatusLabel.Text = "สถานะ: พร้อมใช้งาน"
+StatusLabel.Parent = PlayerContent
+
+-- ═══════════════════════════════════════════════════════════════
+-- HACK LOGIC
+-- ═══════════════════════════════════════════════════════════════
+
+-- Speed Hack
+SpeedButton.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        local humanoid = char.Humanoid
+        humanoid.WalkSpeed = humanoid.WalkSpeed + CONFIG.SPEED_BOOST
+        SpawnParticleBurst(UDim2.new(0.5, 0, 0.12, 0), 20, LMG2L["ScreenGui_1"])
+        StatusLabel.Text = "⚡ ความเร็ว: " .. math.floor(humanoid.WalkSpeed)
+        SpeedButton.Text = "⚡ ความเร็ว (" .. math.floor(humanoid.WalkSpeed) .. ")"
+    end
+end)
+
+-- Jump Hack
+JumpButton.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        local humanoid = char.Humanoid
+        humanoid.JumpPower = humanoid.JumpPower + CONFIG.JUMP_BOOST
+        SpawnParticleBurst(UDim2.new(0.5, 0, 0.32, 0), 20, LMG2L["ScreenGui_1"])
+        StatusLabel.Text = "🦘 กระโดด: " .. math.floor(humanoid.JumpPower)
+        JumpButton.Text = "🦘 กระโดด (" .. math.floor(humanoid.JumpPower) .. ")"
+    end
+end)
+
+-- Anti-Teleport System
+local AntiTeleportEnabled = false
+local AntiTeleportConnection = nil
+local LastPosition = nil
+
+local function StartAntiTeleport()
+    if AntiTeleportEnabled then return end
+    AntiTeleportEnabled = true
+
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        LastPosition = char.HumanoidRootPart.Position
+    end
+
+    AntiTeleportConnection = RunService.Heartbeat:Connect(function()
+        if not AntiTeleportEnabled then return end
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local hrp = char.HumanoidRootPart
+            local currentPos = hrp.Position
+
+            if LastPosition then
+                local distance = (currentPos - LastPosition).Magnitude
+                if distance > 50 then
+                    hrp.CFrame = CFrame.new(LastPosition)
+                    SpawnParticleBurst(UDim2.new(0.5, 0, 0.52, 0), 10, LMG2L["ScreenGui_1"])
+                    StatusLabel.Text = "🛡️ ต่อต้านวาป: ดึงกลับ!"
+                else
+                    LastPosition = currentPos
+                end
+            else
+                LastPosition = currentPos
+            end
+        end
+    end)
+
+    AntiTPButton.BackgroundColor3 = CONFIG.NEON_RED
+    AntiTPButton.Text = "🛡️ ต่อต้านวาป (ON)"
+    StatusLabel.Text = "🛡️ ต่อต้านวาป: เปิดใช้งาน"
+    SpawnParticleBurst(UDim2.new(0.5, 0, 0.52, 0), 15, LMG2L["ScreenGui_1"])
+end
+
+local function StopAntiTeleport()
+    if not AntiTeleportEnabled then return end
+    AntiTeleportEnabled = false
+
+    if AntiTeleportConnection then
+        AntiTeleportConnection:Disconnect()
+        AntiTeleportConnection = nil
+    end
+
+    AntiTPButton.BackgroundColor3 = CONFIG.ACCENT_COLOR
+    AntiTPButton.Text = "🛡️ เปิดต่อต้านวาป"
+    StatusLabel.Text = "❌ ต่อต้านวาป: ปิด"
+    SpawnParticleBurst(UDim2.new(0.5, 0, 0.52, 0), 10, LMG2L["ScreenGui_1"])
+end
+
+AntiTPButton.MouseButton1Click:Connect(StartAntiTeleport)
+DisableAntiTPButton.MouseButton1Click:Connect(StopAntiTeleport)
+
+-- ═══════════════════════════════════════════════════════════════
+-- STATS UPDATER (FPS, Players, Ping)
+-- ═══════════════════════════════════════════════════════════════
+local FPS = 0
+local LastFrameTime = tick()
+
+RunService.RenderStepped:Connect(function()
+    local now = tick()
+    FPS = 1 / (now - LastFrameTime)
+    LastFrameTime = now
+
+    FPSLabel.Text = "FPS: " .. FormatNumber(FPS)
+
+    local ping = 0
+    pcall(function()
+        ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+    end)
+    PingLabel.Text = "PING: " .. FormatNumber(ping) .. "ms"
+
+    PlayersLabel.Text = "👥 " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers
+end)
+
+-- Update Map Name when ready
+pcall(function()
+    local marketplaceService = game:GetService("MarketplaceService")
+    local info = marketplaceService:GetProductInfo(game.PlaceId)
+    MapNameLabel.Text = "🗺️ แมพ: " .. info.Name
+end)
+
+-- ═══════════════════════════════════════════════════════════════
+-- ASPECT RATIO & TOGGLE BUTTON
+-- ═══════════════════════════════════════════════════════════════
 LMG2L["UIAspectRatioConstraint_d"] = Instance.new("UIAspectRatioConstraint")
 LMG2L["UIAspectRatioConstraint_d"].AspectRatio = 1.43307
 LMG2L["UIAspectRatioConstraint_d"].Parent = LMG2L["Frame_2"]
 
--- Open Button (Toggle)
 LMG2L["ToggleButton_e"] = Instance.new("TextButton")
 LMG2L["ToggleButton_e"].Name = "ToggleButton"
 LMG2L["ToggleButton_e"].BorderSizePixel = 0
@@ -10372,7 +10804,6 @@ LMG2L["ToggleButton_e"].Position = UDim2.new(0.44365, 0, -0.09935, 0)
 LMG2L["ToggleButton_e"].Visible = false
 LMG2L["ToggleButton_e"].Parent = LMG2L["ScreenGui_1"]
 
--- Toggle button neon effect
 local toggleStroke = Instance.new("UIStroke")
 toggleStroke.Color = CONFIG.NEON_RED
 toggleStroke.Thickness = 2
@@ -10395,7 +10826,7 @@ LMG2L["UIAspectRatioConstraint_f"].AspectRatio = 6.44444
 LMG2L["UIAspectRatioConstraint_f"].Parent = LMG2L["ToggleButton_e"]
 
 -- ═══════════════════════════════════════════════════════════════
--- DRAG SYSTEM (Smooth Dragging)
+-- DRAG SYSTEM
 -- ═══════════════════════════════════════════════════════════════
 local dragging = false
 local dragStart = nil
@@ -10429,7 +10860,7 @@ LMG2L["Frame_2"].InputChanged:Connect(function(input)
 end)
 
 -- ═══════════════════════════════════════════════════════════════
--- TOGGLE SYSTEM (Open/Close with FX)
+-- TOGGLE SYSTEM
 -- ═══════════════════════════════════════════════════════════════
 local isOpen = true
 
@@ -10500,12 +10931,11 @@ local function OpenGUI()
     end)
 end
 
--- Connect buttons
 LMG2L["CloseButton_6"].MouseButton1Click:Connect(CloseGUI)
 LMG2L["ToggleButton_e"].MouseButton1Click:Connect(OpenGUI)
 
 -- ═══════════════════════════════════════════════════════════════
--- HOVER EFFECTS (Neon Pulse)
+-- HOVER EFFECTS
 -- ═══════════════════════════════════════════════════════════════
 local function AddHoverEffect(button, originalColor)
     button.MouseEnter:Connect(function()
@@ -10525,6 +10955,11 @@ AddHoverEffect(LMG2L["CloseButton_6"], Color3.fromRGB(20, 0, 0))
 AddHoverEffect(LMG2L["Tab1_9"], CONFIG.ACCENT_COLOR)
 AddHoverEffect(LMG2L["Tab2_b"], CONFIG.ACCENT_COLOR)
 AddHoverEffect(LMG2L["ToggleButton_e"], CONFIG.SECONDARY_COLOR)
+AddHoverEffect(SpeedButton, CONFIG.ACCENT_COLOR)
+AddHoverEffect(JumpButton, CONFIG.ACCENT_COLOR)
+AddHoverEffect(AntiTPButton, CONFIG.ACCENT_COLOR)
+AddHoverEffect(DisableAntiTPButton, Color3.fromRGB(80, 0, 0))
+AddHoverEffect(DiscordButton, Color3.fromRGB(88, 101, 242))
 
 -- ═══════════════════════════════════════════════════════════════
 -- TAB SWITCHING SYSTEM
@@ -10543,6 +10978,14 @@ local function SwitchTab(selectedTab)
     local absSize = selectedTab.AbsoluteSize
     local tabPos = UDim2.new(0, absPos.X + absSize.X/2, 0, absPos.Y + absSize.Y/2)
     SpawnParticleBurst(tabPos, 8, LMG2L["ScreenGui_1"])
+
+    if selectedTab == LMG2L["Tab1_9"] then
+        MainContent.Visible = true
+        PlayerContent.Visible = false
+    else
+        MainContent.Visible = false
+        PlayerContent.Visible = true
+    end
 end
 
 LMG2L["Tab1_9"].MouseButton1Click:Connect(function()
@@ -10568,7 +11011,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 -- ═══════════════════════════════════════════════════════════════
--- INITIAL ANIMATION (Entry FX)
+-- INITIAL ANIMATION
 -- ═══════════════════════════════════════════════════════════════
 LMG2L["Frame_2"].Size = UDim2.new(0, 0, 0, 0)
 LMG2L["Frame_2"].Rotation = -15
