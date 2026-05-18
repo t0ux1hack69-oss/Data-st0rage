@@ -41,7 +41,7 @@
     The requested URL was not found on this server.
     Additionally, a 404 Not Found error was encountered.
     Apache/2.4.41 (Ubuntu) Server at github.com Port 443
-    DATE: Fri, 15 May 2026 15:05:34 GMT
+    DATE: Mon, 18 May 2026 03:32:52 GMT
 ]]--
 
 
@@ -10044,19 +10044,73 @@
 
 
 -- ================================================================
---  เชิฟพัง📊 | BY : รุ่นใหญ่  😈💀
+--  เชิฟพัง📊 | BY : รุ่นใหญ่  💀
 --  Roblox Lua Exploit Script — Boombox Remote Spam GUI
+--  VERSION: 2.1 (FIXED — Multi-Executor Compatible)
+-- ================================================================
+
+-- ================================================================
+--  EXECUTOR COMPATIBILITY LAYER
 -- ================================================================
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Try multiple parent targets for ScreenGui (executor compatibility)
+local function getSafeGuiParent()
+    local success, result = pcall(function()
+        return game:GetService("CoreGui")
+    end)
+    if success and result then
+        return result
+    end
+
+    success, result = pcall(function()
+        return LocalPlayer:WaitForChild("PlayerGui", 5)
+    end)
+    if success and result then
+        return result
+    end
+
+    -- Fallback: try to get PlayerGui directly
+    if LocalPlayer:FindFirstChild("PlayerGui") then
+        return LocalPlayer.PlayerGui
+    end
+
+    -- Last resort: wait for character then PlayerGui
+    if not LocalPlayer.Character then
+        LocalPlayer.CharacterAdded:Wait()
+    end
+    return LocalPlayer:WaitForChild("PlayerGui", 10)
+end
+
+-- Safe wait function (supports both old and new executors)
+local function safeWait(duration)
+    duration = duration or 0
+    if typeof(duration) ~= "number" then duration = 0 end
+
+    local success = pcall(function()
+        task.wait(duration)
+    end)
+    if not success then
+        wait(duration)
+    end
+end
+
+-- Safe spawn function
+local function safeSpawn(func)
+    local success = pcall(function()
+        task.spawn(func)
+    end)
+    if not success then
+        spawn(func)
+    end
+end
 
 -- ================================================================
 --  CONFIGURATION
@@ -10087,11 +10141,11 @@ local CONFIG = {
 
 local State = {
     isRunning = false,
-    spamConnection = nil,
     lastToggleTime = 0,
     toggleDebounce = 0.3,
     guiVisible = true,
-    currentBoomboxState = false
+    currentBoomboxState = false,
+    guiLoaded = false
 }
 
 -- ================================================================
@@ -10132,12 +10186,24 @@ local function createTween(instance, properties, duration, easingStyle, easingDi
     easingDirection = easingDirection or Enum.EasingDirection.Out
     duration = duration or 0.3
 
-    local tween = TweenService:Create(
-        instance,
-        TweenInfo.new(duration, easingStyle, easingDirection),
-        properties
-    )
-    return tween
+    local success, tween = pcall(function()
+        return TweenService:Create(
+            instance,
+            TweenInfo.new(duration, easingStyle, easingDirection),
+            properties
+        )
+    end)
+
+    if success and tween then
+        return tween
+    end
+    return nil
+end
+
+local function safeTweenPlay(tween)
+    if tween and typeof(tween) == "Instance" and tween:IsA("Tween") then
+        pcall(function() tween:Play() end)
+    end
 end
 
 local function makeDraggable(frame, handle)
@@ -10174,429 +10240,484 @@ end
 --  GUI CONSTRUCTION
 -- ================================================================
 
-local existingGui = CoreGui:FindFirstChild(CONFIG.GUI_NAME)
-if existingGui then
-    existingGui:Destroy()
-end
+local function buildGUI()
+    if State.guiLoaded then return end
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = CONFIG.GUI_NAME
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = CoreGui
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 280)
-MainFrame.Position = UDim2.new(0.5, -160, 0.5, -140)
-MainFrame.BackgroundColor3 = CONFIG.COLORS.BG
-MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = true
-MainFrame.Parent = ScreenGui
-
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
-MainCorner.Parent = MainFrame
-
-local Shadow = Instance.new("ImageLabel")
-Shadow.Name = "Shadow"
-Shadow.Size = UDim2.new(1, 30, 1, 30)
-Shadow.Position = UDim2.new(0, -15, 0, -15)
-Shadow.BackgroundTransparency = 1
-Shadow.Image = "rbxassetid://131604521937076"
-Shadow.ImageTransparency = 0.6
-Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-Shadow.ScaleType = Enum.ScaleType.Slice
-Shadow.SliceCenter = Rect.new(20, 20, 280, 280)
-Shadow.ZIndex = -1
-Shadow.Parent = MainFrame
-
-local Header = Instance.new("Frame")
-Header.Name = "Header"
-Header.Size = UDim2.new(1, 0, 0, 45)
-Header.BackgroundColor3 = CONFIG.COLORS.HEADER
-Header.BorderSizePixel = 0
-Header.Parent = MainFrame
-
-local HeaderCorner = Instance.new("UICorner")
-HeaderCorner.CornerRadius = UDim.new(0, 12)
-HeaderCorner.Parent = Header
-
-local HeaderFix = Instance.new("Frame")
-HeaderFix.Name = "HeaderFix"
-HeaderFix.Size = UDim2.new(1, 0, 0, 15)
-HeaderFix.Position = UDim2.new(0, 0, 1, -15)
-HeaderFix.BackgroundColor3 = CONFIG.COLORS.HEADER
-HeaderFix.BorderSizePixel = 0
-HeaderFix.Parent = Header
-
-local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.Size = UDim2.new(1, -50, 1, 0)
-Title.Position = UDim2.new(0, 15, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "เชิฟพัง📊"
-Title.TextColor3 = CONFIG.COLORS.TEXT
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 20
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = Header
-
-local Subtitle = Instance.new("TextLabel")
-Subtitle.Name = "Subtitle"
-Subtitle.Size = UDim2.new(1, -50, 0, 18)
-Subtitle.Position = UDim2.new(0, 15, 0, 26)
-Subtitle.BackgroundTransparency = 1
-Subtitle.Text = "BY : รุ่นใหญ่ 💀"
-Subtitle.TextColor3 = CONFIG.COLORS.ACCENT
-Subtitle.Font = Enum.Font.Gotham
-Subtitle.TextSize = 12
-Subtitle.TextXAlignment = Enum.TextXAlignment.Left
-Subtitle.Parent = Header
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Name = "CloseBtn"
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -38, 0, 8)
-CloseBtn.BackgroundColor3 = CONFIG.COLORS.BUTTON_OFF
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = CONFIG.COLORS.TEXT
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 14
-CloseBtn.BorderSizePixel = 0
-CloseBtn.Parent = Header
-
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 8)
-CloseCorner.Parent = CloseBtn
-
-local Content = Instance.new("Frame")
-Content.Name = "Content"
-Content.Size = UDim2.new(1, -20, 1, -65)
-Content.Position = UDim2.new(0, 10, 0, 55)
-Content.BackgroundTransparency = 1
-Content.Parent = MainFrame
-
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Name = "StatusLabel"
-StatusLabel.Size = UDim2.new(1, 0, 0, 25)
-StatusLabel.Position = UDim2.new(0, 0, 0, 0)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "🔴 สถานะ: ปิดอยู่"
-StatusLabel.TextColor3 = CONFIG.COLORS.BUTTON_OFF
-StatusLabel.Font = Enum.Font.GothamBold
-StatusLabel.TextSize = 16
-StatusLabel.Parent = Content
-
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Name = "ToggleBtn"
-ToggleBtn.Size = UDim2.new(1, 0, 0, 50)
-ToggleBtn.Position = UDim2.new(0, 0, 0, 35)
-ToggleBtn.BackgroundColor3 = CONFIG.COLORS.BUTTON_OFF
-ToggleBtn.Text = "▶️ เปิดระบบสแปม"
-ToggleBtn.TextColor3 = CONFIG.COLORS.TEXT
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.TextSize = 16
-ToggleBtn.BorderSizePixel = 0
-ToggleBtn.AutoButtonColor = false
-ToggleBtn.Parent = Content
-
-local ToggleCorner = Instance.new("UICorner")
-ToggleCorner.CornerRadius = UDim.new(0, 10)
-ToggleCorner.Parent = ToggleBtn
-
-local ToggleGlow = Instance.new("ImageLabel")
-ToggleGlow.Name = "Glow"
-ToggleGlow.Size = UDim2.new(1, 20, 1, 20)
-ToggleGlow.Position = UDim2.new(0, -10, 0, -10)
-ToggleGlow.BackgroundTransparency = 1
-ToggleGlow.Image = "rbxassetid://131604521937076"
-ToggleGlow.ImageTransparency = 0.8
-ToggleGlow.ImageColor3 = CONFIG.COLORS.BUTTON_OFF
-ToggleGlow.ScaleType = Enum.ScaleType.Slice
-ToggleGlow.SliceCenter = Rect.new(20, 20, 280, 280)
-ToggleGlow.ZIndex = -1
-ToggleGlow.Parent = ToggleBtn
-
-local InfoLabel = Instance.new("TextLabel")
-InfoLabel.Name = "InfoLabel"
-InfoLabel.Size = UDim2.new(1, 0, 0, 40)
-InfoLabel.Position = UDim2.new(0, 0, 0, 95)
-InfoLabel.BackgroundTransparency = 1
-InfoLabel.Text = "⏱️ ความเร็ว: 0.05 วิ
-🔄 โหมด: สวม ↔ ถอด Boombox"
-InfoLabel.TextColor3 = CONFIG.COLORS.TEXT_DIM
-InfoLabel.Font = Enum.Font.Gotham
-InfoLabel.TextSize = 13
-InfoLabel.TextYAlignment = Enum.TextYAlignment.Top
-InfoLabel.Parent = Content
-
-local StatsFrame = Instance.new("Frame")
-StatsFrame.Name = "StatsFrame"
-StatsFrame.Size = UDim2.new(1, 0, 0, 70)
-StatsFrame.Position = UDim2.new(0, 0, 0, 140)
-StatsFrame.BackgroundColor3 = CONFIG.COLORS.HEADER
-StatsFrame.BorderSizePixel = 0
-StatsFrame.Parent = Content
-
-local StatsCorner = Instance.new("UICorner")
-StatsCorner.CornerRadius = UDim.new(0, 10)
-StatsCorner.Parent = StatsFrame
-
-local ToggleCountLabel = Instance.new("TextLabel")
-ToggleCountLabel.Name = "ToggleCount"
-ToggleCountLabel.Size = UDim2.new(0.5, 0, 0, 30)
-ToggleCountLabel.Position = UDim2.new(0, 10, 0, 5)
-ToggleCountLabel.BackgroundTransparency = 1
-ToggleCountLabel.Text = "สลับแล้ว: 0 ครั้ง"
-ToggleCountLabel.TextColor3 = CONFIG.COLORS.TEXT
-ToggleCountLabel.Font = Enum.Font.GothamBold
-ToggleCountLabel.TextSize = 14
-ToggleCountLabel.TextXAlignment = Enum.TextXAlignment.Left
-ToggleCountLabel.Parent = StatsFrame
-
-local CurrentStateLabel = Instance.new("TextLabel")
-CurrentStateLabel.Name = "CurrentState"
-CurrentStateLabel.Size = UDim2.new(0.5, 0, 0, 30)
-CurrentStateLabel.Position = UDim2.new(0, 10, 0, 35)
-CurrentStateLabel.BackgroundTransparency = 1
-CurrentStateLabel.Text = "Boombox: ไม่สวม"
-CurrentStateLabel.TextColor3 = CONFIG.COLORS.TEXT_DIM
-CurrentStateLabel.Font = Enum.Font.Gotham
-CurrentStateLabel.TextSize = 13
-CurrentStateLabel.TextXAlignment = Enum.TextXAlignment.Left
-CurrentStateLabel.Parent = StatsFrame
-
-local SpeedLabel = Instance.new("TextLabel")
-SpeedLabel.Name = "SpeedLabel"
-SpeedLabel.Size = UDim2.new(0.5, -10, 1, 0)
-SpeedLabel.Position = UDim2.new(0.5, 0, 0, 0)
-SpeedLabel.BackgroundTransparency = 1
-SpeedLabel.Text = "0.05s
-ต่อรอบ"
-SpeedLabel.TextColor3 = CONFIG.COLORS.ACCENT
-SpeedLabel.Font = Enum.Font.GothamBold
-SpeedLabel.TextSize = 18
-SpeedLabel.TextYAlignment = Enum.TextYAlignment.Center
-SpeedLabel.Parent = StatsFrame
-
-local DecoLine = Instance.new("Frame")
-DecoLine.Name = "DecoLine"
-DecoLine.Size = UDim2.new(1, -20, 0, 2)
-DecoLine.Position = UDim2.new(0, 10, 1, -22)
-DecoLine.BackgroundColor3 = CONFIG.COLORS.ACCENT
-DecoLine.BorderSizePixel = 0
-DecoLine.Parent = Content
-
-local DecoCorner = Instance.new("UICorner")
-DecoCorner.CornerRadius = UDim.new(1, 0)
-DecoCorner.Parent = DecoLine
-
-local VersionLabel = Instance.new("TextLabel")
-VersionLabel.Name = "VersionLabel"
-VersionLabel.Size = UDim2.new(1, 0, 0, 18)
-VersionLabel.Position = UDim2.new(0, 0, 1, -18)
-VersionLabel.BackgroundTransparency = 1
-VersionLabel.Text = "v2.0 | Exploit Edition 💀"
-VersionLabel.TextColor3 = CONFIG.COLORS.TEXT_DIM
-VersionLabel.Font = Enum.Font.Gotham
-VersionLabel.TextSize = 11
-VersionLabel.Parent = Content
-
--- ================================================================
---  MINIMIZED BUTTON
--- ================================================================
-
-local MinimizedBtn = Instance.new("TextButton")
-MinimizedBtn.Name = "MinimizedBtn"
-MinimizedBtn.Size = UDim2.new(0, 50, 0, 50)
-MinimizedBtn.Position = UDim2.new(0, 20, 0, 20)
-MinimizedBtn.BackgroundColor3 = CONFIG.COLORS.ACCENT
-MinimizedBtn.Text = "📊"
-MinimizedBtn.TextColor3 = CONFIG.COLORS.TEXT
-MinimizedBtn.Font = Enum.Font.GothamBold
-MinimizedBtn.TextSize = 24
-MinimizedBtn.BorderSizePixel = 0
-MinimizedBtn.Visible = false
-MinimizedBtn.Parent = ScreenGui
-
-local MinimizedCorner = Instance.new("UICorner")
-MinimizedCorner.CornerRadius = UDim.new(1, 0)
-MinimizedCorner.Parent = MinimizedBtn
-
-local MinimizedStroke = Instance.new("UIStroke")
-MinimizedStroke.Color = CONFIG.COLORS.BORDER
-MinimizedStroke.Thickness = 2
-MinimizedStroke.Parent = MinimizedBtn
-
--- ================================================================
---  LOGIC & FUNCTIONALITY
--- ================================================================
-
-local toggleCount = 0
-
-local function updateStatus(isActive)
-    if isActive then
-        StatusLabel.Text = "🟢 สถานะ: กำลังสแปม"
-        StatusLabel.TextColor3 = CONFIG.COLORS.BUTTON_ON
-        ToggleBtn.Text = "⏹️ ปิดระบบสแปม"
-        ToggleBtn.BackgroundColor3 = CONFIG.COLORS.BUTTON_ON
-        ToggleGlow.ImageColor3 = CONFIG.COLORS.BUTTON_ON
-        createTween(ToggleGlow, {ImageTransparency = 0.4}, 0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut):Play()
-    else
-        StatusLabel.Text = "🔴 สถานะ: ปิดอยู่"
-        StatusLabel.TextColor3 = CONFIG.COLORS.BUTTON_OFF
-        ToggleBtn.Text = "▶️ เปิดระบบสแปม"
-        ToggleBtn.BackgroundColor3 = CONFIG.COLORS.BUTTON_OFF
-        ToggleGlow.ImageColor3 = CONFIG.COLORS.BUTTON_OFF
-        createTween(ToggleGlow, {ImageTransparency = 0.8}, 0.5):Play()
+    local guiParent = getSafeGuiParent()
+    if not guiParent then
+        warn("[เชิฟพัง] ไม่สามารถหาที่วาง GUI ได้!")
+        return
     end
-end
 
-local function updateStats()
-    ToggleCountLabel.Text = "สลับแล้ว: " .. toggleCount .. " ครั้ง"
-    CurrentStateLabel.Text = "Boombox: " .. (State.currentBoomboxState and "สวมอยู่ ✅" or "ถอดแล้ว ❌")
-    CurrentStateLabel.TextColor3 = State.currentBoomboxState and CONFIG.COLORS.BUTTON_ON or CONFIG.COLORS.BUTTON_OFF
-end
+    -- Destroy existing GUI
+    local existing = guiParent:FindFirstChild(CONFIG.GUI_NAME)
+    if existing then
+        existing:Destroy()
+    end
 
-local function startSpam()
-    if State.isRunning then return end
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = CONFIG.GUI_NAME
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.Parent = guiParent
 
-    State.isRunning = true
-    State.currentBoomboxState = false
-    updateStatus(true)
+    -- Main Frame
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.new(0, 320, 0, 280)
+    MainFrame.Position = UDim2.new(0.5, -160, 0.5, -140)
+    MainFrame.BackgroundColor3 = CONFIG.COLORS.BG
+    MainFrame.BorderSizePixel = 0
+    MainFrame.ClipsDescendants = true
+    MainFrame.Parent = ScreenGui
 
-    spawn(function()
-        while State.isRunning do
-            State.currentBoomboxState = not State.currentBoomboxState
+    local MainCorner = Instance.new("UICorner")
+    MainCorner.CornerRadius = UDim.new(0, 12)
+    MainCorner.Parent = MainFrame
 
-            local success = invokeRemote(State.currentBoomboxState)
+    -- Shadow (optional — if image fails, no crash)
+    local Shadow = Instance.new("Frame")
+    Shadow.Name = "Shadow"
+    Shadow.Size = UDim2.new(1, 30, 1, 30)
+    Shadow.Position = UDim2.new(0, -15, 0, -15)
+    Shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Shadow.BackgroundTransparency = 0.7
+    Shadow.BorderSizePixel = 0
+    Shadow.ZIndex = -1
+    Shadow.Parent = MainFrame
 
-            if success then
-                toggleCount = toggleCount + 1
-                updateStats()
+    local ShadowCorner = Instance.new("UICorner")
+    ShadowCorner.CornerRadius = UDim.new(0, 15)
+    ShadowCorner.Parent = Shadow
+
+    -- Header
+    local Header = Instance.new("Frame")
+    Header.Name = "Header"
+    Header.Size = UDim2.new(1, 0, 0, 45)
+    Header.BackgroundColor3 = CONFIG.COLORS.HEADER
+    Header.BorderSizePixel = 0
+    Header.Parent = MainFrame
+
+    local HeaderCorner = Instance.new("UICorner")
+    HeaderCorner.CornerRadius = UDim.new(0, 12)
+    HeaderCorner.Parent = Header
+
+    local HeaderFix = Instance.new("Frame")
+    HeaderFix.Name = "HeaderFix"
+    HeaderFix.Size = UDim2.new(1, 0, 0, 15)
+    HeaderFix.Position = UDim2.new(0, 0, 1, -15)
+    HeaderFix.BackgroundColor3 = CONFIG.COLORS.HEADER
+    HeaderFix.BorderSizePixel = 0
+    HeaderFix.Parent = Header
+
+    -- Title
+    local Title = Instance.new("TextLabel")
+    Title.Name = "Title"
+    Title.Size = UDim2.new(1, -50, 1, 0)
+    Title.Position = UDim2.new(0, 15, 0, 0)
+    Title.BackgroundTransparency = 1
+    Title.Text = "เชิฟพัง📊"
+    Title.TextColor3 = CONFIG.COLORS.TEXT
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 20
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Parent = Header
+
+    -- Subtitle
+    local Subtitle = Instance.new("TextLabel")
+    Subtitle.Name = "Subtitle"
+    Subtitle.Size = UDim2.new(1, -50, 0, 18)
+    Subtitle.Position = UDim2.new(0, 15, 0, 26)
+    Subtitle.BackgroundTransparency = 1
+    Subtitle.Text = "BY : รุ่นใหญ่ 💀"
+    Subtitle.TextColor3 = CONFIG.COLORS.ACCENT
+    Subtitle.Font = Enum.Font.Gotham
+    Subtitle.TextSize = 12
+    Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+    Subtitle.Parent = Header
+
+    -- Close Button
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Name = "CloseBtn"
+    CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+    CloseBtn.Position = UDim2.new(1, -38, 0, 8)
+    CloseBtn.BackgroundColor3 = CONFIG.COLORS.BUTTON_OFF
+    CloseBtn.Text = "X"
+    CloseBtn.TextColor3 = CONFIG.COLORS.TEXT
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.TextSize = 14
+    CloseBtn.BorderSizePixel = 0
+    CloseBtn.Parent = Header
+
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 8)
+    CloseCorner.Parent = CloseBtn
+
+    -- Content Area
+    local Content = Instance.new("Frame")
+    Content.Name = "Content"
+    Content.Size = UDim2.new(1, -20, 1, -65)
+    Content.Position = UDim2.new(0, 10, 0, 55)
+    Content.BackgroundTransparency = 1
+    Content.Parent = MainFrame
+
+    -- Status Label
+    local StatusLabel = Instance.new("TextLabel")
+    StatusLabel.Name = "StatusLabel"
+    StatusLabel.Size = UDim2.new(1, 0, 0, 25)
+    StatusLabel.Position = UDim2.new(0, 0, 0, 0)
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Text = "🔴 สถานะ: ปิดอยู่"
+    StatusLabel.TextColor3 = CONFIG.COLORS.BUTTON_OFF
+    StatusLabel.Font = Enum.Font.GothamBold
+    StatusLabel.TextSize = 16
+    StatusLabel.Parent = Content
+
+    -- Toggle Button (Main ON/OFF)
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Name = "ToggleBtn"
+    ToggleBtn.Size = UDim2.new(1, 0, 0, 50)
+    ToggleBtn.Position = UDim2.new(0, 0, 0, 35)
+    ToggleBtn.BackgroundColor3 = CONFIG.COLORS.BUTTON_OFF
+    ToggleBtn.Text = "▶️ เปิดระบบสแปม"
+    ToggleBtn.TextColor3 = CONFIG.COLORS.TEXT
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.TextSize = 16
+    ToggleBtn.BorderSizePixel = 0
+    ToggleBtn.AutoButtonColor = false
+    ToggleBtn.Parent = Content
+
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 10)
+    ToggleCorner.Parent = ToggleBtn
+
+    -- Toggle Button Glow
+    local ToggleGlow = Instance.new("Frame")
+    ToggleGlow.Name = "Glow"
+    ToggleGlow.Size = UDim2.new(1, 20, 1, 20)
+    ToggleGlow.Position = UDim2.new(0, -10, 0, -10)
+    ToggleGlow.BackgroundColor3 = CONFIG.COLORS.BUTTON_OFF
+    ToggleGlow.BackgroundTransparency = 0.8
+    ToggleGlow.BorderSizePixel = 0
+    ToggleGlow.ZIndex = -1
+    ToggleGlow.Parent = ToggleBtn
+
+    local GlowCorner = Instance.new("UICorner")
+    GlowCorner.CornerRadius = UDim.new(0, 12)
+    GlowCorner.Parent = ToggleGlow
+
+    -- Info Label
+    local InfoLabel = Instance.new("TextLabel")
+    InfoLabel.Name = "InfoLabel"
+    InfoLabel.Size = UDim2.new(1, 0, 0, 40)
+    InfoLabel.Position = UDim2.new(0, 0, 0, 95)
+    InfoLabel.BackgroundTransparency = 1
+    InfoLabel.Text = "⏱️ ความเร็ว: 0.05 วิ
+🔄 โหมด: สวม ↔ ถอด Boombox"
+    InfoLabel.TextColor3 = CONFIG.COLORS.TEXT_DIM
+    InfoLabel.Font = Enum.Font.Gotham
+    InfoLabel.TextSize = 13
+    InfoLabel.TextYAlignment = Enum.TextYAlignment.Top
+    InfoLabel.Parent = Content
+
+    -- Stats Frame
+    local StatsFrame = Instance.new("Frame")
+    StatsFrame.Name = "StatsFrame"
+    StatsFrame.Size = UDim2.new(1, 0, 0, 70)
+    StatsFrame.Position = UDim2.new(0, 0, 0, 140)
+    StatsFrame.BackgroundColor3 = CONFIG.COLORS.HEADER
+    StatsFrame.BorderSizePixel = 0
+    StatsFrame.Parent = Content
+
+    local StatsCorner = Instance.new("UICorner")
+    StatsCorner.CornerRadius = UDim.new(0, 10)
+    StatsCorner.Parent = StatsFrame
+
+    -- Stats: Toggle Count
+    local ToggleCountLabel = Instance.new("TextLabel")
+    ToggleCountLabel.Name = "ToggleCount"
+    ToggleCountLabel.Size = UDim2.new(0.5, 0, 0, 30)
+    ToggleCountLabel.Position = UDim2.new(0, 10, 0, 5)
+    ToggleCountLabel.BackgroundTransparency = 1
+    ToggleCountLabel.Text = "สลับแล้ว: 0 ครั้ง"
+    ToggleCountLabel.TextColor3 = CONFIG.COLORS.TEXT
+    ToggleCountLabel.Font = Enum.Font.GothamBold
+    ToggleCountLabel.TextSize = 14
+    ToggleCountLabel.TextXAlignment = Enum.TextXAlignment.Left
+    ToggleCountLabel.Parent = StatsFrame
+
+    -- Stats: Current State
+    local CurrentStateLabel = Instance.new("TextLabel")
+    CurrentStateLabel.Name = "CurrentState"
+    CurrentStateLabel.Size = UDim2.new(0.5, 0, 0, 30)
+    CurrentStateLabel.Position = UDim2.new(0, 10, 0, 35)
+    CurrentStateLabel.BackgroundTransparency = 1
+    CurrentStateLabel.Text = "Boombox: ไม่สวม"
+    CurrentStateLabel.TextColor3 = CONFIG.COLORS.TEXT_DIM
+    CurrentStateLabel.Font = Enum.Font.Gotham
+    CurrentStateLabel.TextSize = 13
+    CurrentStateLabel.TextXAlignment = Enum.TextXAlignment.Left
+    CurrentStateLabel.Parent = StatsFrame
+
+    -- Stats: Speed Display
+    local SpeedLabel = Instance.new("TextLabel")
+    SpeedLabel.Name = "SpeedLabel"
+    SpeedLabel.Size = UDim2.new(0.5, -10, 1, 0)
+    SpeedLabel.Position = UDim2.new(0.5, 0, 0, 0)
+    SpeedLabel.BackgroundTransparency = 1
+    SpeedLabel.Text = "0.05s
+ต่อรอบ"
+    SpeedLabel.TextColor3 = CONFIG.COLORS.ACCENT
+    SpeedLabel.Font = Enum.Font.GothamBold
+    SpeedLabel.TextSize = 18
+    SpeedLabel.TextYAlignment = Enum.TextYAlignment.Center
+    SpeedLabel.Parent = StatsFrame
+
+    -- Bottom Decoration
+    local DecoLine = Instance.new("Frame")
+    DecoLine.Name = "DecoLine"
+    DecoLine.Size = UDim2.new(1, -20, 0, 2)
+    DecoLine.Position = UDim2.new(0, 10, 1, -22)
+    DecoLine.BackgroundColor3 = CONFIG.COLORS.ACCENT
+    DecoLine.BorderSizePixel = 0
+    DecoLine.Parent = Content
+
+    local DecoCorner = Instance.new("UICorner")
+    DecoCorner.CornerRadius = UDim.new(1, 0)
+    DecoCorner.Parent = DecoLine
+
+    -- Version Label
+    local VersionLabel = Instance.new("TextLabel")
+    VersionLabel.Name = "VersionLabel"
+    VersionLabel.Size = UDim2.new(1, 0, 0, 18)
+    VersionLabel.Position = UDim2.new(0, 0, 1, -18)
+    VersionLabel.BackgroundTransparency = 1
+    VersionLabel.Text = "v2.1 FIXED | Exploit Edition 💀"
+    VersionLabel.TextColor3 = CONFIG.COLORS.TEXT_DIM
+    VersionLabel.Font = Enum.Font.Gotham
+    VersionLabel.TextSize = 11
+    VersionLabel.Parent = Content
+
+    -- ================================================================
+    --  MINIMIZED BUTTON
+    -- ================================================================
+
+    local MinimizedBtn = Instance.new("TextButton")
+    MinimizedBtn.Name = "MinimizedBtn"
+    MinimizedBtn.Size = UDim2.new(0, 50, 0, 50)
+    MinimizedBtn.Position = UDim2.new(0, 20, 0, 20)
+    MinimizedBtn.BackgroundColor3 = CONFIG.COLORS.ACCENT
+    MinimizedBtn.Text = "📊"
+    MinimizedBtn.TextColor3 = CONFIG.COLORS.TEXT
+    MinimizedBtn.Font = Enum.Font.GothamBold
+    MinimizedBtn.TextSize = 24
+    MinimizedBtn.BorderSizePixel = 0
+    MinimizedBtn.Visible = false
+    MinimizedBtn.Parent = ScreenGui
+
+    local MinimizedCorner = Instance.new("UICorner")
+    MinimizedCorner.CornerRadius = UDim.new(1, 0)
+    MinimizedCorner.Parent = MinimizedBtn
+
+    local MinimizedStroke = Instance.new("UIStroke")
+    MinimizedStroke.Color = CONFIG.COLORS.BORDER
+    MinimizedStroke.Thickness = 2
+    MinimizedStroke.Parent = MinimizedBtn
+
+    -- ================================================================
+    --  LOGIC & FUNCTIONALITY
+    -- ================================================================
+
+    local toggleCount = 0
+
+    local function updateStatus(isActive)
+        if isActive then
+            StatusLabel.Text = "🟢 สถานะ: กำลังสแปม"
+            StatusLabel.TextColor3 = CONFIG.COLORS.BUTTON_ON
+            ToggleBtn.Text = "⏹️ ปิดระบบสแปม"
+            ToggleBtn.BackgroundColor3 = CONFIG.COLORS.BUTTON_ON
+            ToggleGlow.BackgroundColor3 = CONFIG.COLORS.BUTTON_ON
+            local tween = createTween(ToggleGlow, {BackgroundTransparency = 0.4}, 0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            safeTweenPlay(tween)
+        else
+            StatusLabel.Text = "🔴 สถานะ: ปิดอยู่"
+            StatusLabel.TextColor3 = CONFIG.COLORS.BUTTON_OFF
+            ToggleBtn.Text = "▶️ เปิดระบบสแปม"
+            ToggleBtn.BackgroundColor3 = CONFIG.COLORS.BUTTON_OFF
+            ToggleGlow.BackgroundColor3 = CONFIG.COLORS.BUTTON_OFF
+            local tween = createTween(ToggleGlow, {BackgroundTransparency = 0.8}, 0.5)
+            safeTweenPlay(tween)
+        end
+    end
+
+    local function updateStats()
+        ToggleCountLabel.Text = "สลับแล้ว: " .. toggleCount .. " ครั้ง"
+        CurrentStateLabel.Text = "Boombox: " .. (State.currentBoomboxState and "สวมอยู่ ✅" or "ถอดแล้ว ❌")
+        CurrentStateLabel.TextColor3 = State.currentBoomboxState and CONFIG.COLORS.BUTTON_ON or CONFIG.COLORS.BUTTON_OFF
+    end
+
+    local function startSpam()
+        if State.isRunning then return end
+
+        State.isRunning = true
+        State.currentBoomboxState = false
+        updateStatus(true)
+
+        safeSpawn(function()
+            while State.isRunning do
+                State.currentBoomboxState = not State.currentBoomboxState
+
+                local success = invokeRemote(State.currentBoomboxState)
+
+                if success then
+                    toggleCount = toggleCount + 1
+                    updateStats()
+                end
+
+                safeWait(CONFIG.SPAM_DELAY)
             end
+        end)
+    end
 
-            wait(CONFIG.SPAM_DELAY)
+    local function stopSpam()
+        if not State.isRunning then return end
+
+        State.isRunning = false
+        updateStatus(false)
+        updateStats()
+    end
+
+    local function toggleSpam()
+        local now = tick()
+        if now - State.lastToggleTime < State.toggleDebounce then return end
+        State.lastToggleTime = now
+
+        if State.isRunning then
+            stopSpam()
+        else
+            startSpam()
+        end
+    end
+
+    -- ================================================================
+    --  GUI INTERACTIONS
+    -- ================================================================
+
+    ToggleBtn.MouseButton1Click:Connect(toggleSpam)
+
+    ToggleBtn.MouseEnter:Connect(function()
+        local targetColor = State.isRunning and Color3.fromRGB(80, 255, 130) or CONFIG.COLORS.ACCENT_HOVER
+        local tween = createTween(ToggleBtn, {BackgroundColor3 = targetColor}, 0.2)
+        safeTweenPlay(tween)
+    end)
+
+    ToggleBtn.MouseLeave:Connect(function()
+        local targetColor = State.isRunning and CONFIG.COLORS.BUTTON_ON or CONFIG.COLORS.BUTTON_OFF
+        local tween = createTween(ToggleBtn, {BackgroundColor3 = targetColor}, 0.2)
+        safeTweenPlay(tween)
+    end)
+
+    CloseBtn.MouseButton1Click:Connect(function()
+        local tween = createTween(MainFrame, {Size = UDim2.new(0, 320, 0, 0)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+        safeTweenPlay(tween)
+        safeWait(0.3)
+        MainFrame.Visible = false
+        MinimizedBtn.Visible = true
+        local minTween = createTween(MinimizedBtn, {Size = UDim2.new(0, 50, 0, 50)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        safeTweenPlay(minTween)
+    end)
+
+    CloseBtn.MouseEnter:Connect(function()
+        local tween = createTween(CloseBtn, {BackgroundColor3 = Color3.fromRGB(255, 80, 80)}, 0.2)
+        safeTweenPlay(tween)
+    end)
+
+    CloseBtn.MouseLeave:Connect(function()
+        local tween = createTween(CloseBtn, {BackgroundColor3 = CONFIG.COLORS.BUTTON_OFF}, 0.2)
+        safeTweenPlay(tween)
+    end)
+
+    MinimizedBtn.MouseButton1Click:Connect(function()
+        MinimizedBtn.Visible = false
+        MainFrame.Visible = true
+        MainFrame.Size = UDim2.new(0, 320, 0, 0)
+        local tween = createTween(MainFrame, {Size = UDim2.new(0, 320, 0, 280)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        safeTweenPlay(tween)
+    end)
+
+    MinimizedBtn.MouseEnter:Connect(function()
+        local tween = createTween(MinimizedBtn, {Size = UDim2.new(0, 55, 0, 55)}, 0.2)
+        safeTweenPlay(tween)
+    end)
+
+    MinimizedBtn.MouseLeave:Connect(function()
+        local tween = createTween(MinimizedBtn, {Size = UDim2.new(0, 50, 0, 50)}, 0.2)
+        safeTweenPlay(tween)
+    end)
+
+    makeDraggable(MainFrame, Header)
+    makeDraggable(MinimizedBtn, MinimizedBtn)
+
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == CONFIG.TOGGLE_KEY then
+            if MainFrame.Visible then
+                MainFrame.Visible = false
+                MinimizedBtn.Visible = true
+            else
+                MinimizedBtn.Visible = false
+                MainFrame.Visible = true
+            end
         end
     end)
-end
 
-local function stopSpam()
-    if not State.isRunning then return end
+    -- ================================================================
+    --  INTRO ANIMATION
+    -- ================================================================
 
-    State.isRunning = false
-    updateStatus(false)
-    updateStats()
-end
-
-local function toggleSpam()
-    local now = tick()
-    if now - State.lastToggleTime < State.toggleDebounce then return end
-    State.lastToggleTime = now
-
-    if State.isRunning then
-        stopSpam()
-    else
-        startSpam()
-    end
-end
-
--- ================================================================
---  GUI INTERACTIONS
--- ================================================================
-
-ToggleBtn.MouseButton1Click:Connect(toggleSpam)
-
-ToggleBtn.MouseEnter:Connect(function()
-    createTween(ToggleBtn, {BackgroundColor3 = State.isRunning and Color3.fromRGB(80, 255, 130) or CONFIG.COLORS.ACCENT_HOVER}, 0.2):Play()
-end)
-
-ToggleBtn.MouseLeave:Connect(function()
-    createTween(ToggleBtn, {BackgroundColor3 = State.isRunning and CONFIG.COLORS.BUTTON_ON or CONFIG.COLORS.BUTTON_OFF}, 0.2):Play()
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    createTween(MainFrame, {Size = UDim2.new(0, 320, 0, 0)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In):Play()
-    wait(0.3)
-    MainFrame.Visible = false
-    MinimizedBtn.Visible = true
-    createTween(MinimizedBtn, {Size = UDim2.new(0, 50, 0, 50)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out):Play()
-end)
-
-CloseBtn.MouseEnter:Connect(function()
-    createTween(CloseBtn, {BackgroundColor3 = Color3.fromRGB(255, 80, 80)}, 0.2):Play()
-end)
-
-CloseBtn.MouseLeave:Connect(function()
-    createTween(CloseBtn, {BackgroundColor3 = CONFIG.COLORS.BUTTON_OFF}, 0.2):Play()
-end)
-
-MinimizedBtn.MouseButton1Click:Connect(function()
-    MinimizedBtn.Visible = false
-    MainFrame.Visible = true
     MainFrame.Size = UDim2.new(0, 320, 0, 0)
-    createTween(MainFrame, {Size = UDim2.new(0, 320, 0, 280)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out):Play()
-end)
+    MainFrame.Visible = true
 
-MinimizedBtn.MouseEnter:Connect(function()
-    createTween(MinimizedBtn, {Size = UDim2.new(0, 55, 0, 55)}, 0.2):Play()
-end)
+    Header.Size = UDim2.new(1, 0, 0, 0)
+    local headerTween = createTween(Header, {Size = UDim2.new(1, 0, 0, 45)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    safeTweenPlay(headerTween)
+    safeWait(0.1)
 
-MinimizedBtn.MouseLeave:Connect(function()
-    createTween(MinimizedBtn, {Size = UDim2.new(0, 50, 0, 50)}, 0.2):Play()
-end)
+    local mainTween = createTween(MainFrame, {Size = UDim2.new(0, 320, 0, 280)}, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    safeTweenPlay(mainTween)
+    safeWait(0.3)
 
-makeDraggable(MainFrame, Header)
-makeDraggable(MinimizedBtn, MinimizedBtn)
+    State.guiLoaded = true
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == CONFIG.TOGGLE_KEY then
-        if MainFrame.Visible then
-            MainFrame.Visible = false
-            MinimizedBtn.Visible = true
-        else
-            MinimizedBtn.Visible = false
-            MainFrame.Visible = true
-        end
-    end
-end)
+    -- ================================================================
+    --  AUTO-CLEANUP ON DEATH / RESPAWN
+    -- ================================================================
 
--- ================================================================
---  INTRO ANIMATION
--- ================================================================
+    LocalPlayer.CharacterRemoving:Connect(function()
+        stopSpam()
+    end)
 
-MainFrame.Size = UDim2.new(0, 320, 0, 0)
-MainFrame.Visible = true
-
-Header.Size = UDim2.new(1, 0, 0, 0)
-createTween(Header, {Size = UDim2.new(1, 0, 0, 45)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out):Play()
-wait(0.1)
-
-createTween(MainFrame, {Size = UDim2.new(0, 320, 0, 280)}, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out):Play()
-wait(0.3)
-
-Content.BackgroundTransparency = 1
-for _, child in ipairs(Content:GetDescendants()) do
-    if child:IsA("GuiObject") then
-        child.TextTransparency = 1
-    end
-end
-
-for _, child in ipairs(Content:GetDescendants()) do
-    if child:IsA("TextLabel") or child:IsA("TextButton") then
-        createTween(child, {TextTransparency = 0}, 0.4):Play()
-    end
+    print("[เชิฟพัง] GUI โหลดสำเร็จ! 💀")
 end
 
 -- ================================================================
---  AUTO-CLEANUP ON DEATH / RESPAWN
+--  MAIN ENTRY POINT
 -- ================================================================
 
-LocalPlayer.CharacterRemoving:Connect(function()
-    stopSpam()
-end)
+-- Try to build immediately
+local success, err = pcall(buildGUI)
+if not success then
+    warn("[เชิฟพัง] โหลด GUI ครั้งแรกล้มเหลว: " .. tostring(err))
+    -- Retry after character loads
+    if LocalPlayer.Character then
+        safeWait(1)
+        pcall(buildGUI)
+    else
+        LocalPlayer.CharacterAdded:Wait()
+        safeWait(0.5)
+        pcall(buildGUI)
+    end
+end
 
 -- ================================================================
 --  NOTIFICATION
@@ -10604,7 +10725,7 @@ end)
 
 print("===============================================================")
 print("  เชิฟพัง📊 | BY : รุ่นใหญ่  💀")
-print("  สคริปต์โหลดสำเร็จ!")
+print("  สคริปต์โหลดสำเร็จ! (v2.1 FIXED)")
 print("  กด [RightShift] เพื่อซ่อน/แสดง GUI")
 print("  กดปุ่ม เปิดระบบสแปม เพื่อเริ่มสแปม Boombox")
 print("  ความเร็ว: 0.05 วินาทีต่อรอบ")
