@@ -10047,8 +10047,9 @@
 -- 🧨 ระเบิดคนเครื่องกาก🤤 | BY : รุ่นใหญ่
 -- =============================================================
 -- ⚠️ Exploit Script for Roblox
--- 🎯 Features: Aura Spam Loop + Auto Delete Effects
+-- 🎯 Features: Aura Spam Loop + Auto Delete Effects (Optimized)
 -- 📱 Mobile Optimized | 🖱️ Draggable GUI
+-- 🚀 Optimized: Lag-free execution with task.defer & throttling
 -- =============================================================
 
 local Players = game:GetService("Players")
@@ -10057,8 +10058,8 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
-local Debris = game:GetService("Debris")
 local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -10162,9 +10163,9 @@ local function tween(obj, properties, duration, easingStyle, easingDirection)
         easingStyle or Enum.EasingStyle.Quad,
         easingDirection or Enum.EasingDirection.Out
     )
-    local tween = TweenService:Create(obj, tweenInfo, properties)
-    tween:Play()
-    return tween
+    local tw = TweenService:Create(obj, tweenInfo, properties)
+    tw:Play()
+    return tw
 end
 
 -- =============================================================
@@ -10360,32 +10361,26 @@ local function createToggleButton(name, description)
 end
 
 -- =============================================================
--- ⚡ FEATURE 1: AURA SPAM LOOP
+-- ⚡ FEATURE 1: AURA SPAM LOOP (OPTIMIZED)
 -- =============================================================
 local AuraFrame, AuraBtn, AuraDot, AuraState = createToggleButton(
     "เอฟเฟคเเล็ค ⚡", 
-    "Loop สปอร์ต Aura ความเร็วสูง"
+    "Loop สปอร์ต Aura ความเร็วสูง (0.05s)"
 )
 AuraFrame.Parent = ContentFrame
 
 local auraActive = false
-local auraConnection = nil
 local auraThread = nil
 
 local function fireAuraRemote(mode)
     local args
     if mode == 1 then
-        args = {
-            [1] = "EquipAura",
-            [2] = "Sapphire"
-        }
+        args = { [1] = "EquipAura", [2] = "Sapphire" }
     else
-        args = {
-            [1] = "EquipAura"
-        }
+        args = { [1] = "EquipAura" }
     end
 
-    local success, err = pcall(function()
+    pcall(function()
         local remote = ReplicatedStorage:FindFirstChild("RelicsXYZ")
         if remote then
             local event = remote:FindFirstChild("RelicsEvent")
@@ -10394,10 +10389,6 @@ local function fireAuraRemote(mode)
             end
         end
     end)
-
-    if not success then
-        warn("[ระเบิดคนเครื่องกาก] Aura Remote Error: " .. tostring(err))
-    end
 end
 
 local function startAuraLoop()
@@ -10405,23 +10396,22 @@ local function startAuraLoop()
         pcall(function() coroutine.close(auraThread) end)
     end
 
-    auraThread = coroutine.create(function()
+    auraThread = task.spawn(function()
         while auraActive do
-            fireAuraRemote(1)
+            -- ใช้ task.defer แทนการเรียกตรงๆ เพื่อลด lag
+            task.defer(fireAuraRemote, 1)
             task.wait(CONFIG.LOOP_SPEED)
             if not auraActive then break end
-            fireAuraRemote(2)
+            task.defer(fireAuraRemote, 2)
             task.wait(CONFIG.LOOP_SPEED)
         end
     end)
-
-    coroutine.resume(auraThread)
 end
 
 local function stopAuraLoop()
     auraActive = false
     if auraThread then
-        pcall(function() coroutine.close(auraThread) end)
+        pcall(function() task.cancel(auraThread) end)
         auraThread = nil
     end
 end
@@ -10446,65 +10436,72 @@ AuraBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =============================================================
--- 🗑️ FEATURE 2: AUTO DELETE EFFECTS
+-- 🗑️ FEATURE 2: AUTO DELETE EFFECTS (STUDIO KID COOL SOUND EDITION)
 -- =============================================================
 local DelFrame, DelBtn, DelDot, DelState = createToggleButton(
     "ลบเอฟเฟคอัตโนมัติ 🗑️", 
-    "ลบ Effect ทุกอย่างทันทีที่ spawn"
+    "ระบบลบ Effect แบบลื่นไหล"
 )
 DelFrame.Parent = ContentFrame
 
 local deleteActive = false
 local deleteConnections = {}
 
-local effectKeywords = {
-    "effect", "aura", "particle", "trail", "sparkle", "glow",
-    "beam", "light", "explosion", "smoke", "fire", "magic",
-    "buff", "debuff", "shield", "heal", "damage", "hit",
-    "slash", "swing", "cast", "spell", "skill", "ability",
-    "fx", "vfx", "animation", "emitter", "attachment"
+-- 🎯 Target Classes (จาก Studiokidcoolsound)
+local TargetClasses = {
+    "Sound", "ParticleEmitter", "Beam", "Trail", 
+    "Highlight", "Fire", "Smoke", "Sparkles"
 }
 
-local function isEffect(obj)
-    if not obj then return false end
+-- 🚫 Blacklist Names (จาก Studiokidcoolsound)
+local BlacklistNames = {
+    "AuraPreview", "water wave", "GroundMAIN", "Bass"
+}
 
-    local name = obj.Name:lower()
-    for _, keyword in ipairs(effectKeywords) do
-        if name:find(keyword) then
-            return true
-        end
+local TargetServices = { Workspace, ReplicatedStorage }
+
+-- ตรวจสอบ Class
+local function IsTargetClass(inst)
+    for _, class in ipairs(TargetClasses) do
+        if inst:IsA(class) then return true end
     end
-
-    if obj:IsA("ParticleEmitter") or 
-       obj:IsA("Trail") or 
-       obj:IsA("Beam") or 
-       obj:IsA("Explosion") or
-       obj:IsA("Smoke") or
-       obj:IsA("Fire") or
-       obj:IsA("Sparkles") then
-        return true
-    end
-
     return false
 end
 
-local function deleteEffect(obj)
-    if not obj or not obj.Parent then return end
-    pcall(function()
-        if obj:IsA("BasePart") or obj:IsA("Model") then
-            obj:Destroy()
-        else
-            obj:Destroy()
-        end
-    end)
+-- ตรวจสอบชื่อ Blacklist
+local function IsBlacklisted(inst)
+    for _, name in ipairs(BlacklistNames) do
+        if inst.Name == name then return true end
+    end
+    return false
 end
 
-local function scanAndDeleteEffects(parent)
-    if not parent then return end
-    for _, child in ipairs(parent:GetDescendants()) do
-        if isEffect(child) then
-            deleteEffect(child)
+-- กวาดล้างของที่มีอยู่แล้ว (เฉพาะใน Camera)
+local function SweepExistingEffects()
+    local cam = Workspace.CurrentCamera
+    if cam then
+        for _, inst in ipairs(cam:GetDescendants()) do
+            if IsTargetClass(inst) or IsBlacklisted(inst) then
+                pcall(function() inst:Destroy() end)
+            end
         end
+    end
+end
+
+-- จัดการ Effect ที่เกิดใหม่ (Optimized ด้วย task.defer)
+local function HandleEffect(inst)
+    if not deleteActive then return end
+
+    local isClassMatch = IsTargetClass(inst)
+    local isNameMatch = IsBlacklisted(inst)
+
+    -- ถ้าตรงกับชื่อ Blacklist หรือเป็น Class ที่กำหนดและอยู่ใน Camera
+    if isNameMatch or (isClassMatch and inst:IsDescendantOf(Workspace.CurrentCamera)) then
+        task.defer(function()
+            if inst and inst.Parent then
+                pcall(function() inst:Destroy() end)
+            end
+        end)
     end
 end
 
@@ -10515,66 +10512,52 @@ local function startAutoDelete()
     end
     deleteConnections = {}
 
-    -- Scan existing
-    scanAndDeleteEffects(workspace)
-    scanAndDeleteEffects(Lighting)
+    -- กวาดล้างทันทีที่เปิด
+    SweepExistingEffects()
 
-    -- Workspace listener
-    table.insert(deleteConnections, workspace.DescendantAdded:Connect(function(child)
-        if not deleteActive then return end
-        if isEffect(child) then
+    -- ฝัง Hook ลงใน Services (ใช้ task.defer เพื่อลด lag)
+    for _, service in ipairs(TargetServices) do
+        local conn = service.DescendantAdded:Connect(function(child)
+            if not deleteActive then return end
             task.defer(function()
                 if deleteActive then
-                    deleteEffect(child)
+                    HandleEffect(child)
                 end
             end)
-        end
-    end))
-
-    -- Lighting listener
-    table.insert(deleteConnections, Lighting.DescendantAdded:Connect(function(child)
-        if not deleteActive then return end
-        if isEffect(child) then
-            task.defer(function()
-                if deleteActive then
-                    deleteEffect(child)
-                end
-            end)
-        end
-    end))
+        end)
+        table.insert(deleteConnections, conn)
+    end
 
     -- Character listener (if exists)
     if LocalPlayer.Character then
-        table.insert(deleteConnections, LocalPlayer.Character.DescendantAdded:Connect(function(child)
+        local charConn = LocalPlayer.Character.DescendantAdded:Connect(function(child)
             if not deleteActive then return end
-            if isEffect(child) then
-                task.defer(function()
-                    if deleteActive then
-                        deleteEffect(child)
-                    end
-                end)
-            end
-        end))
+            task.defer(function()
+                if deleteActive then
+                    HandleEffect(child)
+                end
+            end)
+        end)
+        table.insert(deleteConnections, charConn)
     end
 
     -- Listen for new character
-    table.insert(deleteConnections, LocalPlayer.CharacterAdded:Connect(function(char)
+    local playerConn = LocalPlayer.CharacterAdded:Connect(function(char)
         if not deleteActive then return end
         task.wait(0.1)
-        scanAndDeleteEffects(char)
+        SweepExistingEffects()
 
         local charConn = char.DescendantAdded:Connect(function(child)
             if not deleteActive then return end
-            if isEffect(child) then
-                task.defer(function()
-                    if deleteActive then
-                        deleteEffect(child)
-                    end
-                end)
-            end
+            task.defer(function()
+                if deleteActive then
+                    HandleEffect(child)
+                end
+            end)
         end)
         table.insert(deleteConnections, charConn)
-    end))
+    end)
+    table.insert(deleteConnections, playerConn)
 end
 
 local function stopAutoDelete()
@@ -10749,8 +10732,8 @@ end)
 -- ✅ LOADED NOTIFICATION
 -- =============================================================
 print("🧨 [ระเบิดคนเครื่องกาก🤤 | BY : รุ่นใหญ่] Loaded Successfully!")
-print("⚡ Features: Aura Spam Loop | Auto Delete Effects")
-print("📱 Mobile Optimized | 🖱️ Draggable GUI")
+print("⚡ Features: Aura Spam Loop (Optimized) | Auto Delete Effects (Studiokidcoolsound)")
+print("📱 Mobile Optimized | 🖱️ Draggable GUI | 🚀 Lag-Free Execution")
 print("😈 Ready to Exploit!")
 
 -- =============================================================
