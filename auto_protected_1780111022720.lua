@@ -10043,132 +10043,37 @@
 
 
 
---[[
-    PS CITY | MULTI-SYNC EXPLOIT HUB
-    DEVELOPED BY: TOU
-    VERSION: 3.0.0
-    STYLE: RED & BLACK AGGRESSIVE 
-    CONTEXT: EXPLOIT-BASED ONLY ⚠️
---]]
-
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
+-- Rainbow Accessory Multi-Sync + DisplayName Loop Script
+-- Features: Multi-Accessory Support, Adjustable Speed, Toggleable UI, Name Loop
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
 
 local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- // Remotes Verification //
-local AccessoryRemote = ReplicatedStorage:WaitForChild("Events", 5):WaitForChild("AccessoryRefinementRemoteEvent", 5)
-local SettingsRemote = ReplicatedStorage:WaitForChild("SettingsRemoteFunction", 5)
+-- REMOTE REFERENCES
+local AccessoryRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("AccessoryRefinementRemoteEvent")
+local SettingsRemote = ReplicatedStorage:WaitForChild("SettingsRemoteFunction")
 
--- // UI Framework Creation (Aggressive Red & Black Core Theme) // 🖥️😈
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PSCity_RainbowRefinementUI"
-ScreenGui.Parent = CoreGui
-ScreenGui.ResetOnSpawn = false
-
-local Frame = Instance.new("Frame")
-Frame.Name = "MainHubFrame"
-Frame.Parent = ScreenGui
-Frame.Size = UDim2.new(0, 240, 0, 280)
-Frame.Position = UDim2.new(0.5, -120, 0.5, -140)
-Frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Frame.BorderColor3 = Color3.fromRGB(255, 0, 0)
-Frame.BorderSizePixel = 2
-Frame.Active = true
-Frame.Draggable = true
-
-local Title = Instance.new("TextLabel")
-Title.Name = "HubTitle"
-Title.Parent = Frame
-Title.Size = UDim2.new(1, 0, 0, 35)
-Title.Text = "PS CITY | TOU MULTI-SYNC 🌈"
-Title.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
-Title.TextColor3 = Color3.fromRGB(255, 0, 0)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
-Title.BorderSizePixel = 0
-
--- // 1. Rainbow Accessory Controls //
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Name = "RainbowToggle"
-ToggleBtn.Parent = Frame
-ToggleBtn.Size = UDim2.new(0, 210, 0, 35)
-ToggleBtn.Position = UDim2.new(0.5, -105, 0, 50)
-ToggleBtn.Text = "Rainbow Accessory: OFF"
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 10, 10)
-ToggleBtn.BorderColor3 = Color3.fromRGB(150, 0, 0)
-ToggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.TextSize = 12
-
-local SpeedLabel = Instance.new("TextLabel")
-SpeedLabel.Name = "SpeedStatusLabel"
-SpeedLabel.Parent = Frame
-SpeedLabel.Size = UDim2.new(1, 0, 0, 20)
-SpeedLabel.Position = UDim2.new(0, 0, 0, 95)
-SpeedLabel.Text = "Cycle Frequency Speed: 0.01"
-SpeedLabel.BackgroundTransparency = 1
-SpeedLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-SpeedLabel.Font = Enum.Font.Gotham
-SpeedLabel.TextSize = 12
-
-local SpeedInput = Instance.new("TextBox")
-SpeedInput.Name = "SpeedValueInput"
-SpeedInput.Parent = Frame
-SpeedInput.Size = UDim2.new(0, 120, 0, 25)
-SpeedInput.Position = UDim2.new(0.5, -60, 0, 120)
-SpeedInput.PlaceholderText = "0.01"
-SpeedInput.Text = "0.01"
-SpeedInput.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-SpeedInput.BorderColor3 = Color3.fromRGB(100, 0, 0)
-SpeedInput.TextColor3 = Color3.fromRGB(255, 0, 0)
-SpeedInput.Font = Enum.Font.GothamBold
-SpeedInput.TextSize = 12
-
--- // 2. Premium Glitched Name Loop Controls //
-local GlitchNameBtn = Instance.new("TextButton")
-GlitchNameBtn.Name = "GlitchNameToggle"
-GlitchNameBtn.Parent = Frame
-GlitchNameBtn.Size = UDim2.new(0, 210, 0, 40)
-GlitchNameBtn.Position = UDim2.new(0.5, -105, 0, 160)
-GlitchNameBtn.Text = "GLITCH NAME LOOP: DEACTIVATED"
-GlitchNameBtn.BackgroundColor3 = Color3.fromRGB(40, 10, 10)
-GlitchNameBtn.BorderColor3 = Color3.fromRGB(150, 0, 0)
-GlitchNameBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-GlitchNameBtn.Font = Enum.Font.GothamBold
-GlitchNameBtn.TextSize = 12
-
-local InfoLabel = Instance.new("TextLabel")
-InfoLabel.Name = "FooterInfo"
-InfoLabel.Parent = Frame
-InfoLabel.Size = UDim2.new(1, 0, 0, 25)
-InfoLabel.Position = UDim2.new(0, 0, 1, -30)
-InfoLabel.Text = "Press [Insert] to Show/Hide Hub"
-InfoLabel.BackgroundTransparency = 1
-InfoLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
-InfoLabel.Font = Enum.Font.GothamItalic
-InfoLabel.TextSize = 11
-
--- // Core Configurations & Logic States // 🧠⚙️
+-- STATE VARIABLES
 local RainbowEnabled = false
-local GlitchNameEnabled = false
 local HueSpeed = 0.01
 local CurrentHue = 0
 
+local DisplayNameLoopEnabled = false
+local DisplayNameLoopTask = nil
+
+-- ACCESSORY TARGETS
 local AccessoriesToSync = {
     "sleeksunglasses",
     "DefaultioHair",
     "Accessory (Bag_Crossbody_2)"
 }
 
--- Serialized Byte Arrays requested via SimpleSpy logs to loop seamlessly
+-- DISPLAY NAME VARIANTS
 local DisplayNameVariants = {
     "TO84kx1",
     "T0Ux1",
@@ -10176,59 +10081,226 @@ local DisplayNameVariants = {
     "T95jUx1"
 }
 
--- // Interactive Logic Connections // 😈
-ToggleBtn.MouseButton1Click:Connect(function()
+-- UI CREATION
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RainbowRefinementUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = PlayerGui
+
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 260, 0, 320)
+MainFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.BackgroundTransparency = 0.05
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+-- Corner & Stroke
+local Corner = Instance.new("UICorner", MainFrame)
+Corner.CornerRadius = UDim.new(0, 12)
+
+local Stroke = Instance.new("UIStroke", MainFrame)
+Stroke.Color = Color3.fromRGB(255, 0, 100)
+Stroke.Thickness = 2
+Stroke.Transparency = 0.3
+
+-- Glow Effect
+local Glow = Instance.new("ImageLabel", MainFrame)
+Glow.Name = "Glow"
+Glow.Size = UDim2.new(1, 40, 1, 40)
+Glow.Position = UDim2.new(0, -20, 0, -20)
+Glow.BackgroundTransparency = 1
+Glow.Image = "rbxassetid://4996891970"
+Glow.ImageColor3 = Color3.fromRGB(255, 0, 100)
+Glow.ImageTransparency = 0.8
+Glow.ZIndex = -1
+
+-- Title
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Name = "Title"
+Title.Size = UDim2.new(1, 0, 0, 36)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.Text = "Rainbow Controller"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+Title.BackgroundTransparency = 0.1
+Title.BorderSizePixel = 0
+
+local TitleCorner = Instance.new("UICorner", Title)
+TitleCorner.CornerRadius = UDim.new(0, 12)
+
+-- Rainbow Toggle Button
+local RainbowToggle = Instance.new("TextButton", MainFrame)
+RainbowToggle.Name = "RainbowToggle"
+RainbowToggle.Size = UDim2.new(0, 220, 0, 40)
+RainbowToggle.Position = UDim2.new(0.5, -110, 0, 50)
+RainbowToggle.Text = "Rainbow: OFF"
+RainbowToggle.Font = Enum.Font.GothamBold
+RainbowToggle.TextSize = 14
+RainbowToggle.TextColor3 = Color3.new(1, 1, 1)
+RainbowToggle.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+RainbowToggle.BorderSizePixel = 0
+RainbowToggle.AutoButtonColor = true
+
+local RainbowToggleCorner = Instance.new("UICorner", RainbowToggle)
+RainbowToggleCorner.CornerRadius = UDim.new(0, 8)
+
+-- Speed Label
+local SpeedLabel = Instance.new("TextLabel", MainFrame)
+SpeedLabel.Name = "SpeedLabel"
+SpeedLabel.Size = UDim2.new(1, 0, 0, 20)
+SpeedLabel.Position = UDim2.new(0, 0, 0, 100)
+SpeedLabel.Text = "Speed: 0.01"
+SpeedLabel.Font = Enum.Font.Gotham
+SpeedLabel.TextSize = 14
+SpeedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+SpeedLabel.BackgroundTransparency = 1
+
+-- Speed Input
+local SpeedInput = Instance.new("TextBox", MainFrame)
+SpeedInput.Name = "SpeedInput"
+SpeedInput.Size = UDim2.new(0, 100, 0, 30)
+SpeedInput.Position = UDim2.new(0.5, -50, 0, 125)
+SpeedInput.PlaceholderText = "0.01"
+SpeedInput.Text = "0.01"
+SpeedInput.Font = Enum.Font.Gotham
+SpeedInput.TextSize = 14
+SpeedInput.TextColor3 = Color3.new(1, 1, 1)
+SpeedInput.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+SpeedInput.BorderSizePixel = 0
+SpeedInput.ClearTextOnFocus = false
+
+local SpeedInputCorner = Instance.new("UICorner", SpeedInput)
+SpeedInputCorner.CornerRadius = UDim.new(0, 6)
+
+-- Separator 1
+local Separator1 = Instance.new("Frame", MainFrame)
+Separator1.Size = UDim2.new(0.9, 0, 0, 1)
+Separator1.Position = UDim2.new(0.05, 0, 0, 168)
+Separator1.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+Separator1.BackgroundTransparency = 0.5
+Separator1.BorderSizePixel = 0
+
+-- DisplayName Loop Toggle
+local NameLoopToggle = Instance.new("TextButton", MainFrame)
+NameLoopToggle.Name = "NameLoopToggle"
+NameLoopToggle.Size = UDim2.new(0, 220, 0, 40)
+NameLoopToggle.Position = UDim2.new(0.5, -110, 0, 180)
+NameLoopToggle.Text = "Name Loop: OFF"
+NameLoopToggle.Font = Enum.Font.GothamBold
+NameLoopToggle.TextSize = 14
+NameLoopToggle.TextColor3 = Color3.new(1, 1, 1)
+NameLoopToggle.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+NameLoopToggle.BorderSizePixel = 0
+NameLoopToggle.AutoButtonColor = true
+
+local NameLoopToggleCorner = Instance.new("UICorner", NameLoopToggle)
+NameLoopToggleCorner.CornerRadius = UDim.new(0, 8)
+
+-- Current Name Display
+local CurrentNameLabel = Instance.new("TextLabel", MainFrame)
+CurrentNameLabel.Name = "CurrentNameLabel"
+CurrentNameLabel.Size = UDim2.new(1, 0, 0, 20)
+CurrentNameLabel.Position = UDim2.new(0, 0, 0, 230)
+CurrentNameLabel.Text = "Current: (idle)"
+CurrentNameLabel.Font = Enum.Font.Gotham
+CurrentNameLabel.TextSize = 12
+CurrentNameLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+CurrentNameLabel.BackgroundTransparency = 1
+
+-- Separator 2
+local Separator2 = Instance.new("Frame", MainFrame)
+Separator2.Size = UDim2.new(0.9, 0, 0, 1)
+Separator2.Position = UDim2.new(0.05, 0, 0, 260)
+Separator2.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+Separator2.BackgroundTransparency = 0.5
+Separator2.BorderSizePixel = 0
+
+-- Status Footer
+local StatusLabel = Instance.new("TextLabel", MainFrame)
+StatusLabel.Name = "StatusLabel"
+StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+StatusLabel.Position = UDim2.new(0, 0, 0, 270)
+StatusLabel.Text = "Status: Ready"
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextSize = 12
+StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+StatusLabel.BackgroundTransparency = 1
+
+-- ANIMATION HELPERS
+local function AnimateButtonColor(btn, targetColor, duration)
+    duration = duration or 0.3
+    TweenService:Create(btn, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        BackgroundColor3 = targetColor
+    }):Play()
+end
+
+local function AnimateStrokeColor(targetColor)
+    TweenService:Create(Stroke, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Color = targetColor
+    }):Play()
+    TweenService:Create(Glow, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        ImageColor3 = targetColor
+    }):Play()
+end
+
+-- RAINBOW ACCESSORY LOGIC
+RainbowToggle.MouseButton1Click:Connect(function()
     RainbowEnabled = not RainbowEnabled
+
     if RainbowEnabled then
-        ToggleBtn.Text = "Rainbow Accessory: ACTIVE"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
-        ToggleBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
-        ToggleBtn.BorderColor3 = Color3.fromRGB(255, 0, 0)
+        RainbowToggle.Text = "Rainbow: ON"
+        AnimateButtonColor(RainbowToggle, Color3.fromRGB(0, 200, 0))
+        AnimateStrokeColor(Color3.fromRGB(0, 255, 100))
+        StatusLabel.Text = "Status: Rainbow Active"
+        StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
     else
-        ToggleBtn.Text = "Rainbow Accessory: OFF"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 10, 10)
-        ToggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-        ToggleBtn.BorderColor3 = Color3.fromRGB(150, 0, 0)
+        RainbowToggle.Text = "Rainbow: OFF"
+        AnimateButtonColor(RainbowToggle, Color3.fromRGB(200, 0, 0))
+        AnimateStrokeColor(Color3.fromRGB(255, 0, 100))
+        StatusLabel.Text = "Status: Ready"
+        StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
     end
 end)
 
-SpeedInput.FocusLost:Connect(function()
+SpeedInput.FocusLost:Connect(function(enterPressed)
     local NewSpeed = tonumber(SpeedInput.Text)
-    if NewSpeed then
+    if NewSpeed and NewSpeed > 0 then
         HueSpeed = NewSpeed
-        SpeedLabel.Text = "Cycle Frequency Speed: " .. tostring(NewSpeed)
+        SpeedLabel.Text = "Speed: " .. tostring(NewSpeed)
+        StatusLabel.Text = "Speed updated: " .. tostring(NewSpeed)
     else
         SpeedInput.Text = tostring(HueSpeed)
+        StatusLabel.Text = "Invalid speed!"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        task.delay(1.5, function()
+            StatusLabel.Text = "Status: Ready"
+            StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        end)
     end
 end)
 
-GlitchNameBtn.MouseButton1Click:Connect(function()
-    GlitchNameEnabled = not GlitchNameEnabled
-    if GlitchNameEnabled then
-        GlitchNameBtn.Text = "GLITCH NAME LOOP: RUNNING ⚔️"
-        GlitchNameBtn.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
-        GlitchNameBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        GlitchNameBtn.BorderColor3 = Color3.fromRGB(255, 0, 0)
-    else
-        GlitchNameBtn.Text = "GLITCH NAME LOOP: DEACTIVATED"
-        GlitchNameBtn.BackgroundColor3 = Color3.fromRGB(40, 10, 10)
-        GlitchNameBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-        GlitchNameBtn.BorderColor3 = Color3.fromRGB(150, 0, 0)
-    end
-end)
+RunService.RenderStepped:Connect(function(deltaTime)
+    if not RainbowEnabled then return end
 
--- // Loop Task Systems //
--- 1. Rainbow Sync Engine
-RunService.RenderStepped:Connect(function()
-    if RainbowEnabled and AccessoryRemote then
-        CurrentHue = (CurrentHue + HueSpeed) % 1
-        local ColorResult = Color3.fromHSV(CurrentHue, 1, 1)
+    CurrentHue = (CurrentHue + HueSpeed) % 1
+    local ColorResult = Color3.fromHSV(CurrentHue, 1, 1)
 
-        for _, AccName in pairs(AccessoriesToSync) do
-            local Char = Player.Character
-            local TargetAcc = Char and Char:FindFirstChild(AccName)
-            
-            if TargetAcc and TargetAcc:FindFirstChild("Handle") then
+    local Char = Player.Character
+    if not Char then return end
+
+    for _, AccName in ipairs(AccessoriesToSync) do
+        local TargetAcc = Char:FindFirstChild(AccName)
+
+        if TargetAcc and TargetAcc:FindFirstChild("Handle") then
+            local success, err = pcall(function()
                 local args = {
                     [1] = {
                         ["Handle"] = TargetAcc.Handle,
@@ -10237,47 +10309,79 @@ RunService.RenderStepped:Connect(function()
                         ["Color"] = ColorResult
                     }
                 }
-                pcall(function()
-                    AccessoryRemote:FireServer(unpack(args))
-                end)
+                AccessoryRemote:FireServer(unpack(args))
+            end)
+
+            if not success then
+                StatusLabel.Text = "Acc Error: " .. AccName
+                StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
             end
         end
-        task.wait(0.05) -- Anti-crash execution restriction safety gap
+    end
+
+    task.wait(0.05)
+end)
+
+-- DISPLAY NAME LOOP LOGIC
+local function SetDisplayName(name)
+    local success, result = pcall(function()
+        local args = {
+            [1] = {
+                ["Action"] = "SetDisplayName",
+                ["DisplayName"] = name
+            }
+        }
+        return SettingsRemote:InvokeServer(unpack(args))
+    end)
+    return success
+end
+
+NameLoopToggle.MouseButton1Click:Connect(function()
+    DisplayNameLoopEnabled = not DisplayNameLoopEnabled
+
+    if DisplayNameLoopEnabled then
+        NameLoopToggle.Text = "Name Loop: ON"
+        AnimateButtonColor(NameLoopToggle, Color3.fromRGB(0, 200, 0))
+        StatusLabel.Text = "Status: Name Loop Active"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 255)
+
+        DisplayNameLoopTask = task.spawn(function()
+            local index = 1
+            while DisplayNameLoopEnabled do
+                local currentName = DisplayNameVariants[index]
+                local success = SetDisplayName(currentName)
+
+                if success then
+                    CurrentNameLabel.Text = "Current: " .. currentName
+                else
+                    CurrentNameLabel.Text = "Failed: " .. currentName
+                end
+
+                index = index + 1
+                if index > #DisplayNameVariants then
+                    index = 1
+                end
+
+                task.wait(0.8)
+            end
+        end)
+    else
+        NameLoopToggle.Text = "Name Loop: OFF"
+        AnimateButtonColor(NameLoopToggle, Color3.fromRGB(200, 0, 0))
+        CurrentNameLabel.Text = "Current: (idle)"
+        StatusLabel.Text = "Status: Ready"
+        StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+
+        if DisplayNameLoopTask then
+            DisplayNameLoopTask = nil
+        end
     end
 end)
 
--- 2. Glitched Display Name Rapid Changer
-task.spawn(function()
-    while true do
-        if GlitchNameEnabled and SettingsRemote then
-            for _, NameString in ipairs(DisplayNameVariants) do
-                if not GlitchNameEnabled then break end
-                
-                local args = {
-                    [1] = {
-                        ["Action"] = "SetDisplayName",
-                        ["DisplayName"] = NameString
-                    }
-                }
-                
-                pcall(function()
-                    SettingsRemote:InvokeServer(unpack(args))
-                end)
-                
-                task.wait(0.2) -- Delay parameter adjusted to completely maximize spam output threshold without instant game severance
-            end
-        else
-            task.wait(0.5)
-        end
-    end
-end)
-
--- // Visibility Bind [Insert Key] //
-UserInputService.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.Insert then
-        Frame.Visible = not Frame.Visible
-    end
-end)
+-- INITIALIZATION
+StatusLabel.Text = "Script Loaded | Ready"
+print("Rainbow Accessory + Name Loop Script Loaded Successfully!")
+print("Remotes: " .. tostring(AccessoryRemote) .. " | " .. tostring(SettingsRemote))
 
 
 
