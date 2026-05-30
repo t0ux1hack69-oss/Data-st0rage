@@ -10043,15 +10043,14 @@
 
 
 
--- Rainbow Accessory Multi-Sync + DisplayName Loop + Audio-Reactive Color Script
--- Features: Multi-Accessory Support, Adjustable Speed, Toggleable UI, Name Loop, Audio-Reactive Color
+-- Rainbow Accessory Multi-Sync + DisplayName Loop + Music-Reactive Color Script
+-- Features: Multi-Accessory Support, Adjustable Speed, Toggleable UI, Name Loop, Music-Reactive Color via Sound.PlaybackLoudness
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
-local UserInputService = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
@@ -10062,7 +10061,7 @@ local SettingsRemote = ReplicatedStorage:WaitForChild("SettingsRemoteFunction")
 
 -- STATE VARIABLES
 local RainbowEnabled = false
-local AudioReactiveEnabled = false
+local MusicReactiveEnabled = false
 local HueSpeed = 0.01
 local CurrentHue = 0
 
@@ -10084,20 +10083,19 @@ local DisplayNameVariants = {
     "T95jUx1"
 }
 
--- AUDIO REACTIVE VARIABLES
-local AudioAnalyzer = nil
-local AudioFader = nil
-local AudioDeviceInput = nil
-local LastVolume = 0
+-- MUSIC REACTIVE VARIABLES
+local TrackedSounds = {}
+local SoundConnections = {}
+local CurrentVolume = 0
 local SmoothedVolume = 0
 local VolumeHistory = {}
+local HistorySize = 8
 local HistoryIndex = 1
-local HistorySize = 10
-local VolumeThreshold = 0.001
-local MaxVolume = 0
-local VolumeCalibrationTime = 3
-local CalibrationStartTime = 0
-local IsCalibrating = false
+local PeakVolume = 0
+local VolumeDecay = 0.85
+local MinLoudnessThreshold = 5
+local MaxLoudnessCap = 1000
+local VolumeBarScale = 0
 
 -- UI CREATION
 local ScreenGui = Instance.new("ScreenGui")
@@ -10109,8 +10107,8 @@ ScreenGui.Parent = PlayerGui
 -- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 280, 0, 400)
-MainFrame.Position = UDim2.new(0.02, 0, 0.2, 0)
+MainFrame.Size = UDim2.new(0, 280, 0, 420)
+MainFrame.Position = UDim2.new(0.02, 0, 0.15, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BackgroundTransparency = 0.05
 MainFrame.BorderSizePixel = 0
@@ -10170,33 +10168,34 @@ RainbowToggle.AutoButtonColor = true
 local RainbowToggleCorner = Instance.new("UICorner", RainbowToggle)
 RainbowToggleCorner.CornerRadius = UDim.new(0, 8)
 
--- Audio Reactive Toggle Button
-local AudioReactiveToggle = Instance.new("TextButton", MainFrame)
-AudioReactiveToggle.Name = "AudioReactiveToggle"
-AudioReactiveToggle.Size = UDim2.new(0, 240, 0, 36)
-AudioReactiveToggle.Position = UDim2.new(0.5, -120, 0, 86)
-AudioReactiveToggle.Text = "Audio Reactive: OFF"
-AudioReactiveToggle.Font = Enum.Font.GothamBold
-AudioReactiveToggle.TextSize = 14
-AudioReactiveToggle.TextColor3 = Color3.new(1, 1, 1)
-AudioReactiveToggle.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-AudioReactiveToggle.BorderSizePixel = 0
-AudioReactiveToggle.AutoButtonColor = true
+-- Music Reactive Toggle Button
+local MusicReactiveToggle = Instance.new("TextButton", MainFrame)
+MusicReactiveToggle.Name = "MusicReactiveToggle"
+MusicReactiveToggle.Size = UDim2.new(0, 240, 0, 36)
+MusicReactiveToggle.Position = UDim2.new(0.5, -120, 0, 86)
+MusicReactiveToggle.Text = "Music Reactive: OFF"
+MusicReactiveToggle.Font = Enum.Font.GothamBold
+MusicReactiveToggle.TextSize = 14
+MusicReactiveToggle.TextColor3 = Color3.new(1, 1, 1)
+MusicReactiveToggle.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+MusicReactiveToggle.BorderSizePixel = 0
+MusicReactiveToggle.AutoButtonColor = true
 
-local AudioReactiveToggleCorner = Instance.new("UICorner", AudioReactiveToggle)
-AudioReactiveToggleCorner.CornerRadius = UDim.new(0, 8)
+local MusicReactiveToggleCorner = Instance.new("UICorner", MusicReactiveToggle)
+MusicReactiveToggleCorner.CornerRadius = UDim.new(0, 8)
 
--- Volume Bar (Visual)
+-- Volume Bar Background
 local VolumeBarBg = Instance.new("Frame", MainFrame)
 VolumeBarBg.Name = "VolumeBarBg"
-VolumeBarBg.Size = UDim2.new(0, 240, 0, 8)
-VolumeBarBg.Position = UDim2.new(0.5, -120, 0, 128)
+VolumeBarBg.Size = UDim2.new(0, 240, 0, 10)
+VolumeBarBg.Position = UDim2.new(0.5, -120, 0, 130)
 VolumeBarBg.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 VolumeBarBg.BorderSizePixel = 0
 
 local VolumeBarBgCorner = Instance.new("UICorner", VolumeBarBg)
-VolumeBarBgCorner.CornerRadius = UDim.new(0, 4)
+VolumeBarBgCorner.CornerRadius = UDim.new(0, 5)
 
+-- Volume Bar Fill
 local VolumeBarFill = Instance.new("Frame", VolumeBarBg)
 VolumeBarFill.Name = "VolumeBarFill"
 VolumeBarFill.Size = UDim2.new(0, 0, 1, 0)
@@ -10204,14 +10203,14 @@ VolumeBarFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
 VolumeBarFill.BorderSizePixel = 0
 
 local VolumeBarFillCorner = Instance.new("UICorner", VolumeBarFill)
-VolumeBarFillCorner.CornerRadius = UDim.new(0, 4)
+VolumeBarFillCorner.CornerRadius = UDim.new(0, 5)
 
 -- Volume Label
 local VolumeLabel = Instance.new("TextLabel", MainFrame)
 VolumeLabel.Name = "VolumeLabel"
 VolumeLabel.Size = UDim2.new(1, 0, 0, 16)
-VolumeLabel.Position = UDim2.new(0, 0, 0, 140)
-VolumeLabel.Text = "Volume: 0%"
+VolumeLabel.Position = UDim2.new(0, 0, 0, 144)
+VolumeLabel.Text = "Volume: 0% | Peak: 0"
 VolumeLabel.Font = Enum.Font.Gotham
 VolumeLabel.TextSize = 11
 VolumeLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -10221,7 +10220,7 @@ VolumeLabel.BackgroundTransparency = 1
 local SpeedLabel = Instance.new("TextLabel", MainFrame)
 SpeedLabel.Name = "SpeedLabel"
 SpeedLabel.Size = UDim2.new(1, 0, 0, 18)
-SpeedLabel.Position = UDim2.new(0, 0, 0, 164)
+SpeedLabel.Position = UDim2.new(0, 0, 0, 168)
 SpeedLabel.Text = "Speed: 0.01"
 SpeedLabel.Font = Enum.Font.Gotham
 SpeedLabel.TextSize = 13
@@ -10232,7 +10231,7 @@ SpeedLabel.BackgroundTransparency = 1
 local SpeedInput = Instance.new("TextBox", MainFrame)
 SpeedInput.Name = "SpeedInput"
 SpeedInput.Size = UDim2.new(0, 100, 0, 26)
-SpeedInput.Position = UDim2.new(0.5, -50, 0, 186)
+SpeedInput.Position = UDim2.new(0.5, -50, 0, 190)
 SpeedInput.PlaceholderText = "0.01"
 SpeedInput.Text = "0.01"
 SpeedInput.Font = Enum.Font.Gotham
@@ -10248,7 +10247,7 @@ SpeedInputCorner.CornerRadius = UDim.new(0, 6)
 -- Separator 1
 local Separator1 = Instance.new("Frame", MainFrame)
 Separator1.Size = UDim2.new(0.9, 0, 0, 1)
-Separator1.Position = UDim2.new(0.05, 0, 0, 222)
+Separator1.Position = UDim2.new(0.05, 0, 0, 226)
 Separator1.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 Separator1.BackgroundTransparency = 0.5
 Separator1.BorderSizePixel = 0
@@ -10257,7 +10256,7 @@ Separator1.BorderSizePixel = 0
 local NameLoopToggle = Instance.new("TextButton", MainFrame)
 NameLoopToggle.Name = "NameLoopToggle"
 NameLoopToggle.Size = UDim2.new(0, 240, 0, 36)
-NameLoopToggle.Position = UDim2.new(0.5, -120, 0, 232)
+NameLoopToggle.Position = UDim2.new(0.5, -120, 0, 236)
 NameLoopToggle.Text = "Name Loop: OFF"
 NameLoopToggle.Font = Enum.Font.GothamBold
 NameLoopToggle.TextSize = 14
@@ -10273,7 +10272,7 @@ NameLoopToggleCorner.CornerRadius = UDim.new(0, 8)
 local CurrentNameLabel = Instance.new("TextLabel", MainFrame)
 CurrentNameLabel.Name = "CurrentNameLabel"
 CurrentNameLabel.Size = UDim2.new(1, 0, 0, 18)
-CurrentNameLabel.Position = UDim2.new(0, 0, 0, 274)
+CurrentNameLabel.Position = UDim2.new(0, 0, 0, 278)
 CurrentNameLabel.Text = "Current: (idle)"
 CurrentNameLabel.Font = Enum.Font.Gotham
 CurrentNameLabel.TextSize = 12
@@ -10283,7 +10282,7 @@ CurrentNameLabel.BackgroundTransparency = 1
 -- Separator 2
 local Separator2 = Instance.new("Frame", MainFrame)
 Separator2.Size = UDim2.new(0.9, 0, 0, 1)
-Separator2.Position = UDim2.new(0.05, 0, 0, 300)
+Separator2.Position = UDim2.new(0.05, 0, 0, 304)
 Separator2.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 Separator2.BackgroundTransparency = 0.5
 Separator2.BorderSizePixel = 0
@@ -10292,7 +10291,7 @@ Separator2.BorderSizePixel = 0
 local StatusLabel = Instance.new("TextLabel", MainFrame)
 StatusLabel.Name = "StatusLabel"
 StatusLabel.Size = UDim2.new(1, 0, 0, 18)
-StatusLabel.Position = UDim2.new(0, 0, 0, 310)
+StatusLabel.Position = UDim2.new(0, 0, 0, 314)
 StatusLabel.Text = "Status: Ready"
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextSize = 12
@@ -10316,149 +10315,140 @@ local function AnimateStrokeColor(targetColor)
     }):Play()
 end
 
--- AUDIO REACTIVE SETUP
-local function InitializeAudioReactive()
-    -- Initialize volume history
+-- MUSIC REACTIVE SYSTEM
+local function InitializeVolumeHistory()
     for i = 1, HistorySize do
         VolumeHistory[i] = 0
     end
+end
 
-    -- Try to get AudioDeviceInput (microphone input)
-    local success, result = pcall(function()
-        -- Check if Voice Chat is enabled and get the local player's audio input
-        local voiceChatService = game:GetService("VoiceChatService")
-        if voiceChatService and voiceChatService:IsVoiceEnabledForUserIdAsync(Player.UserId) then
-            -- Create audio device input for local microphone
-            AudioDeviceInput = Instance.new("AudioDeviceInput")
-            AudioDeviceInput.Parent = SoundService
+local function TrackSound(sound)
+    if not sound:IsA("Sound") then return end
+    if sound.SoundId == "" then return end
 
-            -- Create AudioAnalyzer to read volume levels
-            AudioAnalyzer = Instance.new("AudioAnalyzer")
-            AudioAnalyzer.Parent = SoundService
+    table.insert(TrackedSounds, sound)
 
-            -- Create AudioFader for routing
-            AudioFader = Instance.new("AudioFader")
-            AudioFader.Parent = SoundService
-            AudioFader.Volume = 1
-
-            -- Wire them up: DeviceInput -> Fader -> Analyzer
-            AudioDeviceInput:ConnectToAudioFader(AudioFader)
-            AudioFader:ConnectToAudioAnalyzer(AudioAnalyzer)
-
-            return true
+    local conn1 = sound:GetPropertyChangedSignal("Playing"):Connect(function()
+        if sound.Playing then
+            TrackedSounds[sound] = true
+        else
+            TrackedSounds[sound] = nil
         end
-        return false
     end)
 
-    if not success or not result then
-        -- Fallback: Try to detect local sounds being played
-        StatusLabel.Text = "Audio: Fallback Mode"
-        StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+    local conn2 = sound:GetPropertyChangedSignal("Volume"):Connect(function()
+        -- Volume changed, update tracking
+    end)
 
-        -- Monitor all sounds in workspace for volume peaks
-        local soundConnections = {}
+    table.insert(SoundConnections, conn1)
+    table.insert(SoundConnections, conn2)
+end
 
-        local function MonitorSound(sound)
-            if sound:IsA("Sound") then
-                local connection = sound:GetPropertyChangedSignal("Playing"):Connect(function()
-                    if sound.Playing and sound.IsLoaded then
-                        -- Track this sound's volume
-                        local volConnection = RunService.Heartbeat:Connect(function()
-                            if sound.Playing then
-                                local vol = sound.Volume * (sound.PlaybackLoudness / 1000)
-                                if vol > SmoothedVolume then
-                                    SmoothedVolume = vol
-                                end
-                            end
-                        end)
+local function ScanExistingSounds()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        TrackSound(obj)
+    end
+    for _, obj in ipairs(SoundService:GetDescendants()) do
+        TrackSound(obj)
+    end
+    for _, obj in ipairs(PlayerGui:GetDescendants()) do
+        TrackSound(obj)
+    end
+    if Player.Character then
+        for _, obj in ipairs(Player.Character:GetDescendants()) do
+            TrackSound(obj)
+        end
+    end
+end
 
-                        task.delay(sound.TimeLength or 5, function()
-                            volConnection:Disconnect()
-                        end)
+local function GetMusicVolume()
+    local maxLoudness = 0
+    local activeSoundCount = 0
+
+    for sound, isPlaying in pairs(TrackedSounds) do
+        if typeof(sound) == "Instance" and sound:IsA("Sound") then
+            if sound.Playing then
+                activeSoundCount = activeSoundCount + 1
+                local rawLoudness = sound.PlaybackLoudness or 0
+                local volume = sound.Volume or 1
+
+                -- Calculate effective loudness
+                local effectiveLoudness = rawLoudness * volume
+
+                if effectiveLoudness > MinLoudnessThreshold then
+                    if effectiveLoudness > maxLoudness then
+                        maxLoudness = effectiveLoudness
                     end
-                end)
-                table.insert(soundConnections, connection)
+                end
             end
         end
-
-        -- Monitor existing sounds
-        for _, obj in ipairs(workspace:GetDescendants()) do
-            MonitorSound(obj)
-        end
-
-        -- Monitor new sounds
-        workspace.DescendantAdded:Connect(MonitorSound)
-
-        return false
     end
 
-    -- Start calibration
-    IsCalibrating = true
-    CalibrationStartTime = tick()
-    StatusLabel.Text = "Audio: Calibrating..."
-    StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+    -- Also check Player.Character for new sounds
+    if Player.Character then
+        for _, obj in ipairs(Player.Character:GetDescendants()) do
+            if obj:IsA("Sound") and obj.Playing then
+                local rawLoudness = obj.PlaybackLoudness or 0
+                local volume = obj.Volume or 1
+                local effectiveLoudness = rawLoudness * volume
 
-    return true
+                if effectiveLoudness > MinLoudnessThreshold and effectiveLoudness > maxLoudness then
+                    maxLoudness = effectiveLoudness
+                end
+            end
+        end
+    end
+
+    -- Normalize loudness (0-1000 typical range)
+    local normalized = math.clamp(maxLoudness / MaxLoudnessCap, 0, 1)
+
+    -- Update peak tracking
+    if maxLoudness > PeakVolume then
+        PeakVolume = maxLoudness
+    end
+
+    return normalized, maxLoudness, activeSoundCount
 end
 
-local function GetAudioVolume()
-    if not AudioAnalyzer then
-        -- Fallback: return smoothed volume from sound monitoring
-        SmoothedVolume = SmoothedVolume * 0.95
-        return SmoothedVolume
+local function UpdateVolumeDisplay(normalized, rawLoudness, count)
+    -- Smooth the volume
+    VolumeHistory[HistoryIndex] = normalized
+    HistoryIndex = (HistoryIndex % HistorySize) + 1
+
+    local sum = 0
+    for i = 1, HistorySize do
+        sum = sum + VolumeHistory[i]
     end
 
-    local success, result = pcall(function()
-        -- Get peak level from AudioAnalyzer
-        local peak = AudioAnalyzer:GetPeakLevel()
-        return peak
-    end)
+    SmoothedVolume = sum / HistorySize
 
-    if success and result then
-        -- During calibration, track max volume
-        if IsCalibrating then
-            if result > MaxVolume then
-                MaxVolume = result
-            end
+    -- Decay for visual bar
+    VolumeBarScale = math.max(SmoothedVolume, VolumeBarScale * VolumeDecay)
 
-            if tick() - CalibrationStartTime >= VolumeCalibrationTime then
-                IsCalibrating = false
-                StatusLabel.Text = "Audio: Active"
-                StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-            end
-        end
+    -- Update UI
+    local barWidth = math.clamp(VolumeBarScale, 0, 1)
+    VolumeBarFill.Size = UDim2.new(barWidth, 0, 1, 0)
 
-        -- Normalize against max volume
-        if MaxVolume > 0 then
-            local normalized = result / MaxVolume
-
-            -- Apply moving average smoothing
-            VolumeHistory[HistoryIndex] = normalized
-            HistoryIndex = (HistoryIndex % HistorySize) + 1
-
-            local sum = 0
-            for i = 1, HistorySize do
-                sum = sum + VolumeHistory[i]
-            end
-
-            SmoothedVolume = sum / HistorySize
-            return SmoothedVolume
-        end
-
-        return result
+    -- Color bar based on intensity
+    if barWidth < 0.3 then
+        VolumeBarFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100) -- Green (quiet)
+    elseif barWidth < 0.6 then
+        VolumeBarFill.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Yellow (medium)
+    else
+        VolumeBarFill.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red (loud)
     end
 
-    return 0
+    VolumeLabel.Text = string.format("Volume: %.0f%% | Peak: %.0f | Sounds: %d", barWidth * 100, PeakVolume, count)
 end
 
--- RAINBOW ACCESSORY LOGIC
+-- RAINBOW TOGGLE
 RainbowToggle.MouseButton1Click:Connect(function()
     RainbowEnabled = not RainbowEnabled
 
     if RainbowEnabled then
         RainbowToggle.Text = "Rainbow: ON"
         AnimateButtonColor(RainbowToggle, Color3.fromRGB(0, 200, 0))
-        if not AudioReactiveEnabled then
+        if not MusicReactiveEnabled then
             AnimateStrokeColor(Color3.fromRGB(0, 255, 100))
             StatusLabel.Text = "Status: Rainbow Active"
             StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
@@ -10466,7 +10456,7 @@ RainbowToggle.MouseButton1Click:Connect(function()
     else
         RainbowToggle.Text = "Rainbow: OFF"
         AnimateButtonColor(RainbowToggle, Color3.fromRGB(200, 0, 0))
-        if not AudioReactiveEnabled then
+        if not MusicReactiveEnabled then
             AnimateStrokeColor(Color3.fromRGB(255, 0, 100))
             StatusLabel.Text = "Status: Ready"
             StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
@@ -10474,22 +10464,59 @@ RainbowToggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- AUDIO REACTIVE TOGGLE
-AudioReactiveToggle.MouseButton1Click:Connect(function()
-    AudioReactiveEnabled = not AudioReactiveEnabled
+-- MUSIC REACTIVE TOGGLE
+MusicReactiveToggle.MouseButton1Click:Connect(function()
+    MusicReactiveEnabled = not MusicReactiveEnabled
 
-    if AudioReactiveEnabled then
-        AudioReactiveToggle.Text = "Audio Reactive: ON"
-        AnimateButtonColor(AudioReactiveToggle, Color3.fromRGB(0, 200, 0))
+    if MusicReactiveEnabled then
+        MusicReactiveToggle.Text = "Music Reactive: ON"
+        AnimateButtonColor(MusicReactiveToggle, Color3.fromRGB(0, 200, 0))
         AnimateStrokeColor(Color3.fromRGB(255, 100, 255))
-        StatusLabel.Text = "Status: Audio Reactive Active"
+        StatusLabel.Text = "Status: Music Reactive Active"
         StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 255)
 
-        -- Initialize audio system
-        InitializeAudioReactive()
+        -- Initialize tracking
+        InitializeVolumeHistory()
+        ScanExistingSounds()
+        PeakVolume = 0
+
+        -- Listen for new sounds
+        local newSoundConn1 = workspace.DescendantAdded:Connect(TrackSound)
+        local newSoundConn2 = SoundService.DescendantAdded:Connect(TrackSound)
+        local newSoundConn3 = PlayerGui.DescendantAdded:Connect(TrackSound)
+
+        local charConn = nil
+        if Player.Character then
+            charConn = Player.Character.DescendantAdded:Connect(TrackSound)
+        end
+
+        local charAddedConn = Player.CharacterAdded:Connect(function(char)
+            if charConn then charConn:Disconnect() end
+            charConn = char.DescendantAdded:Connect(TrackSound)
+            ScanExistingSounds()
+        end)
+
+        table.insert(SoundConnections, newSoundConn1)
+        table.insert(SoundConnections, newSoundConn2)
+        table.insert(SoundConnections, newSoundConn3)
+        table.insert(SoundConnections, charAddedConn)
+        if charConn then table.insert(SoundConnections, charConn) end
+
+        StatusLabel.Text = "Status: Scanning for music..."
     else
-        AudioReactiveToggle.Text = "Audio Reactive: OFF"
-        AnimateButtonColor(AudioReactiveToggle, Color3.fromRGB(200, 0, 0))
+        MusicReactiveToggle.Text = "Music Reactive: OFF"
+        AnimateButtonColor(MusicReactiveToggle, Color3.fromRGB(200, 0, 0))
+
+        -- Cleanup connections
+        for _, conn in ipairs(SoundConnections) do
+            pcall(function() conn:Disconnect() end)
+        end
+        SoundConnections = {}
+        TrackedSounds = {}
+        PeakVolume = 0
+        VolumeBarScale = 0
+        VolumeBarFill.Size = UDim2.new(0, 0, 1, 0)
+        VolumeLabel.Text = "Volume: 0% | Peak: 0"
 
         if RainbowEnabled then
             AnimateStrokeColor(Color3.fromRGB(0, 255, 100))
@@ -10500,24 +10527,6 @@ AudioReactiveToggle.MouseButton1Click:Connect(function()
             StatusLabel.Text = "Status: Ready"
             StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
         end
-
-        -- Cleanup audio
-        if AudioDeviceInput then
-            pcall(function() AudioDeviceInput:Destroy() end)
-            AudioDeviceInput = nil
-        end
-        if AudioAnalyzer then
-            pcall(function() AudioAnalyzer:Destroy() end)
-            AudioAnalyzer = nil
-        end
-        if AudioFader then
-            pcall(function() AudioFader:Destroy() end)
-            AudioFader = nil
-        end
-
-        SmoothedVolume = 0
-        MaxVolume = 0
-        IsCalibrating = false
     end
 end)
 
@@ -10545,37 +10554,35 @@ RunService.RenderStepped:Connect(function(deltaTime)
 
     local effectiveSpeed = HueSpeed
     local colorOverride = nil
+    local musicVolume = 0
 
-    -- Audio Reactive Mode
-    if AudioReactiveEnabled then
-        local volume = GetAudioVolume()
+    -- Music Reactive Mode
+    if MusicReactiveEnabled then
+        musicVolume, rawLoudness, soundCount = GetMusicVolume()
+        UpdateVolumeDisplay(musicVolume, rawLoudness, soundCount)
 
-        -- Update volume bar
-        local barScale = math.clamp(volume, 0, 1)
-        VolumeBarFill.Size = UDim2.new(barScale, 0, 1, 0)
-        VolumeLabel.Text = string.format("Volume: %.0f%%", barScale * 100)
+        if musicVolume > 0.01 then
+            -- Map volume to color: quiet = cool colors (blue/purple), loud = hot colors (red/yellow)
+            local volumeHue = (1 - math.clamp(musicVolume, 0, 1)) * 0.75
+            colorOverride = Color3.fromHSV(volumeHue, 1, 0.5 + musicVolume * 0.5)
 
-        -- Color based on volume intensity
-        if volume > VolumeThreshold then
-            -- Map volume to hue: quiet = blue/purple, loud = red/yellow
-            local volumeHue = (1 - math.clamp(volume, 0, 1)) * 0.7
-            colorOverride = Color3.fromHSV(volumeHue, 1, 1)
-
-            -- Speed based on volume: louder = faster color cycling
-            effectiveSpeed = HueSpeed * (1 + volume * 5)
+            -- Speed scales with volume: louder = faster cycling
+            effectiveSpeed = HueSpeed * (1 + musicVolume * 8)
         else
-            colorOverride = Color3.fromHSV(0.6, 1, 0.3) -- Dim blue when quiet
+            -- No music playing - dim blue pulse
+            colorOverride = Color3.fromHSV(0.6, 0.8, 0.3)
+            effectiveSpeed = HueSpeed * 0.3
         end
     end
 
-    -- Rainbow Mode
-    if RainbowEnabled or AudioReactiveEnabled then
-        if not AudioReactiveEnabled then
-            CurrentHue = (CurrentHue + effectiveSpeed) % 1
+    -- Rainbow or Music Reactive Mode
+    if RainbowEnabled or MusicReactiveEnabled then
+        if MusicReactiveEnabled then
+            -- In music mode, hue shifts based on volume intensity
+            local volumeBoost = musicVolume * 3
+            CurrentHue = (CurrentHue + effectiveSpeed * (1 + volumeBoost)) % 1
         else
-            -- In audio reactive mode, shift hue based on volume too
-            local volume = GetAudioVolume()
-            CurrentHue = (CurrentHue + effectiveSpeed * (1 + volume * 3)) % 1
+            CurrentHue = (CurrentHue + effectiveSpeed) % 1
         end
 
         local ColorResult = colorOverride or Color3.fromHSV(CurrentHue, 1, 1)
@@ -10655,14 +10662,14 @@ NameLoopToggle.MouseButton1Click:Connect(function()
         AnimateButtonColor(NameLoopToggle, Color3.fromRGB(200, 0, 0))
         CurrentNameLabel.Text = "Current: (idle)"
 
-        if not RainbowEnabled and not AudioReactiveEnabled then
+        if not RainbowEnabled and not MusicReactiveEnabled then
             StatusLabel.Text = "Status: Ready"
             StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
         elseif RainbowEnabled then
             StatusLabel.Text = "Status: Rainbow Active"
             StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-        elseif AudioReactiveEnabled then
-            StatusLabel.Text = "Status: Audio Reactive Active"
+        elseif MusicReactiveEnabled then
+            StatusLabel.Text = "Status: Music Reactive Active"
             StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 255)
         end
 
@@ -10673,8 +10680,9 @@ NameLoopToggle.MouseButton1Click:Connect(function()
 end)
 
 -- INITIALIZATION
+InitializeVolumeHistory()
 StatusLabel.Text = "Script Loaded | Ready"
-print("Rainbow Accessory + Name Loop + Audio Reactive Script Loaded Successfully!")
+print("Rainbow Accessory + Name Loop + Music-Reactive Script Loaded Successfully!")
 print("Remotes: " .. tostring(AccessoryRemote) .. " | " .. tostring(SettingsRemote))
 
 
